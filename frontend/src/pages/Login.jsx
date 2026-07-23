@@ -5,6 +5,8 @@ import toast from 'react-hot-toast'
 import { useAuthStore } from '../store/authStore'
 import { Field, Input, Button } from '../components/ui/Form'
 
+const DEMO = import.meta.env.VITE_DEMO === 'true'
+
 const DEMO_ACCOUNTS = [
   { email: 'admin@quant.com', password: 'admin123', label: 'مدير النظام' },
   { email: 'mohamed.tech@quant.com', password: 'password123', label: 'رئيس قسم' },
@@ -72,7 +74,13 @@ export default function Login() {
 
           <div className="card">
             <h2 className="text-2xl font-extrabold text-slate-800 mb-1">مرحباً بعودتك</h2>
-            <p className="text-slate-400 mb-6">سجّل الدخول للمتابعة إلى حسابك</p>
+            <p className="text-slate-400 mb-4">سجّل الدخول للمتابعة إلى حسابك</p>
+
+            {DEMO && (
+              <div className="mb-5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs leading-relaxed p-3">
+                🧪 <span className="font-bold">نسخة تجريبية</span> — تعمل بالكامل داخل المتصفح ببيانات وهمية دون خادم فعلي. التعديلات مؤقتة ولا تُحفظ. استخدم أحد الحسابات التجريبية بالأسفل.
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <Field label="البريد الإلكتروني" required>

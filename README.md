@@ -7,6 +7,29 @@
 
 ---
 
+## 🌐 نسخة تجريبية مباشرة (GitHub Pages)
+
+رابط مباشر يعمل في المتصفح دون أي خادم:
+
+**https://toooba44-eng.github.io/HR-Managment-System/**
+
+> النسخة التجريبية **ثابتة (static)** وتعمل بالكامل داخل المتصفح ببيانات وهمية (نفس بيانات الـ seed) عبر طبقة API وهمية — لا يوجد باكند حقيقي، والتعديلات مؤقتة ولا تُحفظ بين الجلسات. للحصول على باكند فعلي بقاعدة بيانات، انشر على Railway (انظر قسم CI/CD).
+
+### تفعيل الرابط (خطوة لمرة واحدة)
+
+1. يجب أن يكون المستودع **عاماً (Public)** — GitHub Pages للمستودعات الخاصة يتطلب خطة مدفوعة. (`Settings → General → Change visibility`).
+2. فعّل Pages: `Settings → Pages → Build and deployment → Source: **GitHub Actions**`.
+3. ادمج الـ PR في `main` (أو شغّل workflow «Deploy demo to GitHub Pages» يدوياً). سينشر التلقائي الرابط.
+
+بناء النسخة التجريبية محلياً:
+```bash
+cd frontend
+VITE_DEMO=true VITE_BASE=/HR-Managment-System/ npm run build
+npm run preview
+```
+
+---
+
 ## 🚀 التشغيل بنقرة واحدة (Docker)
 
 المتطلب الوحيد: Docker + Docker Compose.

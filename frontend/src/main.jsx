@@ -1,10 +1,15 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { BrowserRouter } from 'react-router-dom'
+import { BrowserRouter, HashRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from 'react-query'
 import { Toaster } from 'react-hot-toast'
 import App from './App.jsx'
 import './index.css'
+
+// The static GitHub Pages demo uses hash routing so deep links work without
+// server-side rewrites; the real (backend-served) app uses clean URLs.
+const DEMO = import.meta.env.VITE_DEMO === 'true'
+const Router = DEMO ? HashRouter : BrowserRouter
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -18,7 +23,7 @@ const queryClient = new QueryClient({
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <Router>
         <App />
         <Toaster
           position="top-left"
@@ -30,7 +35,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             },
           }}
         />
-      </BrowserRouter>
+      </Router>
     </QueryClientProvider>
   </React.StrictMode>,
 )

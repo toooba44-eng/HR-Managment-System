@@ -1,14 +1,23 @@
 import api from './client'
+import * as mock from './mock'
+
+// In the static GitHub Pages demo build (VITE_DEMO=true) the whole API is
+// served in-browser from mock data — there is no backend.
+const DEMO = import.meta.env.VITE_DEMO === 'true'
+
+if (DEMO && typeof console !== 'undefined') {
+  console.info('%c🧪 Quant HR — وضع تجريبي (بيانات وهمية داخل المتصفح)', 'color:#2563eb;font-weight:bold')
+}
 
 // ---------- Auth ----------
-export const authApi = {
+const realAuthApi = {
   login: (data) => api.post('/auth/login', data).then((r) => r.data),
   me: () => api.get('/auth/me').then((r) => r.data),
   changePassword: (data) => api.put('/auth/change-password', data).then((r) => r.data),
 }
 
 // ---------- Dashboard ----------
-export const dashboardApi = {
+const realDashboardApi = {
   stats: () => api.get('/dashboard/stats').then((r) => r.data),
   attendanceChart: () => api.get('/dashboard/attendance-chart').then((r) => r.data),
   departmentDistribution: () => api.get('/dashboard/department-distribution').then((r) => r.data),
@@ -16,7 +25,7 @@ export const dashboardApi = {
 }
 
 // ---------- Employees ----------
-export const employeesApi = {
+const realEmployeesApi = {
   list: (params) => api.get('/employees', { params }).then((r) => r.data),
   get: (id) => api.get(`/employees/${id}`).then((r) => r.data),
   stats: (id) => api.get(`/employees/${id}/stats`).then((r) => r.data),
@@ -26,7 +35,7 @@ export const employeesApi = {
 }
 
 // ---------- Departments ----------
-export const departmentsApi = {
+const realDepartmentsApi = {
   list: () => api.get('/departments').then((r) => r.data),
   get: (id) => api.get(`/departments/${id}`).then((r) => r.data),
   orgChart: () => api.get('/departments/org-chart/tree').then((r) => r.data),
@@ -36,7 +45,7 @@ export const departmentsApi = {
 }
 
 // ---------- Attendance ----------
-export const attendanceApi = {
+const realAttendanceApi = {
   list: (params) => api.get('/attendance', { params }).then((r) => r.data),
   checkIn: (data) => api.post('/attendance/checkin', data).then((r) => r.data),
   checkOut: (data) => api.post('/attendance/checkout', data).then((r) => r.data),
@@ -45,7 +54,7 @@ export const attendanceApi = {
 }
 
 // ---------- Leaves ----------
-export const leavesApi = {
+const realLeavesApi = {
   list: (params) => api.get('/leaves', { params }).then((r) => r.data),
   create: (data) => api.post('/leaves', data).then((r) => r.data),
   approve: (id, data) => api.put(`/leaves/${id}/approve`, data).then((r) => r.data),
@@ -54,7 +63,7 @@ export const leavesApi = {
 }
 
 // ---------- Documents ----------
-export const documentsApi = {
+const realDocumentsApi = {
   forEmployee: (employeeId) => api.get(`/documents/employee/${employeeId}`).then((r) => r.data),
   upload: (formData) =>
     api
@@ -62,3 +71,12 @@ export const documentsApi = {
       .then((r) => r.data),
   remove: (id) => api.delete(`/documents/${id}`).then((r) => r.data),
 }
+
+// ---------- Exports (real backend, or in-browser mock for the demo) ----------
+export const authApi = DEMO ? mock.mockAuthApi : realAuthApi
+export const dashboardApi = DEMO ? mock.mockDashboardApi : realDashboardApi
+export const employeesApi = DEMO ? mock.mockEmployeesApi : realEmployeesApi
+export const departmentsApi = DEMO ? mock.mockDepartmentsApi : realDepartmentsApi
+export const attendanceApi = DEMO ? mock.mockAttendanceApi : realAttendanceApi
+export const leavesApi = DEMO ? mock.mockLeavesApi : realLeavesApi
+export const documentsApi = DEMO ? mock.mockDocumentsApi : realDocumentsApi
