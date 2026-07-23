@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: 30 58 138;
+    --color-secondary: 22 163 74;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: 'Tajawal', 'Inter', system-ui, sans-serif;
+    background-color: #f8fafc;
+    color: #1e293b;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-slate-100 p-6;
+  }
+
+  .btn-primary {
+    @apply bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-xl font-medium 
+           transition-all duration-200 shadow-lg shadow-primary-200 
+           flex items-center justify-center gap-2;
+  }
+
+  .btn-secondary {
+    @apply bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 
+           px-6 py-3 rounded-xl font-medium transition-all duration-200
+           flex items-center justify-center gap-2;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl border border-slate-200 
+           focus:border-primary-500 focus:ring-2 focus:ring-primary-200 
+           outline-none transition-all bg-white;
+  }
+
+  .nav-item {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 
+           hover:bg-primary-50 hover:text-primary-600 transition-all duration-200
+           font-medium;
+  }
+
+  .nav-item.active {
+    @apply bg-primary-50 text-primary-600;
+  }
+
+  .stat-card {
+    @apply card hover:shadow-md transition-shadow duration-300;
+  }
+
+  .badge {
+    @apply px-3 py-1 rounded-full text-xs font-medium;
+  }
+
+  .badge-success {
+    @apply badge bg-emerald-50 text-emerald-700;
+  }
+
+  .badge-warning {
+    @apply badge bg-amber-50 text-amber-700;
+  }
+
+  .badge-danger {
+    @apply badge bg-red-50 text-red-700;
+  }
+
+  .badge-info {
+    @apply badge bg-blue-50 text-blue-700;
+  }
+
+  .table-row {
+    @apply hover:bg-slate-50 transition-colors cursor-pointer;
+  }
+
+  .modal-overlay {
+    @apply fixed inset-0 bg-black/50 backdrop-blur-sm z-50 
+           flex items-center justify-center p-4;
+  }
+
+  .modal-content {
+    @apply bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-primary-800;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
