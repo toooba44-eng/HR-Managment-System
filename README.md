@@ -30,6 +30,28 @@ npm run preview
 
 ---
 
+## 🚂 نشر فعلي بقاعدة بيانات حقيقية (Railway — خدمة واحدة)
+
+للحصول على موقع حقيقي **يحفظ البيانات** (بخلاف نسخة Pages التجريبية)، انشر على Railway كخدمة واحدة: الخادم يبني الواجهة ويخدمها + الـ API + قاعدة SQLite على قرص دائم — **رابط واحد** بلا CORS.
+
+المفتاح: جذر المشروع يحتوي `Dockerfile` موحّد و`railway.json`. والخادم (`backend/src/server.js`) يخدم مجلد `public/` (نسخة الواجهة المبنية) مع SPA fallback.
+
+**الخطوات على [railway.app](https://railway.app):**
+1. سجّل الدخول عبر GitHub → **New Project → Deploy from GitHub repo** → اختر `HR-Managment-System`.
+2. Railway يكتشف `Dockerfile` في الجذر ويبني تلقائياً.
+3. في **Variables** أضِف:
+   - `SEED_DB=true` (لبذر البيانات التجريبية أول مرة)
+   - `JWT_SECRET=<قيمة سرية قوية>`
+   - `DATABASE_PATH=/app/database/hr_system.db`
+4. في **Settings → Volumes** أنشئ Volume واربطه بالمسار **`/app/database`** (ليبقى SQLite محفوظاً بين عمليات النشر).
+5. **Settings → Networking → Generate Domain** للحصول على الرابط العام.
+
+Railway يحقن `PORT` تلقائياً، والخادم يستمع عليه. الفحص الصحّي على `/api/health`.
+
+> بعد أول نشر ناجح يمكنك ضبط `SEED_DB=false` حتى لا يُعاد البذر (وهو آمن أصلاً لأنه idempotent).
+
+---
+
 ## 🚀 التشغيل بنقرة واحدة (Docker)
 
 المتطلب الوحيد: Docker + Docker Compose.

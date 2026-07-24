@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const db = require('./config/database');
@@ -67,6 +68,18 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/leaves', leaveRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/documents', documentRoutes);
+
+// Serve the built frontend when present (single-service deployment).
+// CLIENT_DIR defaults to ../public relative to this file (where the Docker
+// image copies frontend/dist). Falls back to a JSON 404 for API-style paths.
+const clientDir = process.env.CLIENT_DIR || path.join(__dirname, '../public');
+if (fs.existsSync(path.join(clientDir, 'index.html'))) {
+  app.use(express.static(clientDir));
+  // SPA fallback for any non-API GET route
+  app.get(/^(?!\/api\/).+/, (req, res) => {
+    res.sendFile(path.join(clientDir, 'index.html'));
+  });
+}
 
 // Error handling
 app.use(errorHandler);

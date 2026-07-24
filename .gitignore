@@ -38,3 +38,6 @@ Thumbs.db
 # Misc
 coverage/
 .cache/
+
+# Frontend build copied into backend for single-service image
+backend/public/
