@@ -1,0 +1,43 @@
+name: Deploy to Railway
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Prevent overlapping deploys
+concurrency:
+  group: railway-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy services
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Guard — require RAILWAY_TOKEN
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          if [ -z "$RAILWAY_TOKEN" ]; then
+            echo "::warning::RAILWAY_TOKEN secret is not set — skipping deployment."
+            echo "skip=true" >> "$GITHUB_ENV"
+          fi
+
+      - name: Install Railway CLI
+        if: env.skip != 'true'
+        run: npm install -g @railway/cli
+
+      - name: Deploy backend
+        if: env.skip != 'true'
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway up --service "${{ vars.RAILWAY_BACKEND_SERVICE || 'backend' }}" --path-as-root ./backend --ci
+
+      - name: Deploy frontend
+        if: env.skip != 'true'
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway up --service "${{ vars.RAILWAY_FRONTEND_SERVICE || 'frontend' }}" --path-as-root ./frontend --ci

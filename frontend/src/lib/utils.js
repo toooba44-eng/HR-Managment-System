@@ -1,0 +1,82 @@
+import { clsx } from 'clsx'
+import { twMerge } from 'tailwind-merge'
+
+export function cn(...inputs) {
+  return twMerge(clsx(inputs))
+}
+
+// Arabic role labels
+export const ROLE_LABELS = {
+  admin: 'مدير النظام',
+  hr_manager: 'مدير الموارد البشرية',
+  department_head: 'رئيس قسم',
+  employee: 'موظف',
+}
+
+// Status → badge class mapping
+export const STATUS_BADGE = {
+  نشط: 'badge-success',
+  حاضر: 'badge-success',
+  موافقة: 'badge-success',
+  إجازة: 'badge-info',
+  'عمل عن بعد': 'badge-info',
+  معلق: 'badge-warning',
+  معلقة: 'badge-warning',
+  تأخر: 'badge-warning',
+  غائب: 'badge-danger',
+  مرفوضة: 'badge-danger',
+  مستقيل: 'badge-danger',
+  مفصول: 'badge-danger',
+  ملغاة: 'badge-danger',
+}
+
+export function formatDate(date) {
+  if (!date) return '—'
+  try {
+    return new Intl.DateTimeFormat('ar-SA', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    }).format(new Date(date))
+  } catch {
+    return date
+  }
+}
+
+export function formatTime(datetime) {
+  if (!datetime) return '—'
+  try {
+    return new Intl.DateTimeFormat('ar-SA', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date(datetime))
+  } catch {
+    return datetime
+  }
+}
+
+export function formatCurrency(amount) {
+  if (amount == null) return '—'
+  return new Intl.NumberFormat('ar-SA', {
+    style: 'currency',
+    currency: 'SAR',
+    maximumFractionDigits: 0,
+  }).format(amount)
+}
+
+export function getInitials(name) {
+  if (!name) return '؟'
+  const parts = name.trim().split(' ')
+  return parts.length > 1 ? `${parts[0][0]}${parts[1][0]}` : parts[0].slice(0, 2)
+}
+
+// Deterministic avatar color from a string
+export function avatarColor(seed = '') {
+  const colors = [
+    'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500',
+    'bg-violet-500', 'bg-cyan-500', 'bg-indigo-500', 'bg-teal-500',
+  ]
+  let hash = 0
+  for (let i = 0; i < seed.length; i++) hash = seed.charCodeAt(i) + ((hash << 5) - hash)
+  return colors[Math.abs(hash) % colors.length]
+}

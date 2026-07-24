@@ -1,0 +1,12 @@
+node_modules
+npm-debug.log
+database
+uploads
+.env
+*.db
+*.db-shm
+*.db-wal
+.git
+.gitignore
+Dockerfile
+.dockerignore
