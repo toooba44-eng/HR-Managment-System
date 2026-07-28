@@ -153,6 +153,14 @@ const assets = [
   { id: assetSeq++, name: 'طابعة HP LaserJet', category: 'أجهزة مكتبية', serial_number: 'HP-LJ-0007', assigned_to: null, status: 'صيانة', assigned_date: null, notes: 'قيد الصيانة الدورية.' },
 ]
 
+let goalSeq = 1
+const goals = [
+  { id: goalSeq++, employee_id: 6, title: 'إطلاق الوحدة الجديدة', description: 'إنهاء وإطلاق وحدة التقارير قبل نهاية الربع.', weight: 40, progress: 60, target_date: addDays(30), status: 'قيد التنفيذ', created_by: 2 },
+  { id: goalSeq++, employee_id: 6, title: 'تحسين تغطية الاختبارات', description: 'رفع تغطية الاختبارات إلى 80%.', weight: 30, progress: 25, target_date: addDays(45), status: 'قيد التنفيذ', created_by: 2 },
+  { id: goalSeq++, employee_id: 10, title: 'تطوير مهارات React المتقدمة', description: 'إكمال مسار تدريبي وتطبيقه عملياً.', weight: 30, progress: 100, target_date: addDays(-5), status: 'مكتملة', created_by: 2 },
+  { id: goalSeq++, employee_id: 4, title: 'تحقيق هدف المبيعات الربعي', description: 'الوصول إلى 110% من المستهدف.', weight: 50, progress: 45, target_date: addDays(20), status: 'قيد التنفيذ', created_by: 4 },
+]
+
 function addDays(n) {
   const d = new Date()
   d.setDate(d.getDate() + n)
@@ -811,6 +819,56 @@ export const mockAssetsApi = {
     await delay()
     const i = assets.findIndex((x) => x.id === Number(id))
     if (i > -1) assets.splice(i, 1)
+    return { message: 'تم الحذف' }
+  },
+}
+
+export const mockGoalsApi = {
+  async list({ status = '' } = {}) {
+    await delay()
+    const u = currentUser()
+    let rows = goals
+    if (u && ['employee', 'candidate'].includes(u.role)) {
+      rows = rows.filter((g) => g.employee_id === u.employee_id)
+    } else if (u && u.role === 'department_head') {
+      const dep = employees.find((e) => e.id === u.employee_id)?.department_id
+      rows = rows.filter((g) => employees.find((e) => e.id === g.employee_id)?.department_id === dep)
+    }
+    if (status) rows = rows.filter((g) => g.status === status)
+    const so = { 'قيد التنفيذ': 1, 'لم تبدأ': 2, مكتملة: 3, ملغاة: 4 }
+    const list = [...rows]
+      .sort((a, b) => (so[a.status] - so[b.status]) || b.id - a.id)
+      .map((g) => ({ ...g, full_name: empName(g.employee_id), job_title: employees.find((e) => e.id === g.employee_id)?.job_title, department_id: employees.find((e) => e.id === g.employee_id)?.department_id, profile_picture: null, created_by_name: empName(g.created_by) }))
+    const summary = {
+      total: list.length,
+      completed: list.filter((g) => g.status === 'مكتملة').length,
+      inProgress: list.filter((g) => g.status === 'قيد التنفيذ').length,
+      avgProgress: list.length ? Math.round(list.reduce((s, g) => s + (g.progress || 0), 0) / list.length) : 0,
+    }
+    return { goals: list, summary }
+  },
+  async create(data) {
+    await delay()
+    const g = { id: goalSeq++, weight: data.weight || 100, progress: 0, status: 'لم تبدأ', created_by: currentUser()?.employee_id || null, ...data }
+    goals.unshift(g)
+    return { message: 'تم إنشاء الهدف', goal: g }
+  },
+  async update(id, data) {
+    await delay()
+    const g = goals.find((x) => x.id === Number(id))
+    if (g) {
+      if (data.progress !== undefined) {
+        g.progress = Math.max(0, Math.min(100, parseInt(data.progress, 10)))
+        if (data.status === undefined) g.status = g.progress >= 100 ? 'مكتملة' : g.progress > 0 ? 'قيد التنفيذ' : g.status
+      }
+      if (data.status !== undefined) { g.status = data.status; if (data.status === 'مكتملة') g.progress = 100 }
+    }
+    return { message: 'تم التحديث' }
+  },
+  async remove(id) {
+    await delay()
+    const i = goals.findIndex((x) => x.id === Number(id))
+    if (i > -1) goals.splice(i, 1)
     return { message: 'تم الحذف' }
   },
 }

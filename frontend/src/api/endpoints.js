@@ -141,6 +141,14 @@ const realAssetsApi = {
   remove: (id) => api.delete(`/assets/${id}`).then((r) => r.data),
 }
 
+// ---------- Performance goals ----------
+const realGoalsApi = {
+  list: (params) => api.get('/goals', { params }).then((r) => r.data),
+  create: (data) => api.post('/goals', data).then((r) => r.data),
+  update: (id, data) => api.put(`/goals/${id}`, data).then((r) => r.data),
+  remove: (id) => api.delete(`/goals/${id}`).then((r) => r.data),
+}
+
 // ---------- Documents ----------
 const realDocumentsApi = {
   forEmployee: (employeeId) => api.get(`/documents/employee/${employeeId}`).then((r) => r.data),
@@ -170,3 +178,4 @@ export const applicationsApi = DEMO ? mock.mockApplicationsApi : realApplication
 export const companiesApi = DEMO ? mock.mockCompaniesApi : realCompaniesApi
 export const expensesApi = DEMO ? mock.mockExpensesApi : realExpensesApi
 export const assetsApi = DEMO ? mock.mockAssetsApi : realAssetsApi
+export const goalsApi = DEMO ? mock.mockGoalsApi : realGoalsApi

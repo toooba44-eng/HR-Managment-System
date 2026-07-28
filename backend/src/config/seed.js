@@ -279,6 +279,19 @@ function seedData() {
     console.log('✅ Assets seeded');
   }
 
+  // Performance goals
+  if (isEmpty('goals')) {
+    const insertGoal = db.prepare(`INSERT INTO goals (employee_id, title, description, weight, progress, target_date, status, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+    const goals = [
+      [6, 'إطلاق الوحدة الجديدة', 'إنهاء وإطلاق وحدة التقارير قبل نهاية الربع.', 40, 60, addDaysStr(30), 'قيد التنفيذ', 2],
+      [6, 'تحسين تغطية الاختبارات', 'رفع تغطية الاختبارات إلى 80%.', 30, 25, addDaysStr(45), 'قيد التنفيذ', 2],
+      [10, 'تطوير مهارات React المتقدمة', 'إكمال مسار تدريبي وتطبيقه عملياً.', 30, 100, addDaysStr(-5), 'مكتملة', 2],
+      [4, 'تحقيق هدف المبيعات الربعي', 'الوصول إلى 110% من المستهدف.', 50, 45, addDaysStr(20), 'قيد التنفيذ', 4],
+    ];
+    goals.forEach(g => insertGoal.run(g));
+    console.log('✅ Goals seeded');
+  }
+
   console.log('🎉 Database seeding completed!');
 }
 
