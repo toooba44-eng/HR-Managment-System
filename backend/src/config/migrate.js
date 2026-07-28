@@ -6,7 +6,7 @@ const migrations = [
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
-    role TEXT NOT NULL DEFAULT 'employee' CHECK(role IN ('admin', 'hr_manager', 'department_head', 'employee')),
+    role TEXT NOT NULL DEFAULT 'employee' CHECK(role IN ('super_admin', 'admin', 'hr_manager', 'department_head', 'employee', 'candidate')),
     employee_id INTEGER,
     is_active INTEGER DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
