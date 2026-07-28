@@ -299,6 +299,54 @@ const migrations = [
     FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
     FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
     UNIQUE(course_id, employee_id)
+  )`,
+
+  // Offboarding / end of service
+  `CREATE TABLE IF NOT EXISTS offboarding (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    type TEXT NOT NULL DEFAULT 'استقالة' CHECK(type IN ('استقالة', 'فصل', 'انتهاء عقد', 'تقاعد')),
+    reason TEXT,
+    last_working_day DATE,
+    status TEXT DEFAULT 'قيد المعالجة' CHECK(status IN ('قيد المعالجة', 'مكتملة', 'ملغاة')),
+    notes TEXT,
+    created_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
+  // Grievances / disciplinary cases
+  `CREATE TABLE IF NOT EXISTS grievances (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    type TEXT NOT NULL DEFAULT 'شكوى' CHECK(type IN ('مخالفة', 'شكوى')),
+    category TEXT DEFAULT 'أخرى',
+    description TEXT,
+    severity TEXT DEFAULT 'متوسطة' CHECK(severity IN ('منخفضة', 'متوسطة', 'عالية')),
+    status TEXT DEFAULT 'مفتوحة' CHECK(status IN ('مفتوحة', 'قيد المعالجة', 'مغلقة')),
+    action TEXT,
+    created_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
+  // Health & safety incidents
+  `CREATE TABLE IF NOT EXISTS incidents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    type TEXT NOT NULL DEFAULT 'ملاحظة سلامة' CHECK(type IN ('حادث', 'إصابة', 'ملاحظة سلامة', 'فحص طبي')),
+    employee_id INTEGER,
+    location TEXT,
+    severity TEXT DEFAULT 'متوسطة' CHECK(severity IN ('منخفضة', 'متوسطة', 'عالية')),
+    description TEXT,
+    status TEXT DEFAULT 'مفتوح' CHECK(status IN ('مفتوح', 'قيد المعالجة', 'مغلق')),
+    incident_date DATE,
+    reported_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL,
+    FOREIGN KEY (reported_by) REFERENCES employees(id) ON DELETE SET NULL
   )`
 ];
 

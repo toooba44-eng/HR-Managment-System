@@ -33,6 +33,9 @@ const assetRoutes = require('./routes/assets');
 const goalRoutes = require('./routes/goals');
 const trainingRoutes = require('./routes/training');
 const reportRoutes = require('./routes/reports');
+const offboardingRoutes = require('./routes/offboarding');
+const grievanceRoutes = require('./routes/grievances');
+const incidentRoutes = require('./routes/incidents');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -96,6 +99,9 @@ app.use('/api/assets', assetRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/training', trainingRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/offboarding', offboardingRoutes);
+app.use('/api/grievances', grievanceRoutes);
+app.use('/api/incidents', incidentRoutes);
 
 // Serve the built frontend when present (single-service deployment).
 // CLIENT_DIR defaults to ../public relative to this file (where the Docker
