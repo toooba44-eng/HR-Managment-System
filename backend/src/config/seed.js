@@ -193,6 +193,31 @@ function seedData() {
   docs.forEach(doc => insertDoc.run(doc));
   console.log('✅ Documents seeded');
 
+  // Insert Sample Announcements
+  const insertAnn = db.prepare(`
+    INSERT INTO announcements (title, body, audience, is_pinned, created_by) VALUES (?, ?, ?, ?, ?)
+  `);
+  const announcements = [
+    ['تحديث سياسة العمل عن بُعد', 'يسمح النظام الجديد بيومين عمل عن بُعد أسبوعياً بعد موافقة المدير المباشر. يُرجى تقديم الطلبات عبر بوابة الموظف.', 'الجميع', 1, 5],
+    ['موعد صرف رواتب الشهر', 'سيتم صرف رواتب هذا الشهر يوم 27 كالمعتاد. لأي استفسار يُرجى التواصل مع الموارد البشرية.', 'الجميع', 0, 5],
+    ['برنامج تدريبي جديد', 'انطلق التسجيل في برنامج تطوير المهارات القيادية. الأماكن محدودة — سارع بالتسجيل عبر بوابة الموظف.', 'الجميع', 0, 5],
+  ];
+  announcements.forEach(a => insertAnn.run(a));
+  console.log('✅ Announcements seeded');
+
+  // Insert Sample Requests
+  const insertReq = db.prepare(`
+    INSERT INTO requests (employee_id, type, subject, details, status, response, resolved_by) VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
+  const requests = [
+    [6, 'خطاب', 'خطاب تعريف بالراتب', 'مطلوب لغرض فتح حساب بنكي.', 'مكتملة', 'تم إصدار الخطاب وإرساله على بريدك.', 5],
+    [6, 'عمل عن بعد', 'طلب عمل عن بُعد ليوم الخميس', 'لظرف عائلي.', 'معلقة', null, null],
+    [10, 'عمل إضافي', 'عمل إضافي لإنهاء مشروع', 'ساعتان إضافيتان يومي الاثنين والثلاثاء.', 'مقبولة', 'تمت الموافقة.', 2],
+    [10, 'تحديث بيانات', 'تحديث رقم الجوال', 'الرقم الجديد: 0501234567', 'معلقة', null, null],
+  ];
+  requests.forEach(r => insertReq.run(r));
+  console.log('✅ Requests seeded');
+
   console.log('🎉 Database seeding completed successfully!');
 }
 

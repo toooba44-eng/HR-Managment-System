@@ -1,0 +1,101 @@
+const express = require('express');
+const db = require('../config/database');
+const { authenticateToken, requireRole } = require('../middleware/auth');
+const router = express.Router();
+
+router.use(authenticateToken);
+
+// List requests (role-filtered)
+router.get('/', (req, res, next) => {
+  try {
+    const { type, status } = req.query;
+    let where = 'WHERE 1=1';
+    const params = [];
+
+    if (type) { where += ' AND r.type = ?'; params.push(type); }
+    if (status) { where += ' AND r.status = ?'; params.push(status); }
+
+    // Role-based scoping
+    if (['employee', 'candidate'].includes(req.user.role)) {
+      where += ' AND r.employee_id = ?';
+      params.push(req.user.employee_id);
+    } else if (req.user.role === 'department_head') {
+      const dept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(req.user.employee_id);
+      if (dept) { where += ' AND e.department_id = ?'; params.push(dept.department_id); }
+    }
+
+    const rows = db.prepare(`
+      SELECT r.*, e.full_name, e.job_title, e.profile_picture, d.name as department_name,
+             resolver.full_name as resolved_by_name
+      FROM requests r
+      JOIN employees e ON r.employee_id = e.id
+      LEFT JOIN departments d ON e.department_id = d.id
+      LEFT JOIN employees resolver ON r.resolved_by = resolver.id
+      ${where}
+      ORDER BY
+        CASE r.status WHEN 'معلقة' THEN 1 WHEN 'مقبولة' THEN 2 ELSE 3 END,
+        r.created_at DESC
+    `).all(...params);
+
+    res.json(rows);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Create a request (employees create for themselves)
+router.post('/', (req, res, next) => {
+  try {
+    const { type, subject, details } = req.body;
+    let { employee_id } = req.body;
+
+    // Employees can only file for themselves
+    if (['employee', 'candidate', 'department_head'].includes(req.user.role) || !employee_id) {
+      employee_id = req.user.employee_id;
+    }
+    if (!employee_id) {
+      return res.status(400).json({ error: 'No employee associated with this account' });
+    }
+    if (!type || !subject) {
+      return res.status(400).json({ error: 'Type and subject are required' });
+    }
+
+    const result = db.prepare(`
+      INSERT INTO requests (employee_id, type, subject, details)
+      VALUES (?, ?, ?, ?)
+    `).run(employee_id, type, subject, details || null);
+
+    res.status(201).json({
+      message: 'Request submitted',
+      request: { id: result.lastInsertRowid, employee_id, type, subject, status: 'معلقة' }
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Resolve a request (managers / HR)
+router.put('/:id/resolve', requireRole('admin', 'hr_manager', 'department_head', 'super_admin'), (req, res, next) => {
+  try {
+    const { status, response } = req.body;
+    if (!['مقبولة', 'مرفوضة', 'مكتملة'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+    const request = db.prepare('SELECT * FROM requests WHERE id = ?').get(req.params.id);
+    if (!request) {
+      return res.status(404).json({ error: 'Request not found' });
+    }
+
+    db.prepare(`
+      UPDATE requests
+      SET status = ?, response = ?, resolved_by = ?, resolved_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(status, response || null, req.user.employee_id || null, req.params.id);
+
+    res.json({ message: 'Request updated' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+module.exports = router;

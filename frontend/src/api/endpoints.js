@@ -62,6 +62,25 @@ const realLeavesApi = {
   balance: (employeeId) => api.get(`/leaves/balance/${employeeId}`).then((r) => r.data),
 }
 
+// ---------- Announcements ----------
+const realAnnouncementsApi = {
+  list: () => api.get('/announcements').then((r) => r.data),
+  create: (data) => api.post('/announcements', data).then((r) => r.data),
+  remove: (id) => api.delete(`/announcements/${id}`).then((r) => r.data),
+}
+
+// ---------- Requests (employee self-service) ----------
+const realRequestsApi = {
+  list: (params) => api.get('/requests', { params }).then((r) => r.data),
+  create: (data) => api.post('/requests', data).then((r) => r.data),
+  resolve: (id, data) => api.put(`/requests/${id}/resolve`, data).then((r) => r.data),
+}
+
+// ---------- Payslips ----------
+const realPayslipsApi = {
+  forEmployee: (employeeId) => api.get(`/payslips/${employeeId}`).then((r) => r.data),
+}
+
 // ---------- Documents ----------
 const realDocumentsApi = {
   forEmployee: (employeeId) => api.get(`/documents/employee/${employeeId}`).then((r) => r.data),
@@ -80,3 +99,6 @@ export const departmentsApi = DEMO ? mock.mockDepartmentsApi : realDepartmentsAp
 export const attendanceApi = DEMO ? mock.mockAttendanceApi : realAttendanceApi
 export const leavesApi = DEMO ? mock.mockLeavesApi : realLeavesApi
 export const documentsApi = DEMO ? mock.mockDocumentsApi : realDocumentsApi
+export const announcementsApi = DEMO ? mock.mockAnnouncementsApi : realAnnouncementsApi
+export const requestsApi = DEMO ? mock.mockRequestsApi : realRequestsApi
+export const payslipsApi = DEMO ? mock.mockPayslipsApi : realPayslipsApi
