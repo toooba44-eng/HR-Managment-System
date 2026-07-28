@@ -81,6 +81,19 @@ const realPayslipsApi = {
   forEmployee: (employeeId) => api.get(`/payslips/${employeeId}`).then((r) => r.data),
 }
 
+// ---------- Policies ----------
+const realPoliciesApi = {
+  list: () => api.get('/policies').then((r) => r.data),
+  create: (data) => api.post('/policies', data).then((r) => r.data),
+  update: (id, data) => api.put(`/policies/${id}`, data).then((r) => r.data),
+  remove: (id) => api.delete(`/policies/${id}`).then((r) => r.data),
+}
+
+// ---------- Payroll ----------
+const realPayrollApi = {
+  overview: (params) => api.get('/payroll', { params }).then((r) => r.data),
+}
+
 // ---------- Documents ----------
 const realDocumentsApi = {
   forEmployee: (employeeId) => api.get(`/documents/employee/${employeeId}`).then((r) => r.data),
@@ -102,3 +115,5 @@ export const documentsApi = DEMO ? mock.mockDocumentsApi : realDocumentsApi
 export const announcementsApi = DEMO ? mock.mockAnnouncementsApi : realAnnouncementsApi
 export const requestsApi = DEMO ? mock.mockRequestsApi : realRequestsApi
 export const payslipsApi = DEMO ? mock.mockPayslipsApi : realPayslipsApi
+export const policiesApi = DEMO ? mock.mockPoliciesApi : realPoliciesApi
+export const payrollApi = DEMO ? mock.mockPayrollApi : realPayrollApi

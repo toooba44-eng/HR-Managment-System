@@ -98,6 +98,15 @@ const requests = [
   { id: reqSeq++, employee_id: 10, type: 'عمل إضافي', subject: 'عمل إضافي لإنهاء مشروع', details: 'ساعتان إضافيتان.', status: 'مقبولة', response: 'تمت الموافقة.', resolved_by: 2, created_at: nowIso() },
 ]
 
+let polSeq = 1
+const policies = [
+  { id: polSeq++, title: 'سياسة الدوام والانصراف', category: 'الحضور', body: 'ساعات العمل الرسمية من 8 صباحاً حتى 5 مساءً، من الأحد إلى الخميس، بينها ساعة استراحة. يُحتسب الحضور بعد 8:15 تأخراً.', created_by: 5 },
+  { id: polSeq++, title: 'سياسة الإجازات السنوية', category: 'الإجازات', body: 'يستحق الموظف 30 يوم إجازة سنوية مدفوعة. تُقدَّم الطلبات قبل 3 أيام عمل على الأقل عبر بوابة الموظف وتخضع لموافقة المدير المباشر.', created_by: 5 },
+  { id: polSeq++, title: 'سياسة العمل عن بُعد', category: 'العمل المرن', body: 'يُسمح بيومين عمل عن بُعد أسبوعياً بحد أقصى بعد موافقة المدير المباشر، مع الالتزام بالتواجد الرقمي خلال ساعات العمل.', created_by: 5 },
+  { id: polSeq++, title: 'مدونة السلوك المهني', category: 'عام', body: 'يلتزم جميع الموظفين بالاحترام المتبادل، السرية، وعدم تضارب المصالح. أي مخالفة تخضع للائحة الجزاءات.', created_by: 5 },
+  { id: polSeq++, title: 'سياسة استخدام الأجهزة', category: 'تقنية', body: 'أجهزة الشركة مخصّصة للعمل. يُمنع تثبيت برامج غير مرخّصة، ويجب حماية بيانات الدخول وعدم مشاركتها.', created_by: 2 },
+]
+
 function addDays(n) {
   const d = new Date()
   d.setDate(d.getDate() + n)
@@ -479,6 +488,51 @@ export const mockPayslipsApi = {
       employee: { id: emp.id, full_name: emp.full_name, employee_number: emp.employee_number, job_title: emp.job_title, bank_name: emp.bank_name, bank_account: emp.bank_account },
       payslips,
     }
+  },
+}
+
+export const mockPoliciesApi = {
+  async list() {
+    await delay()
+    return [...policies]
+      .sort((a, b) => a.category.localeCompare(b.category) || a.title.localeCompare(b.title))
+      .map((p) => ({ ...p, created_by_name: empName(p.created_by) }))
+  },
+  async create(data) {
+    await delay()
+    const p = { id: polSeq++, category: data.category || 'عام', created_by: currentUser()?.employee_id || null, ...data }
+    policies.push(p)
+    return { message: 'تم إنشاء السياسة', policy: p }
+  },
+  async update(id, data) {
+    await delay()
+    const p = policies.find((x) => x.id === Number(id))
+    if (p) Object.assign(p, data)
+    return { message: 'تم التحديث' }
+  },
+  async remove(id) {
+    await delay()
+    const i = policies.findIndex((x) => x.id === Number(id))
+    if (i > -1) policies.splice(i, 1)
+    return { message: 'تم الحذف' }
+  },
+}
+
+export const mockPayrollApi = {
+  async overview({ department_id } = {}) {
+    await delay()
+    let rows = employees.filter((e) => e.status === 'نشط')
+    if (department_id) rows = rows.filter((e) => e.department_id === Number(department_id))
+    const payroll = rows
+      .map((e) => {
+        const basic = e.salary || 0
+        const allowances = e.allowances || 0
+        const deductions = Math.round(basic * 0.1)
+        return { id: e.id, full_name: e.full_name, job_title: e.job_title, employee_number: e.employee_number, department_name: deptName(e.department_id), basic, allowances, deductions, net: basic + allowances - deductions }
+      })
+      .sort((a, b) => b.basic - a.basic)
+    const totals = payroll.reduce((t, p) => ({ basic: t.basic + p.basic, allowances: t.allowances + p.allowances, deductions: t.deductions + p.deductions, net: t.net + p.net }), { basic: 0, allowances: 0, deductions: 0, net: 0 })
+    return { payroll, totals, count: payroll.length }
   },
 }
 
