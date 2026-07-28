@@ -251,6 +251,25 @@ function seedData() {
   tasks.forEach(t => insertTask.run(t));
   console.log('✅ Tasks seeded');
 
+  // Insert Sample Jobs
+  const insertJob = db.prepare(`
+    INSERT INTO jobs (title, department, location, type, description, status, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
+  const jobs = [
+    ['مطور واجهات أمامية (React)', 'التقنية', 'الرياض - المقر الرئيسي', 'دوام كامل', 'نبحث عن مطوّر واجهات متمكّن من React وTailwind للانضمام لفريق المنتج.', 'مفتوحة', 5],
+    ['أخصائي موارد بشرية', 'الموارد البشرية', 'الرياض - المقر الرئيسي', 'دوام كامل', 'مسؤول عن التوظيف وإدارة شؤون الموظفين والسياسات.', 'مفتوحة', 5],
+    ['مندوب مبيعات', 'المبيعات', 'جدة - فرع جدة', 'دوام كامل', 'تطوير علاقات العملاء وتحقيق أهداف المبيعات.', 'مفتوحة', 5],
+    ['محاسب', 'المالية', 'الرياض - المقر الرئيسي', 'عقد', 'إعداد التقارير المالية ومتابعة الميزانيات.', 'مغلقة', 5],
+  ];
+  const jobIds = jobs.map(j => insertJob.run(j).lastInsertRowid);
+  console.log('✅ Jobs seeded');
+
+  // Insert Sample Application (for the demo candidate account)
+  db.prepare(`
+    INSERT INTO applications (job_id, candidate_email, candidate_name, cover_note, status) VALUES (?, ?, ?, ?, ?)
+  `).run(jobIds[0], 'candidate@quant.com', 'مرشح تجريبي', 'لديّ خبرة 3 سنوات في تطوير الواجهات.', 'مقابلة');
+  console.log('✅ Applications seeded');
+
   console.log('🎉 Database seeding completed successfully!');
 }
 
