@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { NavLink } from 'react-router-dom'
 import { LogOut, X } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
@@ -39,20 +40,29 @@ export default function Sidebar({ open, onClose }) {
           </button>
         </div>
 
-        {/* Nav from the portal config */}
+        {/* Nav from the portal config — grouped into sections when provided */}
         <nav className="flex-1 px-4 space-y-1 overflow-y-auto scrollbar-hide pb-4">
-          {portal.nav.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.exact}
-              onClick={onClose}
-              className={({ isActive }) => cn('nav-item', isActive && 'active')}
-            >
-              <item.icon className="w-5 h-5 shrink-0" />
-              <span className="truncate">{item.label}</span>
-            </NavLink>
-          ))}
+          {portal.nav.map((item, i) => {
+            const showHeader = item.section && item.section !== portal.nav[i - 1]?.section
+            return (
+              <Fragment key={item.to}>
+                {showHeader && (
+                  <p className="px-4 pt-4 pb-1 text-[11px] font-bold text-slate-400 uppercase tracking-wide">
+                    {item.section}
+                  </p>
+                )}
+                <NavLink
+                  to={item.to}
+                  end={item.exact}
+                  onClick={onClose}
+                  className={({ isActive }) => cn('nav-item', isActive && 'active')}
+                >
+                  <item.icon className="w-5 h-5 shrink-0" />
+                  <span className="truncate">{item.label}</span>
+                </NavLink>
+              </Fragment>
+            )
+          })}
         </nav>
 
         {/* User footer */}
