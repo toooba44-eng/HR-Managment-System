@@ -33,6 +33,7 @@ import Expenses from '../pages/hr/Expenses'
 import Assets from '../pages/hr/Assets'
 import Performance from '../pages/hr/Performance'
 import Training from '../pages/hr/Training'
+import Reports from '../pages/hr/Reports'
 import ComingSoon from '../components/ui/ComingSoon'
 
 // Helper for scaffolded (not-yet-built) features
@@ -120,7 +121,7 @@ export const PORTALS = {
       { section: 'الامتثال والعلاقات', to: '/hr/grievances', label: 'المخالفات والشكاوى', icon: AlertTriangle, element: cs('المخالفات والشكاوى', 'إدارة المخالفات والإجراءات التأديبية والشكاوى', AlertTriangle) },
       { section: 'الامتثال والعلاقات', to: '/hr/offboarding', label: 'إنهاء الخدمة', icon: UserMinus, element: cs('إنهاء الخدمة', 'إجراءات إنهاء الخدمة والمخالصة النهائية', UserMinus) },
 
-      { section: 'النظام والتقارير', to: '/hr/reports', label: 'التقارير والتحليلات', icon: BarChart3, element: cs('التقارير والتحليلات', 'تقارير الموارد البشرية ولوحات التحليلات', BarChart3) },
+      { section: 'النظام والتقارير', to: '/hr/reports', label: 'التقارير والتحليلات', icon: BarChart3, element: <Reports /> },
       { section: 'النظام والتقارير', to: '/hr/automation', label: 'الأتمتة وسير العمل', icon: Workflow, element: cs('الأتمتة وسير العمل', 'بناء مسارات الموافقات والأتمتة', Workflow) },
       { section: 'النظام والتقارير', to: '/hr/integrations', label: 'التكاملات', icon: Plug, element: cs('التكاملات', 'الربط مع الأنظمة والخدمات الخارجية عبر API', Plug) },
       { section: 'النظام والتقارير', to: '/hr/settings', label: 'الإعدادات', icon: Settings, element: cs('الإعدادات', 'إعدادات المؤسسة والصلاحيات والسياسات العامة', Settings) },

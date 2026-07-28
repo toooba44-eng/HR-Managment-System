@@ -951,6 +951,68 @@ export const mockTrainingApi = {
   },
 }
 
+export const mockReportsApi = {
+  async overview() {
+    await delay()
+    const groupCount = (arr, key) => {
+      const m = {}
+      for (const x of arr) m[x[key]] = (m[x[key]] || 0) + 1
+      return m
+    }
+    const byDepartment = departments.map((d) => ({ name: d.name, color: d.color, count: employees.filter((e) => e.department_id === d.id).length })).sort((a, b) => b.count - a.count)
+    const statusMap = groupCount(employees, 'status')
+    const byStatus = Object.entries(statusMap).map(([status, count]) => ({ status, count }))
+    const typeMap = groupCount(employees, 'employment_type')
+    const byEmploymentType = Object.entries(typeMap).map(([type, count]) => ({ type, count }))
+    const yearMap = {}
+    for (const e of employees) { const y = (e.hire_date || '').slice(0, 4); if (y) yearMap[y] = (yearMap[y] || 0) + 1 }
+    const hiresByYear = Object.entries(yearMap).map(([year, count]) => ({ year, count })).sort((a, b) => a.year.localeCompare(b.year))
+
+    const att = { present: 0, absent: 0, late: 0, remote: 0, avgHours: 0 }
+    let hoursSum = 0, hoursCount = 0
+    for (const a of attendance) {
+      if (a.status === 'حاضر') att.present++
+      else if (a.status === 'غائب') att.absent++
+      else if (a.status === 'تأخر') att.late++
+      else if (a.status === 'عمل عن بعد') att.remote++
+      if (a.work_hours) { hoursSum += a.work_hours; hoursCount++ }
+    }
+    att.avgHours = hoursCount ? Math.round((hoursSum / hoursCount) * 10) / 10 : 0
+
+    const leaveMap = {}
+    for (const l of leaves) { leaveMap[l.type] = leaveMap[l.type] || { type: l.type, count: 0, days: 0 }; leaveMap[l.type].count++; leaveMap[l.type].days += l.days_count }
+    const leavesByType = Object.values(leaveMap).sort((a, b) => b.count - a.count)
+
+    const active = employees.filter((e) => e.status === 'نشط')
+    const basic = active.reduce((s, e) => s + (e.salary || 0), 0)
+    const allowances = active.reduce((s, e) => s + (e.allowances || 0), 0)
+    const deductions = Math.round(basic * 0.1)
+
+    const appStatus = groupCount(applications, 'status')
+    const expTotal = expenses.reduce((s, x) => s + x.amount, 0)
+    const expPending = expenses.filter((x) => x.status === 'معلقة').reduce((s, x) => s + x.amount, 0)
+    const expApproved = expenses.filter((x) => ['معتمدة', 'مصروفة'].includes(x.status)).reduce((s, x) => s + x.amount, 0)
+
+    return {
+      headcount: { total: employees.length, active: active.length },
+      byDepartment,
+      byStatus,
+      byEmploymentType,
+      hiresByYear,
+      attendance30: att,
+      leavesByType,
+      payroll: { basic, allowances, deductions, net: basic + allowances - deductions },
+      recruitment: {
+        openJobs: jobs.filter((j) => j.status === 'مفتوحة').length,
+        applications: applications.length,
+        byStatus: Object.entries(appStatus).map(([status, count]) => ({ status, count })),
+      },
+      expenses: { total: expTotal, pending: expPending, approved: expApproved },
+      training: { courses: courses.length, enrollments: enrollments.length, completed: enrollments.filter((e) => e.status === 'مكتمل').length },
+    }
+  },
+}
+
 function notFound() {
   const e = new Error('Not found')
   e.response = { status: 404, data: { error: 'غير موجود' } }
