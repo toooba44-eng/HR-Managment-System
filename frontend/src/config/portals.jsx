@@ -19,6 +19,8 @@ import CandidateHome from '../pages/portals/CandidateHome'
 import Announcements from '../pages/employee/Announcements'
 import Requests from '../pages/employee/Requests'
 import Payslips from '../pages/employee/Payslips'
+import Policies from '../pages/hr/Policies'
+import Payroll from '../pages/hr/Payroll'
 import ComingSoon from '../components/ui/ComingSoon'
 
 // Helper for scaffolded (not-yet-built) features
@@ -76,8 +78,8 @@ export const PORTALS = {
       { to: '/departments', label: 'الإدارات', icon: Building2, element: <Departments /> },
       { to: '/attendance', label: 'الحضور والانصراف', icon: CalendarCheck, element: <Attendance /> },
       { to: '/leaves', label: 'الإجازات', icon: CalendarDays, element: <Leaves /> },
-      { to: '/hr/payroll', label: 'الرواتب', icon: Wallet, element: cs('الرواتب', 'مسيّرات الرواتب والبدلات والاستقطاعات', Wallet) },
-      { to: '/hr/policies', label: 'السياسات', icon: ShieldCheck, element: cs('السياسات', 'سياسات المؤسسة ولوائح العمل', ShieldCheck) },
+      { to: '/hr/payroll', label: 'الرواتب', icon: Wallet, element: <Payroll /> },
+      { to: '/hr/policies', label: 'السياسات', icon: ShieldCheck, element: <Policies /> },
       { to: '/hr/recruitment', label: 'التوظيف', icon: Briefcase, element: cs('التوظيف', 'الوظائف والمرشحون وخط التوظيف', Briefcase) },
       { to: '/hr/performance', label: 'الأداء', icon: Target, element: cs('إدارة الأداء', 'دورات التقييم والأهداف', Target) },
       { to: '/hr/reports', label: 'التقارير', icon: BarChart3, element: cs('التقارير', 'تقارير الموارد البشرية والتحليلات', BarChart3) },
@@ -138,7 +140,7 @@ export const PORTALS = {
       { to: '/ess/remote', label: 'العمل عن بُعد', icon: Laptop, element: <Requests type="عمل عن بعد" title="طلب العمل عن بُعد" description="قدّم طلب عمل عن بُعد لموافقة مديرك." /> },
       { to: '/ess/overtime', label: 'العمل الإضافي', icon: Clock, element: <Requests type="عمل إضافي" title="طلب العمل الإضافي" description="قدّم طلب عمل إضافي وتابع اعتماده." /> },
       { to: '/ess/schedule', label: 'جدول الدوام', icon: CalendarDays, element: cs('جدول الدوام', 'الاطلاع على جدول دوامك', CalendarDays) },
-      { to: '/ess/policies', label: 'السياسات', icon: ScrollText, element: cs('السياسات', 'الاطلاع على سياسات المؤسسة', ScrollText) },
+      { to: '/ess/policies', label: 'السياسات', icon: ScrollText, element: <Policies /> },
       { to: '/ess/surveys', label: 'الاستطلاعات', icon: ListChecks, element: cs('استطلاعات الموظفين', 'المشاركة في استطلاعات الرأي', ListChecks) },
     ],
   },
