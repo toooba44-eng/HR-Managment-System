@@ -252,6 +252,33 @@ function seedData() {
     console.log('✅ Companies seeded');
   }
 
+  // Expenses & advances
+  if (isEmpty('expenses')) {
+    const insertExpense = db.prepare(`INSERT INTO expenses (employee_id, type, category, amount, description, status, approved_by) VALUES (?, ?, ?, ?, ?, ?, ?)`);
+    const expenses = [
+      [6, 'مصروف', 'مواصلات', 350, 'أجرة مواصلات لزيارة عميل.', 'معلقة', null],
+      [6, 'سلفة', 'سلفة راتب', 3000, 'سلفة على راتب الشهر القادم.', 'معتمدة', 2],
+      [10, 'مصروف', 'قرطاسية', 180, 'شراء مستلزمات مكتبية.', 'مصروفة', 5],
+      [4, 'مصروف', 'ضيافة', 620, 'ضيافة اجتماع مبيعات.', 'معلقة', null],
+    ];
+    expenses.forEach(x => insertExpense.run(x));
+    console.log('✅ Expenses seeded');
+  }
+
+  // Assets & custody
+  if (isEmpty('assets')) {
+    const insertAsset = db.prepare(`INSERT INTO assets (name, category, serial_number, assigned_to, status, assigned_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?)`);
+    const assets = [
+      ['لابتوب Dell Latitude', 'أجهزة حاسب', 'DL-2024-0012', 6, 'مُخصّص', addDaysStr(-120), 'مخصّص لفريق التطوير.'],
+      ['شاشة LG 27"', 'ملحقات', 'LG-27-0345', 6, 'مُخصّص', addDaysStr(-120), null],
+      ['هاتف iPhone 15', 'أجهزة جوال', 'IP-15-0088', 4, 'مُخصّص', addDaysStr(-60), 'لمندوب المبيعات.'],
+      ['لابووب MacBook Pro', 'أجهزة حاسب', 'MBP-2024-0021', null, 'متاح', null, 'متاح للتخصيص.'],
+      ['طابعة HP LaserJet', 'أجهزة مكتبية', 'HP-LJ-0007', null, 'صيانة', null, 'قيد الصيانة الدورية.'],
+    ];
+    assets.forEach(a => insertAsset.run(a));
+    console.log('✅ Assets seeded');
+  }
+
   console.log('🎉 Database seeding completed!');
 }
 

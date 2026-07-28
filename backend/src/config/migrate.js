@@ -227,6 +227,35 @@ const migrations = [
     storage_limit_gb INTEGER DEFAULT 10,
     status TEXT DEFAULT 'نشطة' CHECK(status IN ('نشطة', 'معلّقة')),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`,
+
+  // Expenses & advances
+  `CREATE TABLE IF NOT EXISTS expenses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    type TEXT NOT NULL DEFAULT 'مصروف' CHECK(type IN ('مصروف', 'سلفة')),
+    category TEXT DEFAULT 'أخرى',
+    amount REAL NOT NULL DEFAULT 0,
+    description TEXT,
+    status TEXT DEFAULT 'معلقة' CHECK(status IN ('معلقة', 'معتمدة', 'مرفوضة', 'مصروفة')),
+    approved_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+    FOREIGN KEY (approved_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
+  // Assets & custody
+  `CREATE TABLE IF NOT EXISTS assets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    category TEXT DEFAULT 'أخرى',
+    serial_number TEXT,
+    assigned_to INTEGER,
+    status TEXT DEFAULT 'متاح' CHECK(status IN ('متاح', 'مُخصّص', 'صيانة', 'مُتلف')),
+    assigned_date DATE,
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (assigned_to) REFERENCES employees(id) ON DELETE SET NULL
   )`
 ];
 

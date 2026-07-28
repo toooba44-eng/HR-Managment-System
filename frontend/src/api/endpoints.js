@@ -126,6 +126,21 @@ const realCompaniesApi = {
   remove: (id) => api.delete(`/companies/${id}`).then((r) => r.data),
 }
 
+// ---------- Expenses & advances ----------
+const realExpensesApi = {
+  list: (params) => api.get('/expenses', { params }).then((r) => r.data),
+  create: (data) => api.post('/expenses', data).then((r) => r.data),
+  setStatus: (id, status) => api.put(`/expenses/${id}/status`, { status }).then((r) => r.data),
+}
+
+// ---------- Assets & custody ----------
+const realAssetsApi = {
+  list: (params) => api.get('/assets', { params }).then((r) => r.data),
+  create: (data) => api.post('/assets', data).then((r) => r.data),
+  update: (id, data) => api.put(`/assets/${id}`, data).then((r) => r.data),
+  remove: (id) => api.delete(`/assets/${id}`).then((r) => r.data),
+}
+
 // ---------- Documents ----------
 const realDocumentsApi = {
   forEmployee: (employeeId) => api.get(`/documents/employee/${employeeId}`).then((r) => r.data),
@@ -153,3 +168,5 @@ export const tasksApi = DEMO ? mock.mockTasksApi : realTasksApi
 export const jobsApi = DEMO ? mock.mockJobsApi : realJobsApi
 export const applicationsApi = DEMO ? mock.mockApplicationsApi : realApplicationsApi
 export const companiesApi = DEMO ? mock.mockCompaniesApi : realCompaniesApi
+export const expensesApi = DEMO ? mock.mockExpensesApi : realExpensesApi
+export const assetsApi = DEMO ? mock.mockAssetsApi : realAssetsApi
