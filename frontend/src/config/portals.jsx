@@ -34,6 +34,9 @@ import Assets from '../pages/hr/Assets'
 import Performance from '../pages/hr/Performance'
 import Training from '../pages/hr/Training'
 import Reports from '../pages/hr/Reports'
+import Offboarding from '../pages/hr/Offboarding'
+import Grievances from '../pages/hr/Grievances'
+import HealthSafety from '../pages/hr/HealthSafety'
 import ComingSoon from '../components/ui/ComingSoon'
 
 // Helper for scaffolded (not-yet-built) features
@@ -117,9 +120,9 @@ export const PORTALS = {
       { section: 'خدمات الموظفين', to: '/hr/assets', label: 'الأصول والعهد', icon: Package, element: <Assets /> },
       { section: 'خدمات الموظفين', to: '/hr/engagement', label: 'المشاركة والتواصل', icon: Megaphone, element: <Announcements /> },
 
-      { section: 'الامتثال والعلاقات', to: '/hr/health-safety', label: 'الصحة والسلامة', icon: ShieldPlus, element: cs('الصحة والسلامة', 'السلامة المهنية والحوادث والفحوصات الطبية', ShieldPlus) },
-      { section: 'الامتثال والعلاقات', to: '/hr/grievances', label: 'المخالفات والشكاوى', icon: AlertTriangle, element: cs('المخالفات والشكاوى', 'إدارة المخالفات والإجراءات التأديبية والشكاوى', AlertTriangle) },
-      { section: 'الامتثال والعلاقات', to: '/hr/offboarding', label: 'إنهاء الخدمة', icon: UserMinus, element: cs('إنهاء الخدمة', 'إجراءات إنهاء الخدمة والمخالصة النهائية', UserMinus) },
+      { section: 'الامتثال والعلاقات', to: '/hr/health-safety', label: 'الصحة والسلامة', icon: ShieldPlus, element: <HealthSafety /> },
+      { section: 'الامتثال والعلاقات', to: '/hr/grievances', label: 'المخالفات والشكاوى', icon: AlertTriangle, element: <Grievances /> },
+      { section: 'الامتثال والعلاقات', to: '/hr/offboarding', label: 'إنهاء الخدمة', icon: UserMinus, element: <Offboarding /> },
 
       { section: 'النظام والتقارير', to: '/hr/reports', label: 'التقارير والتحليلات', icon: BarChart3, element: <Reports /> },
       { section: 'النظام والتقارير', to: '/hr/automation', label: 'الأتمتة وسير العمل', icon: Workflow, element: cs('الأتمتة وسير العمل', 'بناء مسارات الموافقات والأتمتة', Workflow) },

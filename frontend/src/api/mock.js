@@ -177,6 +177,23 @@ const enrollments = [
   { id: enrollSeq++, course_id: 1, employee_id: 10, progress: 10, status: 'قيد التقدم', enrolled_at: nowIso() },
 ]
 
+let offSeq = 1
+const offboardings = [
+  { id: offSeq++, employee_id: 9, type: 'انتهاء عقد', reason: 'انتهاء مدة العقد محدد المدة.', last_working_day: addDays(20), status: 'قيد المعالجة', notes: 'بانتظار إجراءات المخالصة.', created_by: 5, created_at: nowIso() },
+]
+
+let grvSeq = 1
+const grievances = [
+  { id: grvSeq++, employee_id: 10, type: 'مخالفة', category: 'الالتزام بالدوام', description: 'تأخر متكرر عن موعد الحضور.', severity: 'متوسطة', status: 'قيد المعالجة', action: 'تم توجيه إنذار شفهي.', created_by: 5, created_at: nowIso() },
+  { id: grvSeq++, employee_id: 6, type: 'شكوى', category: 'بيئة العمل', description: 'شكوى بخصوص ضوضاء في مساحة العمل.', severity: 'منخفضة', status: 'مفتوحة', action: null, created_by: 5, created_at: nowIso() },
+]
+
+let incSeq = 1
+const incidents = [
+  { id: incSeq++, title: 'انزلاق في الممر', type: 'حادث', employee_id: 6, location: 'الطابق الثاني - الممر', severity: 'منخفضة', description: 'أرضية مبللة دون لافتة تحذير.', status: 'مغلق', incident_date: addDays(-10), reported_by: 5, created_at: nowIso() },
+  { id: incSeq++, title: 'فحص طفايات الحريق', type: 'ملاحظة سلامة', employee_id: null, location: 'المبنى الرئيسي', severity: 'متوسطة', description: 'حان موعد الفحص الدوري لطفايات الحريق.', status: 'مفتوح', incident_date: addDays(-2), reported_by: 5, created_at: nowIso() },
+]
+
 function addDays(n) {
   const d = new Date()
   d.setDate(d.getDate() + n)
@@ -1011,6 +1028,33 @@ export const mockReportsApi = {
       training: { courses: courses.length, enrollments: enrollments.length, completed: enrollments.filter((e) => e.status === 'مكتمل').length },
     }
   },
+}
+
+const withEmp = (r) => ({ ...r, full_name: empName(r.employee_id), job_title: employees.find((e) => e.id === r.employee_id)?.job_title, department_name: deptName(employees.find((e) => e.id === r.employee_id)?.department_id), profile_picture: null })
+
+export const mockOffboardingApi = {
+  async list() { await delay(); return offboardings.map(withEmp) },
+  async create(data) { await delay(); const o = { id: offSeq++, type: data.type || 'استقالة', status: 'قيد المعالجة', created_by: currentUser()?.employee_id || 5, created_at: nowIso(), ...data }; offboardings.unshift(o); return { message: 'تم', offboarding: o } },
+  async update(id, data) { await delay(); const o = offboardings.find((x) => x.id === Number(id)); if (o) Object.assign(o, data); return { message: 'تم التحديث' } },
+  async remove(id) { await delay(); const i = offboardings.findIndex((x) => x.id === Number(id)); if (i > -1) offboardings.splice(i, 1); return { message: 'تم الحذف' } },
+}
+
+export const mockGrievancesApi = {
+  async list() { await delay(); return grievances.map(withEmp) },
+  async create(data) { await delay(); const g = { id: grvSeq++, type: data.type || 'شكوى', category: data.category || 'أخرى', severity: data.severity || 'متوسطة', status: 'مفتوحة', action: null, created_by: currentUser()?.employee_id || 5, created_at: nowIso(), ...data }; grievances.unshift(g); return { message: 'تم', grievance: g } },
+  async update(id, data) { await delay(); const g = grievances.find((x) => x.id === Number(id)); if (g) Object.assign(g, data); return { message: 'تم التحديث' } },
+  async remove(id) { await delay(); const i = grievances.findIndex((x) => x.id === Number(id)); if (i > -1) grievances.splice(i, 1); return { message: 'تم الحذف' } },
+}
+
+export const mockIncidentsApi = {
+  async list() {
+    await delay()
+    const list = incidents.map((r) => ({ ...r, full_name: empName(r.employee_id), reported_by_name: empName(r.reported_by) }))
+    return { incidents: list, summary: { total: list.length, open: list.filter((r) => r.status !== 'مغلق').length, high: list.filter((r) => r.severity === 'عالية').length } }
+  },
+  async create(data) { await delay(); const i = { id: incSeq++, type: data.type || 'ملاحظة سلامة', severity: data.severity || 'متوسطة', status: 'مفتوح', incident_date: data.incident_date || addDays(0), reported_by: currentUser()?.employee_id || 5, created_at: nowIso(), ...data }; incidents.unshift(i); return { message: 'تم', incident: i } },
+  async update(id, data) { await delay(); const i = incidents.find((x) => x.id === Number(id)); if (i) Object.assign(i, data); return { message: 'تم التحديث' } },
+  async remove(id) { await delay(); const idx = incidents.findIndex((x) => x.id === Number(id)); if (idx > -1) incidents.splice(idx, 1); return { message: 'تم الحذف' } },
 }
 
 function notFound() {

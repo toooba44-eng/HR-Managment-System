@@ -154,6 +154,30 @@ const realReportsApi = {
   overview: () => api.get('/reports/overview').then((r) => r.data),
 }
 
+// ---------- Offboarding ----------
+const realOffboardingApi = {
+  list: () => api.get('/offboarding').then((r) => r.data),
+  create: (data) => api.post('/offboarding', data).then((r) => r.data),
+  update: (id, data) => api.put(`/offboarding/${id}`, data).then((r) => r.data),
+  remove: (id) => api.delete(`/offboarding/${id}`).then((r) => r.data),
+}
+
+// ---------- Grievances ----------
+const realGrievancesApi = {
+  list: () => api.get('/grievances').then((r) => r.data),
+  create: (data) => api.post('/grievances', data).then((r) => r.data),
+  update: (id, data) => api.put(`/grievances/${id}`, data).then((r) => r.data),
+  remove: (id) => api.delete(`/grievances/${id}`).then((r) => r.data),
+}
+
+// ---------- Health & safety incidents ----------
+const realIncidentsApi = {
+  list: () => api.get('/incidents').then((r) => r.data),
+  create: (data) => api.post('/incidents', data).then((r) => r.data),
+  update: (id, data) => api.put(`/incidents/${id}`, data).then((r) => r.data),
+  remove: (id) => api.delete(`/incidents/${id}`).then((r) => r.data),
+}
+
 // ---------- Training & development ----------
 const realTrainingApi = {
   courses: () => api.get('/training/courses').then((r) => r.data),
@@ -197,3 +221,6 @@ export const assetsApi = DEMO ? mock.mockAssetsApi : realAssetsApi
 export const goalsApi = DEMO ? mock.mockGoalsApi : realGoalsApi
 export const trainingApi = DEMO ? mock.mockTrainingApi : realTrainingApi
 export const reportsApi = DEMO ? mock.mockReportsApi : realReportsApi
+export const offboardingApi = DEMO ? mock.mockOffboardingApi : realOffboardingApi
+export const grievancesApi = DEMO ? mock.mockGrievancesApi : realGrievancesApi
+export const incidentsApi = DEMO ? mock.mockIncidentsApi : realIncidentsApi

@@ -312,6 +312,29 @@ function seedData() {
     console.log('✅ Courses & enrollments seeded');
   }
 
+  // Offboarding
+  if (isEmpty('offboarding')) {
+    const ins = db.prepare(`INSERT INTO offboarding (employee_id, type, reason, last_working_day, status, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)`);
+    ins.run(9, 'انتهاء عقد', 'انتهاء مدة العقد محدد المدة.', addDaysStr(20), 'قيد المعالجة', 'بانتظار إجراءات المخالصة.', 5);
+    console.log('✅ Offboarding seeded');
+  }
+
+  // Grievances
+  if (isEmpty('grievances')) {
+    const ins = db.prepare(`INSERT INTO grievances (employee_id, type, category, description, severity, status, action, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+    ins.run(10, 'مخالفة', 'الالتزام بالدوام', 'تأخر متكرر عن موعد الحضور.', 'متوسطة', 'قيد المعالجة', 'تم توجيه إنذار شفهي.', 5);
+    ins.run(6, 'شكوى', 'بيئة العمل', 'شكوى بخصوص ضوضاء في مساحة العمل.', 'منخفضة', 'مفتوحة', null, 5);
+    console.log('✅ Grievances seeded');
+  }
+
+  // Health & safety incidents
+  if (isEmpty('incidents')) {
+    const ins = db.prepare(`INSERT INTO incidents (title, type, employee_id, location, severity, description, status, incident_date, reported_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    ins.run('انزلاق في الممر', 'حادث', 6, 'الطابق الثاني - الممر', 'منخفضة', 'أرضية مبللة دون لافتة تحذير.', 'مغلق', addDaysStr(-10), 5);
+    ins.run('فحص طفايات الحريق', 'ملاحظة سلامة', null, 'المبنى الرئيسي', 'متوسطة', 'حان موعد الفحص الدوري لطفايات الحريق.', 'مفتوح', addDaysStr(-2), 5);
+    console.log('✅ Incidents seeded');
+  }
+
   console.log('🎉 Database seeding completed!');
 }
 
