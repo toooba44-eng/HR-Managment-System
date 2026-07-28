@@ -272,6 +272,33 @@ const migrations = [
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
     FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
+  // Training: courses
+  `CREATE TABLE IF NOT EXISTS courses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    category TEXT DEFAULT 'عام',
+    description TEXT,
+    hours INTEGER DEFAULT 0,
+    level TEXT DEFAULT 'مبتدئ' CHECK(level IN ('مبتدئ', 'متوسط', 'متقدم')),
+    status TEXT DEFAULT 'متاحة' CHECK(status IN ('متاحة', 'مغلقة')),
+    created_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
+  // Training: enrollments
+  `CREATE TABLE IF NOT EXISTS enrollments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    course_id INTEGER NOT NULL,
+    employee_id INTEGER NOT NULL,
+    progress INTEGER DEFAULT 0,
+    status TEXT DEFAULT 'مسجّل' CHECK(status IN ('مسجّل', 'قيد التقدم', 'مكتمل')),
+    enrolled_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+    UNIQUE(course_id, employee_id)
   )`
 ];
 

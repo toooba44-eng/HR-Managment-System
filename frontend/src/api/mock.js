@@ -161,6 +161,22 @@ const goals = [
   { id: goalSeq++, employee_id: 4, title: 'تحقيق هدف المبيعات الربعي', description: 'الوصول إلى 110% من المستهدف.', weight: 50, progress: 45, target_date: addDays(20), status: 'قيد التنفيذ', created_by: 4 },
 ]
 
+let courseSeq = 1
+const courses = [
+  { id: courseSeq++, title: 'أساسيات إدارة المشاريع', category: 'إدارة', description: 'مقدمة في منهجيات إدارة المشاريع وأدواتها.', hours: 12, level: 'مبتدئ', status: 'متاحة', created_by: 5 },
+  { id: courseSeq++, title: 'React المتقدم', category: 'تقنية', description: 'أنماط متقدمة في React وتحسين الأداء.', hours: 20, level: 'متقدم', status: 'متاحة', created_by: 5 },
+  { id: courseSeq++, title: 'مهارات التواصل الفعّال', category: 'مهارات', description: 'تطوير مهارات التواصل والعرض والإقناع.', hours: 8, level: 'مبتدئ', status: 'متاحة', created_by: 5 },
+  { id: courseSeq++, title: 'الأمن السيبراني للموظفين', category: 'أمن معلومات', description: 'أساسيات حماية البيانات والوعي الأمني.', hours: 6, level: 'مبتدئ', status: 'متاحة', created_by: 5 },
+  { id: courseSeq++, title: 'القيادة وإدارة الفرق', category: 'قيادة', description: 'برنامج تطوير المهارات القيادية.', hours: 16, level: 'متوسط', status: 'مغلقة', created_by: 5 },
+]
+
+let enrollSeq = 1
+const enrollments = [
+  { id: enrollSeq++, course_id: 2, employee_id: 6, progress: 40, status: 'قيد التقدم', enrolled_at: nowIso() },
+  { id: enrollSeq++, course_id: 4, employee_id: 6, progress: 100, status: 'مكتمل', enrolled_at: nowIso() },
+  { id: enrollSeq++, course_id: 1, employee_id: 10, progress: 10, status: 'قيد التقدم', enrolled_at: nowIso() },
+]
+
 function addDays(n) {
   const d = new Date()
   d.setDate(d.getDate() + n)
@@ -870,6 +886,68 @@ export const mockGoalsApi = {
     const i = goals.findIndex((x) => x.id === Number(id))
     if (i > -1) goals.splice(i, 1)
     return { message: 'تم الحذف' }
+  },
+}
+
+export const mockTrainingApi = {
+  async courses() {
+    await delay()
+    const empId = currentUser()?.employee_id
+    return courses.map((c) => ({
+      ...c,
+      created_by_name: empName(c.created_by),
+      enrolled_count: enrollments.filter((e) => e.course_id === c.id).length,
+      my_enrollment: empId ? (enrollments.find((e) => e.course_id === c.id && e.employee_id === empId) || null) : null,
+    }))
+  },
+  async createCourse(data) {
+    await delay()
+    const c = { id: courseSeq++, category: data.category || 'عام', hours: data.hours || 0, level: data.level || 'مبتدئ', status: data.status || 'متاحة', created_by: currentUser()?.employee_id || null, ...data }
+    courses.unshift(c)
+    return { message: 'تم الإنشاء', course: c }
+  },
+  async updateCourse(id, data) {
+    await delay()
+    const c = courses.find((x) => x.id === Number(id))
+    if (c) Object.assign(c, data)
+    return { message: 'تم التحديث' }
+  },
+  async removeCourse(id) {
+    await delay()
+    const i = courses.findIndex((x) => x.id === Number(id))
+    if (i > -1) courses.splice(i, 1)
+    return { message: 'تم الحذف' }
+  },
+  async enroll(courseId) {
+    await delay()
+    const empId = currentUser()?.employee_id
+    const course = courses.find((c) => c.id === Number(courseId) && c.status === 'متاحة')
+    if (!course) throw badReq('الدورة غير متاحة للتسجيل')
+    if (enrollments.find((e) => e.course_id === Number(courseId) && e.employee_id === empId)) throw badReq('أنت مسجّل في هذه الدورة بالفعل')
+    const en = { id: enrollSeq++, course_id: Number(courseId), employee_id: empId, progress: 0, status: 'مسجّل', enrolled_at: nowIso() }
+    enrollments.unshift(en)
+    return { message: 'تم التسجيل', enrollment: en }
+  },
+  async enrollments() {
+    await delay()
+    const u = currentUser()
+    let rows = enrollments
+    if (u && ['employee', 'candidate', 'department_head'].includes(u.role)) {
+      rows = rows.filter((e) => e.employee_id === u.employee_id)
+    }
+    return rows.map((e) => {
+      const c = courses.find((x) => x.id === e.course_id)
+      return { ...e, course_title: c?.title, category: c?.category, hours: c?.hours, full_name: empName(e.employee_id), profile_picture: null }
+    })
+  },
+  async setProgress(enrollmentId, progress) {
+    await delay()
+    const e = enrollments.find((x) => x.id === Number(enrollmentId))
+    if (e) {
+      e.progress = Math.max(0, Math.min(100, parseInt(progress, 10)))
+      e.status = e.progress >= 100 ? 'مكتمل' : e.progress > 0 ? 'قيد التقدم' : 'مسجّل'
+    }
+    return { message: 'تم التحديث' }
   },
 }
 
