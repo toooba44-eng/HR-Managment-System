@@ -107,6 +107,14 @@ const policies = [
   { id: polSeq++, title: 'سياسة استخدام الأجهزة', category: 'تقنية', body: 'أجهزة الشركة مخصّصة للعمل. يُمنع تثبيت برامج غير مرخّصة، ويجب حماية بيانات الدخول وعدم مشاركتها.', created_by: 2 },
 ]
 
+let taskSeq = 1
+const tasks = [
+  { id: taskSeq++, title: 'إنهاء وحدة تسجيل الدخول', description: 'استكمال اختبارات وحدة المصادقة وتوثيقها.', employee_id: 6, assigned_by: 2, status: 'قيد التنفيذ', priority: 'عالية', due_date: addDays(3), created_at: nowIso() },
+  { id: taskSeq++, title: 'مراجعة كود واجهة الموظفين', description: 'مراجعة طلب الدمج الخاص بصفحة الموظفين.', employee_id: 10, assigned_by: 2, status: 'جديدة', priority: 'متوسطة', due_date: addDays(5), created_at: nowIso() },
+  { id: taskSeq++, title: 'تحديث التوثيق التقني', description: 'تحديث ملف README بمتغيرات البيئة الجديدة.', employee_id: 6, assigned_by: 2, status: 'مكتملة', priority: 'منخفضة', due_date: addDays(-2), created_at: nowIso() },
+  { id: taskSeq++, title: 'إعداد تقرير المبيعات الشهري', description: 'تجهيز تقرير مبيعات الربع الحالي.', employee_id: 4, assigned_by: 4, status: 'قيد التنفيذ', priority: 'عالية', due_date: addDays(2), created_at: nowIso() },
+]
+
 function addDays(n) {
   const d = new Date()
   d.setDate(d.getDate() + n)
@@ -533,6 +541,47 @@ export const mockPayrollApi = {
       .sort((a, b) => b.basic - a.basic)
     const totals = payroll.reduce((t, p) => ({ basic: t.basic + p.basic, allowances: t.allowances + p.allowances, deductions: t.deductions + p.deductions, net: t.net + p.net }), { basic: 0, allowances: 0, deductions: 0, net: 0 })
     return { payroll, totals, count: payroll.length }
+  },
+}
+
+export const mockTasksApi = {
+  async list({ status = '' } = {}) {
+    await delay()
+    const u = currentUser()
+    let rows = tasks
+    if (u && ['employee', 'candidate'].includes(u.role)) {
+      rows = rows.filter((t) => t.employee_id === u.employee_id)
+    } else if (u && u.role === 'department_head') {
+      const mgrDept = employees.find((e) => e.id === u.employee_id)?.department_id
+      rows = rows.filter((t) => employees.find((e) => e.id === t.employee_id)?.department_id === mgrDept)
+    }
+    if (status) rows = rows.filter((t) => t.status === status)
+    const so = { 'قيد التنفيذ': 1, جديدة: 2, مكتملة: 3, ملغاة: 4 }
+    const po = { عالية: 1, متوسطة: 2, منخفضة: 3 }
+    return [...rows]
+      .sort((a, b) => (so[a.status] - so[b.status]) || (po[a.priority] - po[b.priority]) || b.id - a.id)
+      .map((t) => {
+        const e = employees.find((x) => x.id === t.employee_id)
+        return { ...t, full_name: e?.full_name, job_title: e?.job_title, department_id: e?.department_id, profile_picture: null, assigned_by_name: empName(t.assigned_by) }
+      })
+  },
+  async create(data) {
+    await delay()
+    const t = { id: taskSeq++, status: 'جديدة', priority: data.priority || 'متوسطة', assigned_by: currentUser()?.employee_id || null, created_at: nowIso(), ...data }
+    tasks.unshift(t)
+    return { message: 'تم إنشاء المهمة', task: t }
+  },
+  async setStatus(id, status) {
+    await delay()
+    const t = tasks.find((x) => x.id === Number(id))
+    if (t) t.status = status
+    return { message: 'تم التحديث' }
+  },
+  async remove(id) {
+    await delay()
+    const i = tasks.findIndex((x) => x.id === Number(id))
+    if (i > -1) tasks.splice(i, 1)
+    return { message: 'تم الحذف' }
   },
 }
 

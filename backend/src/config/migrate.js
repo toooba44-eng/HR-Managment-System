@@ -174,6 +174,21 @@ const migrations = [
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
+  // Tasks / goals table (manager ↔ employee)
+  `CREATE TABLE IF NOT EXISTS tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    description TEXT,
+    employee_id INTEGER NOT NULL,
+    assigned_by INTEGER,
+    status TEXT DEFAULT 'جديدة' CHECK(status IN ('جديدة', 'قيد التنفيذ', 'مكتملة', 'ملغاة')),
+    priority TEXT DEFAULT 'متوسطة' CHECK(priority IN ('منخفضة', 'متوسطة', 'عالية')),
+    due_date DATE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+    FOREIGN KEY (assigned_by) REFERENCES employees(id) ON DELETE SET NULL
   )`
 ];
 
@@ -186,6 +201,7 @@ const indexes = `
   CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read);
   CREATE INDEX IF NOT EXISTS idx_requests_employee ON requests(employee_id);
   CREATE INDEX IF NOT EXISTS idx_requests_status ON requests(status);
+  CREATE INDEX IF NOT EXISTS idx_tasks_employee ON tasks(employee_id);
 `;
 
 function runMigrations() {

@@ -94,6 +94,14 @@ const realPayrollApi = {
   overview: (params) => api.get('/payroll', { params }).then((r) => r.data),
 }
 
+// ---------- Tasks ----------
+const realTasksApi = {
+  list: (params) => api.get('/tasks', { params }).then((r) => r.data),
+  create: (data) => api.post('/tasks', data).then((r) => r.data),
+  setStatus: (id, status) => api.put(`/tasks/${id}/status`, { status }).then((r) => r.data),
+  remove: (id) => api.delete(`/tasks/${id}`).then((r) => r.data),
+}
+
 // ---------- Documents ----------
 const realDocumentsApi = {
   forEmployee: (employeeId) => api.get(`/documents/employee/${employeeId}`).then((r) => r.data),
@@ -117,3 +125,4 @@ export const requestsApi = DEMO ? mock.mockRequestsApi : realRequestsApi
 export const payslipsApi = DEMO ? mock.mockPayslipsApi : realPayslipsApi
 export const policiesApi = DEMO ? mock.mockPoliciesApi : realPoliciesApi
 export const payrollApi = DEMO ? mock.mockPayrollApi : realPayrollApi
+export const tasksApi = DEMO ? mock.mockTasksApi : realTasksApi

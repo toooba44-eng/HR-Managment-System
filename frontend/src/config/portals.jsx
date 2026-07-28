@@ -21,6 +21,8 @@ import Requests from '../pages/employee/Requests'
 import Payslips from '../pages/employee/Payslips'
 import Policies from '../pages/hr/Policies'
 import Payroll from '../pages/hr/Payroll'
+import Tasks from '../pages/manager/Tasks'
+import TeamMetrics from '../pages/manager/TeamMetrics'
 import ComingSoon from '../components/ui/ComingSoon'
 
 // Helper for scaffolded (not-yet-built) features
@@ -105,8 +107,8 @@ export const PORTALS = {
       { to: '/mgr/performance', label: 'مراجعة الأداء', icon: Target, element: cs('مراجعة الأداء', 'تقييم أداء أعضاء الفريق', Target) },
       { to: '/mgr/requests', label: 'طلبات الفريق', icon: Inbox, element: <Requests title="طلبات الفريق" description="راجع واعتمد طلبات أعضاء فريقك." /> },
       { to: '/mgr/expenses', label: 'اعتماد المصروفات', icon: Receipt, element: cs('اعتماد المصروفات والعمل الإضافي', 'اعتماد مطالبات المصروفات والعمل الإضافي', Receipt) },
-      { to: '/mgr/tasks', label: 'المهام والأهداف', icon: ClipboardList, element: cs('المهام والأهداف', 'متابعة مهام وأهداف الفريق', ClipboardList) },
-      { to: '/mgr/metrics', label: 'مؤشرات الفريق', icon: TrendingUp, element: cs('مؤشرات الفريق', 'مؤشرات الأداء الرئيسية للفريق', TrendingUp) },
+      { to: '/mgr/tasks', label: 'المهام والأهداف', icon: ClipboardList, element: <Tasks title="مهام الفريق" description="أسند المهام لأعضاء فريقك وتابع تقدّمها." /> },
+      { to: '/mgr/metrics', label: 'مؤشرات الفريق', icon: TrendingUp, element: <TeamMetrics /> },
       { to: '/mgr/hiring', label: 'طلب موظفين', icon: PlusCircle, element: cs('طلب موظفين جدد', 'رفع طلبات توظيف جديدة', PlusCircle) },
       { to: '/mgr/interviews', label: 'المقابلات', icon: Video, element: cs('إدارة المقابلات', 'جدولة وإدارة المقابلات', Video) },
       { to: '/mgr/training', label: 'التدريب والتطوير', icon: GraduationCap, element: cs('التدريب والتطوير', 'متابعة تدريب وتطوير الفريق', GraduationCap) },
@@ -130,7 +132,7 @@ export const PORTALS = {
       { to: '/ess/payslips', label: 'قسائم الراتب', icon: Wallet, element: <Payslips /> },
       { to: '/ess/letters', label: 'الشهادات والخطابات', icon: FileText, element: <Requests typeOptions={['شهادة', 'خطاب']} title="الشهادات والخطابات" description="اطلب خطاب تعريف أو شهادة رسمية وتابع حالتها." /> },
       { to: '/ess/expenses', label: 'المصروفات', icon: Receipt, element: cs('تقديم المصروفات', 'رفع مطالبات المصروفات', Receipt) },
-      { to: '/ess/goals', label: 'الأهداف والتقييم', icon: Target, element: cs('الأهداف والتقييم', 'متابعة أهدافك وتقييمك', Target) },
+      { to: '/ess/goals', label: 'مهامي وأهدافي', icon: Target, element: <Tasks title="مهامي" description="المهام المسندة إليك — حدّث حالتها فور إنجازها." /> },
       { to: '/ess/courses', label: 'الدورات', icon: GraduationCap, element: cs('التسجيل في الدورات', 'استعراض والتسجيل في الدورات', GraduationCap) },
       { to: '/ess/sign', label: 'توقيع المستندات', icon: FileSignature, element: cs('توقيع المستندات', 'توقيع المستندات إلكترونياً', FileSignature) },
       { to: '/ess/complaints', label: 'الشكاوى والاستفسارات', icon: MessageSquare, element: <Requests type="شكوى" title="الشكاوى والاستفسارات" description="قدّم شكوى أو استفساراً وتابع الرد عليه." /> },
