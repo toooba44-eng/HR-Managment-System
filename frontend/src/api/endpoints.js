@@ -149,6 +149,11 @@ const realGoalsApi = {
   remove: (id) => api.delete(`/goals/${id}`).then((r) => r.data),
 }
 
+// ---------- Reports & analytics ----------
+const realReportsApi = {
+  overview: () => api.get('/reports/overview').then((r) => r.data),
+}
+
 // ---------- Training & development ----------
 const realTrainingApi = {
   courses: () => api.get('/training/courses').then((r) => r.data),
@@ -191,3 +196,4 @@ export const expensesApi = DEMO ? mock.mockExpensesApi : realExpensesApi
 export const assetsApi = DEMO ? mock.mockAssetsApi : realAssetsApi
 export const goalsApi = DEMO ? mock.mockGoalsApi : realGoalsApi
 export const trainingApi = DEMO ? mock.mockTrainingApi : realTrainingApi
+export const reportsApi = DEMO ? mock.mockReportsApi : realReportsApi
