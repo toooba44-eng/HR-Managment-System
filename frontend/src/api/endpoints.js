@@ -102,6 +102,22 @@ const realTasksApi = {
   remove: (id) => api.delete(`/tasks/${id}`).then((r) => r.data),
 }
 
+// ---------- Recruitment: jobs ----------
+const realJobsApi = {
+  list: () => api.get('/jobs').then((r) => r.data),
+  create: (data) => api.post('/jobs', data).then((r) => r.data),
+  update: (id, data) => api.put(`/jobs/${id}`, data).then((r) => r.data),
+  remove: (id) => api.delete(`/jobs/${id}`).then((r) => r.data),
+}
+
+// ---------- Recruitment: applications ----------
+const realApplicationsApi = {
+  all: (params) => api.get('/applications', { params }).then((r) => r.data),
+  mine: () => api.get('/applications/mine').then((r) => r.data),
+  apply: (data) => api.post('/applications', data).then((r) => r.data),
+  setStatus: (id, status) => api.put(`/applications/${id}/status`, { status }).then((r) => r.data),
+}
+
 // ---------- Documents ----------
 const realDocumentsApi = {
   forEmployee: (employeeId) => api.get(`/documents/employee/${employeeId}`).then((r) => r.data),
@@ -126,3 +142,5 @@ export const payslipsApi = DEMO ? mock.mockPayslipsApi : realPayslipsApi
 export const policiesApi = DEMO ? mock.mockPoliciesApi : realPoliciesApi
 export const payrollApi = DEMO ? mock.mockPayrollApi : realPayrollApi
 export const tasksApi = DEMO ? mock.mockTasksApi : realTasksApi
+export const jobsApi = DEMO ? mock.mockJobsApi : realJobsApi
+export const applicationsApi = DEMO ? mock.mockApplicationsApi : realApplicationsApi

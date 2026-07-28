@@ -115,6 +115,19 @@ const tasks = [
   { id: taskSeq++, title: 'إعداد تقرير المبيعات الشهري', description: 'تجهيز تقرير مبيعات الربع الحالي.', employee_id: 4, assigned_by: 4, status: 'قيد التنفيذ', priority: 'عالية', due_date: addDays(2), created_at: nowIso() },
 ]
 
+let jobSeq = 1
+const jobs = [
+  { id: jobSeq++, title: 'مطور واجهات أمامية (React)', department: 'التقنية', location: 'الرياض - المقر الرئيسي', type: 'دوام كامل', description: 'نبحث عن مطوّر واجهات متمكّن من React وTailwind للانضمام لفريق المنتج.', status: 'مفتوحة', created_by: 5, created_at: nowIso() },
+  { id: jobSeq++, title: 'أخصائي موارد بشرية', department: 'الموارد البشرية', location: 'الرياض - المقر الرئيسي', type: 'دوام كامل', description: 'مسؤول عن التوظيف وإدارة شؤون الموظفين والسياسات.', status: 'مفتوحة', created_by: 5, created_at: nowIso() },
+  { id: jobSeq++, title: 'مندوب مبيعات', department: 'المبيعات', location: 'جدة - فرع جدة', type: 'دوام كامل', description: 'تطوير علاقات العملاء وتحقيق أهداف المبيعات.', status: 'مفتوحة', created_by: 5, created_at: nowIso() },
+  { id: jobSeq++, title: 'محاسب', department: 'المالية', location: 'الرياض - المقر الرئيسي', type: 'عقد', description: 'إعداد التقارير المالية ومتابعة الميزانيات.', status: 'مغلقة', created_by: 5, created_at: nowIso() },
+]
+
+let appSeq = 1
+const applications = [
+  { id: appSeq++, job_id: 1, candidate_email: 'candidate@quant.com', candidate_name: 'مرشح تجريبي', cover_note: 'لديّ خبرة 3 سنوات في تطوير الواجهات.', status: 'مقابلة', created_at: nowIso() },
+]
+
 function addDays(n) {
   const d = new Date()
   d.setDate(d.getDate() + n)
@@ -582,6 +595,78 @@ export const mockTasksApi = {
     const i = tasks.findIndex((x) => x.id === Number(id))
     if (i > -1) tasks.splice(i, 1)
     return { message: 'تم الحذف' }
+  },
+}
+
+const RECRUIT_MANAGE = ['super_admin', 'admin', 'hr_manager']
+
+export const mockJobsApi = {
+  async list() {
+    await delay()
+    const u = currentUser()
+    const isManager = u && RECRUIT_MANAGE.includes(u.role)
+    return jobs
+      .filter((j) => isManager || j.status === 'مفتوحة')
+      .map((j) => ({ ...j, created_by_name: empName(j.created_by), applicants: applications.filter((a) => a.job_id === j.id).length }))
+  },
+  async create(data) {
+    await delay()
+    const j = { id: jobSeq++, status: data.status || 'مفتوحة', location: data.location || 'الرياض - المقر الرئيسي', type: data.type || 'دوام كامل', created_by: currentUser()?.employee_id || null, created_at: nowIso(), ...data }
+    jobs.unshift(j)
+    return { message: 'تم النشر', job: j }
+  },
+  async update(id, data) {
+    await delay()
+    const j = jobs.find((x) => x.id === Number(id))
+    if (j) Object.assign(j, data)
+    return { message: 'تم التحديث' }
+  },
+  async remove(id) {
+    await delay()
+    const i = jobs.findIndex((x) => x.id === Number(id))
+    if (i > -1) jobs.splice(i, 1)
+    return { message: 'تم الحذف' }
+  },
+}
+
+export const mockApplicationsApi = {
+  async all({ job_id, status } = {}) {
+    await delay()
+    let rows = applications
+    if (job_id) rows = rows.filter((a) => a.job_id === Number(job_id))
+    if (status) rows = rows.filter((a) => a.status === status)
+    return rows.map((a) => {
+      const j = jobs.find((x) => x.id === a.job_id)
+      return { ...a, job_title: j?.title, job_department: j?.department }
+    })
+  },
+  async mine() {
+    await delay()
+    const email = currentUser()?.email
+    return applications
+      .filter((a) => a.candidate_email === email)
+      .map((a) => {
+        const j = jobs.find((x) => x.id === a.job_id)
+        return { ...a, job_title: j?.title, job_department: j?.department, job_location: j?.location }
+      })
+  },
+  async apply({ job_id, candidate_name, cover_note }) {
+    await delay()
+    const email = currentUser()?.email
+    const job = jobs.find((j) => j.id === Number(job_id) && j.status === 'مفتوحة')
+    if (!job) throw badReq('الوظيفة غير متاحة للتقديم')
+    if (applications.find((a) => a.job_id === Number(job_id) && a.candidate_email === email)) {
+      throw badReq('لقد تقدّمت لهذه الوظيفة مسبقاً')
+    }
+    const app = { id: appSeq++, job_id: Number(job_id), candidate_email: email, candidate_name: candidate_name || currentUser()?.full_name, cover_note: cover_note || null, status: 'قيد المراجعة', created_at: nowIso() }
+    applications.unshift(app)
+    return { message: 'تم التقديم', application: app }
+  },
+  async setStatus(id, status) {
+    await delay()
+    const a = applications.find((x) => x.id === Number(id))
+    if (a) a.status = status
+    return { message: 'تم التحديث' }
   },
 }
 

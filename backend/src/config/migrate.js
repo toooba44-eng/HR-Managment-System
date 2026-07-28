@@ -189,6 +189,32 @@ const migrations = [
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
     FOREIGN KEY (assigned_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
+  // Recruitment: job openings
+  `CREATE TABLE IF NOT EXISTS jobs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    department TEXT,
+    location TEXT DEFAULT 'الرياض - المقر الرئيسي',
+    type TEXT DEFAULT 'دوام كامل',
+    description TEXT,
+    status TEXT DEFAULT 'مفتوحة' CHECK(status IN ('مفتوحة', 'مغلقة')),
+    created_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
+  // Recruitment: candidate applications
+  `CREATE TABLE IF NOT EXISTS applications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    job_id INTEGER NOT NULL,
+    candidate_email TEXT NOT NULL,
+    candidate_name TEXT,
+    cover_note TEXT,
+    status TEXT DEFAULT 'قيد المراجعة' CHECK(status IN ('قيد المراجعة', 'مقابلة', 'مقبول', 'مرفوض')),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE
   )`
 ];
 

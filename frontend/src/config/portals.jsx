@@ -23,6 +23,9 @@ import Policies from '../pages/hr/Policies'
 import Payroll from '../pages/hr/Payroll'
 import Tasks from '../pages/manager/Tasks'
 import TeamMetrics from '../pages/manager/TeamMetrics'
+import Jobs from '../pages/candidate/Jobs'
+import Applications from '../pages/candidate/Applications'
+import Recruitment from '../pages/hr/Recruitment'
 import ComingSoon from '../components/ui/ComingSoon'
 
 // Helper for scaffolded (not-yet-built) features
@@ -82,7 +85,7 @@ export const PORTALS = {
       { to: '/leaves', label: 'الإجازات', icon: CalendarDays, element: <Leaves /> },
       { to: '/hr/payroll', label: 'الرواتب', icon: Wallet, element: <Payroll /> },
       { to: '/hr/policies', label: 'السياسات', icon: ShieldCheck, element: <Policies /> },
-      { to: '/hr/recruitment', label: 'التوظيف', icon: Briefcase, element: cs('التوظيف', 'الوظائف والمرشحون وخط التوظيف', Briefcase) },
+      { to: '/hr/recruitment', label: 'التوظيف', icon: Briefcase, element: <Recruitment /> },
       { to: '/hr/performance', label: 'الأداء', icon: Target, element: cs('إدارة الأداء', 'دورات التقييم والأهداف', Target) },
       { to: '/hr/reports', label: 'التقارير', icon: BarChart3, element: cs('التقارير', 'تقارير الموارد البشرية والتحليلات', BarChart3) },
       { to: '/hr/requests', label: 'طلبات الموظفين', icon: Inbox, element: <Requests title="طلبات الموظفين" description="راجع واعتمد طلبات الموظفين (خطابات، تحديث بيانات، عمل عن بُعد…)." /> },
@@ -158,8 +161,8 @@ export const PORTALS = {
       { to: '/cand', label: 'الرئيسية', icon: LayoutDashboard, element: <CandidateHome /> },
       { to: '/cand/profile', label: 'الملف المهني', icon: UserCircle, element: cs('الملف الشخصي المهني', 'استكمال ملفك المهني', UserCircle) },
       { to: '/cand/cv', label: 'السيرة الذاتية', icon: FileText, element: cs('رفع السيرة الذاتية', 'رفع وتحديث سيرتك الذاتية', FileText) },
-      { to: '/cand/jobs', label: 'تصفح الوظائف', icon: Search, element: cs('تصفح الوظائف', 'استعراض الوظائف المتاحة', Search) },
-      { to: '/cand/applications', label: 'طلباتي', icon: ListChecks, element: cs('متابعة الطلبات', 'متابعة حالة طلبات التوظيف', ListChecks) },
+      { to: '/cand/jobs', label: 'تصفح الوظائف', icon: Search, element: <Jobs /> },
+      { to: '/cand/applications', label: 'طلباتي', icon: ListChecks, element: <Applications /> },
       { to: '/cand/interview', label: 'المقابلات', icon: CalendarDays, element: cs('حجز موعد المقابلة', 'حجز ومتابعة مواعيد المقابلات', CalendarDays) },
       { to: '/cand/video', label: 'مقابلة فيديو', icon: Video, element: cs('مقابلة الفيديو', 'إجراء مقابلة عبر الفيديو', Video) },
       { to: '/cand/forms', label: 'نماذج ما قبل التوظيف', icon: FileSignature, element: cs('نماذج ما قبل التوظيف', 'تعبئة نماذج التوظيف', FileSignature) },
