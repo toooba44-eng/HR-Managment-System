@@ -270,6 +270,19 @@ function seedData() {
   `).run(jobIds[0], 'candidate@quant.com', 'مرشح تجريبي', 'لديّ خبرة 3 سنوات في تطوير الواجهات.', 'مقابلة');
   console.log('✅ Applications seeded');
 
+  // Insert Sample Companies (platform tenants)
+  const insertCompany = db.prepare(`
+    INSERT INTO companies (name, contact_email, plan, users_limit, storage_limit_gb, status) VALUES (?, ?, ?, ?, ?, ?)
+  `);
+  const companies = [
+    ['شركة كوانت التقنية', 'admin@quant.com', 'مؤسسية', 200, 100, 'نشطة'],
+    ['مجموعة الأفق', 'it@alufuq.com', 'احترافية', 75, 50, 'نشطة'],
+    ['مؤسسة النخبة', 'hr@alnukhba.com', 'أساسية', 25, 10, 'نشطة'],
+    ['شركة الريادة', 'info@alriyada.com', 'احترافية', 75, 50, 'معلّقة'],
+  ];
+  companies.forEach(c => insertCompany.run(c));
+  console.log('✅ Companies seeded');
+
   console.log('🎉 Database seeding completed successfully!');
 }
 

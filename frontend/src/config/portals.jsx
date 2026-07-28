@@ -26,6 +26,8 @@ import TeamMetrics from '../pages/manager/TeamMetrics'
 import Jobs from '../pages/candidate/Jobs'
 import Applications from '../pages/candidate/Applications'
 import Recruitment from '../pages/hr/Recruitment'
+import Companies from '../pages/superadmin/Companies'
+import Subscriptions from '../pages/superadmin/Subscriptions'
 import ComingSoon from '../components/ui/ComingSoon'
 
 // Helper for scaffolded (not-yet-built) features
@@ -48,9 +50,8 @@ export const PORTALS = {
     home: '/sa',
     nav: [
       { to: '/sa', label: 'نظرة عامة', icon: LayoutDashboard, element: <SuperAdminHome /> },
-      { to: '/sa/companies', label: 'الشركات المشتركة', icon: Building, element: cs('الشركات المشتركة', 'إدارة كل الشركات/المؤسسات المشتركة في المنصة', Building) },
-      { to: '/sa/new-org', label: 'إنشاء مؤسسة', icon: PlusCircle, element: cs('إنشاء مؤسسة جديدة', 'تهيئة مؤسسة جديدة (مستأجر) على المنصة', PlusCircle) },
-      { to: '/sa/subscriptions', label: 'الباقات والاشتراكات', icon: Package, element: cs('الباقات والاشتراكات', 'إدارة خطط الاشتراك والباقات', Package) },
+      { to: '/sa/companies', label: 'الشركات المشتركة', icon: Building, element: <Companies /> },
+      { to: '/sa/subscriptions', label: 'الباقات والاشتراكات', icon: Package, element: <Subscriptions /> },
       { to: '/sa/billing', label: 'الفواتير والمدفوعات', icon: CreditCard, element: cs('الفواتير والمدفوعات', 'إدارة الفوترة والمدفوعات', CreditCard) },
       { to: '/sa/modules', label: 'تفعيل الوحدات', icon: ListChecks, element: cs('تفعيل وتعطيل الوحدات', 'التحكم في وحدات النظام لكل مؤسسة', ListChecks) },
       { to: '/sa/limits', label: 'حدود المستخدمين والتخزين', icon: HardDrive, element: cs('حدود المستخدمين والتخزين', 'ضبط حدود المستخدمين ومساحة التخزين', HardDrive) },
@@ -63,7 +64,7 @@ export const PORTALS = {
       { to: '/sa/api', label: 'مراقبة تكاملات API', icon: Plug, element: cs('مراقبة تكاملات API', 'متابعة التكاملات الخارجية', Plug) },
       { to: '/sa/performance', label: 'أداء النظام', icon: Gauge, element: cs('مراقبة أداء النظام', 'مؤشرات أداء وصحة المنصة', Gauge) },
       { to: '/sa/backups', label: 'النسخ الاحتياطية', icon: Database, element: cs('إدارة النسخ الاحتياطية', 'جدولة واستعادة النسخ الاحتياطية', Database) },
-      { to: '/sa/announcements', label: 'الإعلانات والتنبيهات', icon: Megaphone, element: cs('الإعلانات والتنبيهات العامة', 'بثّ إعلانات وتنبيهات للمؤسسات', Megaphone) },
+      { to: '/sa/announcements', label: 'الإعلانات والتنبيهات', icon: Megaphone, element: <Announcements /> },
       { to: '/sa/impersonate', label: 'الدخول بالنيابة', icon: UserCog, element: cs('تسجيل الدخول بالنيابة', 'الدخول لحساب عميل بصلاحيات مقيّدة', UserCog) },
       { to: '/sa/requests', label: 'طلبات الترقية والإلغاء', icon: ArrowUpDown, element: cs('طلبات الترقية والإلغاء', 'إدارة طلبات ترقية/إلغاء الاشتراكات', ArrowUpDown) },
       { to: '/sa/ai', label: 'إعدادات الذكاء الاصطناعي', icon: Bot, element: cs('إعدادات الذكاء الاصطناعي', 'ضبط ميزات الذكاء الاصطناعي', Bot) },

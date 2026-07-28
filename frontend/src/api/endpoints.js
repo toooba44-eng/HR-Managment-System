@@ -118,6 +118,14 @@ const realApplicationsApi = {
   setStatus: (id, status) => api.put(`/applications/${id}/status`, { status }).then((r) => r.data),
 }
 
+// ---------- Platform companies (Super Admin) ----------
+const realCompaniesApi = {
+  list: () => api.get('/companies').then((r) => r.data),
+  create: (data) => api.post('/companies', data).then((r) => r.data),
+  update: (id, data) => api.put(`/companies/${id}`, data).then((r) => r.data),
+  remove: (id) => api.delete(`/companies/${id}`).then((r) => r.data),
+}
+
 // ---------- Documents ----------
 const realDocumentsApi = {
   forEmployee: (employeeId) => api.get(`/documents/employee/${employeeId}`).then((r) => r.data),
@@ -144,3 +152,4 @@ export const payrollApi = DEMO ? mock.mockPayrollApi : realPayrollApi
 export const tasksApi = DEMO ? mock.mockTasksApi : realTasksApi
 export const jobsApi = DEMO ? mock.mockJobsApi : realJobsApi
 export const applicationsApi = DEMO ? mock.mockApplicationsApi : realApplicationsApi
+export const companiesApi = DEMO ? mock.mockCompaniesApi : realCompaniesApi

@@ -128,6 +128,14 @@ const applications = [
   { id: appSeq++, job_id: 1, candidate_email: 'candidate@quant.com', candidate_name: 'مرشح تجريبي', cover_note: 'لديّ خبرة 3 سنوات في تطوير الواجهات.', status: 'مقابلة', created_at: nowIso() },
 ]
 
+let companySeq = 1
+const companies = [
+  { id: companySeq++, name: 'شركة كوانت التقنية', contact_email: 'admin@quant.com', plan: 'مؤسسية', users_limit: 200, storage_limit_gb: 100, status: 'نشطة', created_at: nowIso() },
+  { id: companySeq++, name: 'مجموعة الأفق', contact_email: 'it@alufuq.com', plan: 'احترافية', users_limit: 75, storage_limit_gb: 50, status: 'نشطة', created_at: nowIso() },
+  { id: companySeq++, name: 'مؤسسة النخبة', contact_email: 'hr@alnukhba.com', plan: 'أساسية', users_limit: 25, storage_limit_gb: 10, status: 'نشطة', created_at: nowIso() },
+  { id: companySeq++, name: 'شركة الريادة', contact_email: 'info@alriyada.com', plan: 'احترافية', users_limit: 75, storage_limit_gb: 50, status: 'معلّقة', created_at: nowIso() },
+]
+
 function addDays(n) {
   const d = new Date()
   d.setDate(d.getDate() + n)
@@ -667,6 +675,42 @@ export const mockApplicationsApi = {
     const a = applications.find((x) => x.id === Number(id))
     if (a) a.status = status
     return { message: 'تم التحديث' }
+  },
+}
+
+function companiesSummary() {
+  const byPlan = {}
+  for (const c of companies) byPlan[c.plan] = (byPlan[c.plan] || 0) + 1
+  return {
+    total: companies.length,
+    active: companies.filter((c) => c.status === 'نشطة').length,
+    suspended: companies.filter((c) => c.status === 'معلّقة').length,
+    byPlan,
+  }
+}
+
+export const mockCompaniesApi = {
+  async list() {
+    await delay()
+    return { companies: [...companies].reverse(), summary: companiesSummary() }
+  },
+  async create(data) {
+    await delay()
+    const c = { id: companySeq++, plan: data.plan || 'أساسية', users_limit: data.users_limit || 25, storage_limit_gb: data.storage_limit_gb || 10, status: data.status || 'نشطة', created_at: nowIso(), ...data }
+    companies.push(c)
+    return { message: 'تم الإنشاء', company: c }
+  },
+  async update(id, data) {
+    await delay()
+    const c = companies.find((x) => x.id === Number(id))
+    if (c) Object.assign(c, data)
+    return { message: 'تم التحديث' }
+  },
+  async remove(id) {
+    await delay()
+    const i = companies.findIndex((x) => x.id === Number(id))
+    if (i > -1) companies.splice(i, 1)
+    return { message: 'تم الحذف' }
   },
 }
 
