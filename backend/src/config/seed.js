@@ -1,6 +1,12 @@
 const bcrypt = require('bcryptjs');
 const db = require('./database');
 
+function addDaysStr(n) {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return d.toISOString().split('T')[0];
+}
+
 function seedData() {
   console.log('🌱 Seeding database...');
 
@@ -231,6 +237,19 @@ function seedData() {
   ];
   policies.forEach(p => insertPolicy.run(p));
   console.log('✅ Policies seeded');
+
+  // Insert Sample Tasks
+  const insertTask = db.prepare(`
+    INSERT INTO tasks (title, description, employee_id, assigned_by, status, priority, due_date) VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
+  const tasks = [
+    ['إنهاء وحدة تسجيل الدخول', 'استكمال اختبارات وحدة المصادقة وتوثيقها.', 6, 2, 'قيد التنفيذ', 'عالية', addDaysStr(3)],
+    ['مراجعة كود واجهة الموظفين', 'مراجعة طلب الدمج الخاص بصفحة الموظفين.', 10, 2, 'جديدة', 'متوسطة', addDaysStr(5)],
+    ['تحديث التوثيق التقني', 'تحديث ملف README بمتغيرات البيئة الجديدة.', 6, 2, 'مكتملة', 'منخفضة', addDaysStr(-2)],
+    ['إعداد تقرير المبيعات الشهري', 'تجهيز تقرير مبيعات الربع الحالي.', 4, 4, 'قيد التنفيذ', 'عالية', addDaysStr(2)],
+  ];
+  tasks.forEach(t => insertTask.run(t));
+  console.log('✅ Tasks seeded');
 
   console.log('🎉 Database seeding completed successfully!');
 }

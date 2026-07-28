@@ -24,6 +24,7 @@ const requestRoutes = require('./routes/requests');
 const payslipRoutes = require('./routes/payslips');
 const policyRoutes = require('./routes/policies');
 const payrollRoutes = require('./routes/payroll');
+const taskRoutes = require('./routes/tasks');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -78,6 +79,7 @@ app.use('/api/requests', requestRoutes);
 app.use('/api/payslips', payslipRoutes);
 app.use('/api/policies', policyRoutes);
 app.use('/api/payroll', payrollRoutes);
+app.use('/api/tasks', taskRoutes);
 
 // Serve the built frontend when present (single-service deployment).
 // CLIENT_DIR defaults to ../public relative to this file (where the Docker
