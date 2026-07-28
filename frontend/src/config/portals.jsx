@@ -32,6 +32,7 @@ import Subscriptions from '../pages/superadmin/Subscriptions'
 import Expenses from '../pages/hr/Expenses'
 import Assets from '../pages/hr/Assets'
 import Performance from '../pages/hr/Performance'
+import Training from '../pages/hr/Training'
 import ComingSoon from '../components/ui/ComingSoon'
 
 // Helper for scaffolded (not-yet-built) features
@@ -107,7 +108,7 @@ export const PORTALS = {
       { section: 'الرواتب والتعويضات', to: '/hr/expenses', label: 'المصروفات والسلف', icon: Receipt, element: <Expenses /> },
 
       { section: 'الأداء والتطوير', to: '/hr/performance', label: 'الأداء والأهداف', icon: Target, element: <Performance /> },
-      { section: 'الأداء والتطوير', to: '/hr/training', label: 'التدريب والتطوير', icon: GraduationCap, element: cs('التدريب والتطوير', 'الدورات والبرامج التدريبية ومسارات التطوير', GraduationCap) },
+      { section: 'الأداء والتطوير', to: '/hr/training', label: 'التدريب والتطوير', icon: GraduationCap, element: <Training /> },
       { section: 'الأداء والتطوير', to: '/hr/talent', label: 'المواهب والتعاقب الوظيفي', icon: Star, element: cs('المواهب والتعاقب الوظيفي', 'إدارة المواهب وخطط التعاقب الوظيفي', Star) },
 
       { section: 'خدمات الموظفين', to: '/hr/requests', label: 'الخدمات والطلبات', icon: Inbox, element: <Requests title="الخدمات والطلبات" description="راجع واعتمد طلبات الموظفين (خطابات، تحديث بيانات، عمل عن بُعد…)." /> },
@@ -147,7 +148,7 @@ export const PORTALS = {
 
       { section: 'الأداء والمهام', to: '/mgr/performance', label: 'مراجعة الأداء', icon: Target, element: <Performance /> },
       { section: 'الأداء والمهام', to: '/mgr/tasks', label: 'المهام والأهداف', icon: ClipboardList, element: <Tasks title="مهام الفريق" description="أسند المهام لأعضاء فريقك وتابع تقدّمها." /> },
-      { section: 'الأداء والمهام', to: '/mgr/training', label: 'التدريب والتطوير', icon: GraduationCap, element: cs('التدريب والتطوير', 'متابعة تدريب وتطوير الفريق', GraduationCap) },
+      { section: 'الأداء والمهام', to: '/mgr/training', label: 'التدريب والتطوير', icon: GraduationCap, element: <Training /> },
 
       { section: 'التوظيف والتطوير الوظيفي', to: '/mgr/hiring', label: 'طلب موظفين', icon: PlusCircle, element: cs('طلب موظفين جدد', 'رفع طلبات توظيف جديدة', PlusCircle) },
       { section: 'التوظيف والتطوير الوظيفي', to: '/mgr/interviews', label: 'المقابلات', icon: Video, element: cs('إدارة المقابلات', 'جدولة وإدارة المقابلات', Video) },
@@ -180,7 +181,7 @@ export const PORTALS = {
 
       { section: 'الأداء والتطوير', to: '/ess/goals', label: 'مهامي', icon: ClipboardList, element: <Tasks title="مهامي" description="المهام المسندة إليك — حدّث حالتها فور إنجازها." /> },
       { section: 'الأداء والتطوير', to: '/ess/performance', label: 'الأداء والأهداف', icon: Target, element: <Performance /> },
-      { section: 'الأداء والتطوير', to: '/ess/courses', label: 'الدورات', icon: GraduationCap, element: cs('التسجيل في الدورات', 'استعراض والتسجيل في الدورات', GraduationCap) },
+      { section: 'الأداء والتطوير', to: '/ess/courses', label: 'الدورات', icon: GraduationCap, element: <Training /> },
 
       { section: 'الطلبات والخدمات', to: '/ess/letters', label: 'الشهادات والخطابات', icon: FileText, element: <Requests typeOptions={['شهادة', 'خطاب']} title="الشهادات والخطابات" description="اطلب خطاب تعريف أو شهادة رسمية وتابع حالتها." /> },
       { section: 'الطلبات والخدمات', to: '/ess/data-update', label: 'تحديث البيانات', icon: UserCog, element: <Requests type="تحديث بيانات" title="طلب تحديث البيانات" description="اطلب تعديل بياناتك الشخصية لدى الموارد البشرية." /> },

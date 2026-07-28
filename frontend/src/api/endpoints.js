@@ -149,6 +149,17 @@ const realGoalsApi = {
   remove: (id) => api.delete(`/goals/${id}`).then((r) => r.data),
 }
 
+// ---------- Training & development ----------
+const realTrainingApi = {
+  courses: () => api.get('/training/courses').then((r) => r.data),
+  createCourse: (data) => api.post('/training/courses', data).then((r) => r.data),
+  updateCourse: (id, data) => api.put(`/training/courses/${id}`, data).then((r) => r.data),
+  removeCourse: (id) => api.delete(`/training/courses/${id}`).then((r) => r.data),
+  enroll: (courseId) => api.post(`/training/courses/${courseId}/enroll`).then((r) => r.data),
+  enrollments: () => api.get('/training/enrollments').then((r) => r.data),
+  setProgress: (enrollmentId, progress) => api.put(`/training/enrollments/${enrollmentId}`, { progress }).then((r) => r.data),
+}
+
 // ---------- Documents ----------
 const realDocumentsApi = {
   forEmployee: (employeeId) => api.get(`/documents/employee/${employeeId}`).then((r) => r.data),
@@ -179,3 +190,4 @@ export const companiesApi = DEMO ? mock.mockCompaniesApi : realCompaniesApi
 export const expensesApi = DEMO ? mock.mockExpensesApi : realExpensesApi
 export const assetsApi = DEMO ? mock.mockAssetsApi : realAssetsApi
 export const goalsApi = DEMO ? mock.mockGoalsApi : realGoalsApi
+export const trainingApi = DEMO ? mock.mockTrainingApi : realTrainingApi

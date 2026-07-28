@@ -292,6 +292,26 @@ function seedData() {
     console.log('✅ Goals seeded');
   }
 
+  // Training courses & enrollments
+  if (isEmpty('courses')) {
+    const insertCourse = db.prepare(`INSERT INTO courses (title, category, description, hours, level, status, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)`);
+    const courses = [
+      ['أساسيات إدارة المشاريع', 'إدارة', 'مقدمة في منهجيات إدارة المشاريع وأدواتها.', 12, 'مبتدئ', 'متاحة', 5],
+      ['React المتقدم', 'تقنية', 'أنماط متقدمة في React وتحسين الأداء.', 20, 'متقدم', 'متاحة', 5],
+      ['مهارات التواصل الفعّال', 'مهارات', 'تطوير مهارات التواصل والعرض والإقناع.', 8, 'مبتدئ', 'متاحة', 5],
+      ['الأمن السيبراني للموظفين', 'أمن معلومات', 'أساسيات حماية البيانات والوعي الأمني.', 6, 'مبتدئ', 'متاحة', 5],
+      ['القيادة وإدارة الفرق', 'قيادة', 'برنامج تطوير المهارات القيادية.', 16, 'متوسط', 'مغلقة', 5],
+    ];
+    const courseIds = courses.map(c => insertCourse.run(c).lastInsertRowid);
+    if (isEmpty('enrollments')) {
+      const insertEnroll = db.prepare(`INSERT INTO enrollments (course_id, employee_id, progress, status) VALUES (?, ?, ?, ?)`);
+      insertEnroll.run(courseIds[1], 6, 40, 'قيد التقدم');
+      insertEnroll.run(courseIds[3], 6, 100, 'مكتمل');
+      insertEnroll.run(courseIds[0], 10, 10, 'قيد التقدم');
+    }
+    console.log('✅ Courses & enrollments seeded');
+  }
+
   console.log('🎉 Database seeding completed!');
 }
 
