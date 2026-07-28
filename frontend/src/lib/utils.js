@@ -7,10 +7,12 @@ export function cn(...inputs) {
 
 // Arabic role labels
 export const ROLE_LABELS = {
+  super_admin: 'مدير المنصة',
   admin: 'مدير النظام',
   hr_manager: 'مدير الموارد البشرية',
   department_head: 'رئيس قسم',
   employee: 'موظف',
+  candidate: 'مرشح',
 }
 
 // Status → badge class mapping

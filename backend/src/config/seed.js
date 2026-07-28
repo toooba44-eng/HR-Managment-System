@@ -115,6 +115,8 @@ function seedData() {
   const password = bcrypt.hashSync('password123', 10);
 
   const users = [
+    ['superadmin@quant.com', bcrypt.hashSync('super123', 10), 'super_admin', null],
+    ['candidate@quant.com', bcrypt.hashSync('candidate123', 10), 'candidate', null],
     ['admin@quant.com', bcrypt.hashSync('admin123', 10), 'admin', null],
     ['ahmed.ceo@quant.com', password, 'admin', 1],
     ['mohamed.tech@quant.com', password, 'department_head', 2],

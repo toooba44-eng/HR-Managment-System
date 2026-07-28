@@ -33,7 +33,9 @@ const employees = [
 
 // email -> auth mapping
 const users = {
-  'admin@quant.com': { password: 'admin123', role: 'admin', employee_id: null },
+  'superadmin@quant.com': { password: 'super123', role: 'super_admin', employee_id: null, name: 'مدير المنصة' },
+  'candidate@quant.com': { password: 'candidate123', role: 'candidate', employee_id: null, name: 'مرشح تجريبي' },
+  'admin@quant.com': { password: 'admin123', role: 'admin', employee_id: null, name: 'مدير النظام' },
   'ahmed.ceo@quant.com': { password: 'password123', role: 'admin', employee_id: 1 },
   'mohamed.tech@quant.com': { password: 'password123', role: 'department_head', employee_id: 2 },
   'sara.finance@quant.com': { password: 'password123', role: 'department_head', employee_id: 3 },
@@ -113,7 +115,7 @@ export const mockAuthApi = {
       token: `demo-token-${email}`,
       user: {
         id: u.employee_id || 0, email, role: u.role, employee_id: u.employee_id,
-        full_name: emp?.full_name || 'مدير النظام', job_title: emp?.job_title || 'مدير النظام',
+        full_name: emp?.full_name || u.name || 'مستخدم', job_title: emp?.job_title || u.name || '',
         department_id: emp?.department_id || null, department_name: emp ? deptName(emp.department_id) : null,
         profile_picture: null,
       },

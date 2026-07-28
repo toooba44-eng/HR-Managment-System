@@ -2,23 +2,19 @@ import { useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import Topbar from './Topbar'
-
-const TITLES = {
-  '/': 'لوحة التحكم',
-  '/employees': 'الموظفون',
-  '/departments': 'الإدارات',
-  '/attendance': 'الحضور والانصراف',
-  '/leaves': 'الإجازات',
-  '/profile': 'ملفي الشخصي',
-}
+import { useAuthStore } from '../../store/authStore'
+import { portalForRole } from '../../config/portals'
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const location = useLocation()
+  const { user } = useAuthStore()
+  const portal = portalForRole(user?.role)
 
-  const title =
-    TITLES[location.pathname] ||
-    (location.pathname.startsWith('/employees/') ? 'ملف الموظف' : 'Quant HR')
+  // Title = the matching nav item's label, with a couple of special cases
+  const match = portal.nav.find((n) => n.to === location.pathname)
+  let title = match?.label || portal.name
+  if (location.pathname.startsWith('/employees/')) title = 'ملف الموظف'
 
   return (
     <div className="flex min-h-screen bg-slate-50">

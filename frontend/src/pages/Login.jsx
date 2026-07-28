@@ -3,14 +3,17 @@ import { useNavigate, useLocation, Navigate } from 'react-router-dom'
 import { Mail, Lock, Eye, EyeOff, LogIn } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../store/authStore'
+import { portalForRole } from '../config/portals'
 import { Field, Input, Button } from '../components/ui/Form'
 
 const DEMO = import.meta.env.VITE_DEMO === 'true'
 
 const DEMO_ACCOUNTS = [
-  { email: 'admin@quant.com', password: 'admin123', label: 'مدير النظام' },
-  { email: 'mohamed.tech@quant.com', password: 'password123', label: 'رئيس قسم' },
+  { email: 'superadmin@quant.com', password: 'super123', label: 'إدارة المنصة' },
+  { email: 'admin@quant.com', password: 'admin123', label: 'موارد بشرية' },
+  { email: 'mohamed.tech@quant.com', password: 'password123', label: 'مدير' },
   { email: 'khaled.dev@quant.com', password: 'password123', label: 'موظف' },
+  { email: 'candidate@quant.com', password: 'candidate123', label: 'مرشح' },
 ]
 
 export default function Login() {
@@ -26,9 +29,9 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      await login({ email, password })
+      const u = await login({ email, password })
       toast.success('تم تسجيل الدخول بنجاح')
-      navigate(location.state?.from?.pathname || '/', { replace: true })
+      navigate(location.state?.from?.pathname || portalForRole(u.role).home, { replace: true })
     } catch (err) {
       toast.error(err.response?.data?.error || 'فشل تسجيل الدخول')
     }
