@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { Menu, Bell } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import Avatar from '../ui/Avatar'
@@ -23,10 +24,10 @@ export default function Topbar({ onMenuClick, title }) {
             <Bell className="w-5 h-5" />
             <span className="absolute top-2 left-2 w-2 h-2 bg-rose-500 rounded-full" />
           </button>
-          <div className="hidden sm:flex items-center gap-2">
+          <Link to="/profile" className="hidden sm:flex items-center gap-2 hover:bg-slate-50 rounded-lg px-2 py-1 transition-colors" title="ملفي الشخصي">
             <Avatar name={user?.full_name} src={user?.profile_picture} size="sm" />
             <span className="text-sm font-medium text-slate-700">{user?.full_name}</span>
-          </div>
+          </Link>
         </div>
       </div>
     </header>
