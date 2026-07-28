@@ -31,6 +31,7 @@ import Companies from '../pages/superadmin/Companies'
 import Subscriptions from '../pages/superadmin/Subscriptions'
 import Expenses from '../pages/hr/Expenses'
 import Assets from '../pages/hr/Assets'
+import Performance from '../pages/hr/Performance'
 import ComingSoon from '../components/ui/ComingSoon'
 
 // Helper for scaffolded (not-yet-built) features
@@ -94,7 +95,7 @@ export const PORTALS = {
       { to: '/hr/timesheets', label: 'الجداول الزمنية Timesheets', icon: Timer, element: cs('الجداول الزمنية (Timesheets)', 'تسجيل واعتماد ساعات العمل على المشاريع', Timer) },
       { to: '/hr/payroll', label: 'الرواتب', icon: Wallet, element: <Payroll /> },
       { to: '/hr/compensation', label: 'التعويضات والمزايا', icon: Gift, element: cs('التعويضات والمزايا', 'هياكل الرواتب والبدلات والمزايا والتأمين', Gift) },
-      { to: '/hr/performance', label: 'الأداء والأهداف', icon: Target, element: cs('الأداء والأهداف', 'دورات التقييم وإدارة الأهداف (OKR/KPI)', Target) },
+      { to: '/hr/performance', label: 'الأداء والأهداف', icon: Target, element: <Performance /> },
       { to: '/hr/training', label: 'التدريب والتطوير', icon: GraduationCap, element: cs('التدريب والتطوير', 'الدورات والبرامج التدريبية ومسارات التطوير', GraduationCap) },
       { to: '/hr/talent', label: 'المواهب والتعاقب الوظيفي', icon: Star, element: cs('المواهب والتعاقب الوظيفي', 'إدارة المواهب وخطط التعاقب الوظيفي', Star) },
       { to: '/hr/expenses', label: 'المصروفات والسلف', icon: Receipt, element: <Expenses /> },
@@ -125,7 +126,7 @@ export const PORTALS = {
       { to: '/attendance', label: 'حضور الفريق', icon: CalendarCheck, element: <Attendance /> },
       { to: '/leaves', label: 'الموافقة على الإجازات', icon: CalendarDays, element: <Leaves /> },
       { to: '/mgr/schedule', label: 'جداول الفريق', icon: Clock, element: cs('جداول الفريق', 'إدارة جداول ومناوبات الفريق', Clock) },
-      { to: '/mgr/performance', label: 'مراجعة الأداء', icon: Target, element: cs('مراجعة الأداء', 'تقييم أداء أعضاء الفريق', Target) },
+      { to: '/mgr/performance', label: 'مراجعة الأداء', icon: Target, element: <Performance /> },
       { to: '/mgr/requests', label: 'طلبات الفريق', icon: Inbox, element: <Requests title="طلبات الفريق" description="راجع واعتمد طلبات أعضاء فريقك." /> },
       { to: '/mgr/expenses', label: 'اعتماد المصروفات', icon: Receipt, element: <Expenses /> },
       { to: '/mgr/tasks', label: 'المهام والأهداف', icon: ClipboardList, element: <Tasks title="مهام الفريق" description="أسند المهام لأعضاء فريقك وتابع تقدّمها." /> },
@@ -153,7 +154,8 @@ export const PORTALS = {
       { to: '/ess/payslips', label: 'قسائم الراتب', icon: Wallet, element: <Payslips /> },
       { to: '/ess/letters', label: 'الشهادات والخطابات', icon: FileText, element: <Requests typeOptions={['شهادة', 'خطاب']} title="الشهادات والخطابات" description="اطلب خطاب تعريف أو شهادة رسمية وتابع حالتها." /> },
       { to: '/ess/expenses', label: 'المصروفات', icon: Receipt, element: <Expenses /> },
-      { to: '/ess/goals', label: 'مهامي وأهدافي', icon: Target, element: <Tasks title="مهامي" description="المهام المسندة إليك — حدّث حالتها فور إنجازها." /> },
+      { to: '/ess/goals', label: 'مهامي', icon: ClipboardList, element: <Tasks title="مهامي" description="المهام المسندة إليك — حدّث حالتها فور إنجازها." /> },
+      { to: '/ess/performance', label: 'الأداء والأهداف', icon: Target, element: <Performance /> },
       { to: '/ess/courses', label: 'الدورات', icon: GraduationCap, element: cs('التسجيل في الدورات', 'استعراض والتسجيل في الدورات', GraduationCap) },
       { to: '/ess/sign', label: 'توقيع المستندات', icon: FileSignature, element: cs('توقيع المستندات', 'توقيع المستندات إلكترونياً', FileSignature) },
       { to: '/ess/complaints', label: 'الشكاوى والاستفسارات', icon: MessageSquare, element: <Requests type="شكوى" title="الشكاوى والاستفسارات" description="قدّم شكوى أو استفساراً وتابع الرد عليه." /> },

@@ -26,6 +26,7 @@ export const STATUS_BADGE = {
   معلقة: 'badge-warning',
   تأخر: 'badge-warning',
   'قيد التنفيذ': 'badge-warning',
+  'لم تبدأ': 'badge-info',
   جديدة: 'badge-info',
   مكتملة: 'badge-success',
   مقبولة: 'badge-success',

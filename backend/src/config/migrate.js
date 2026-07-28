@@ -256,6 +256,22 @@ const migrations = [
     notes TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (assigned_to) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
+  // Performance goals (OKR/KPI style)
+  `CREATE TABLE IF NOT EXISTS goals (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT,
+    weight INTEGER DEFAULT 100,
+    progress INTEGER DEFAULT 0,
+    target_date DATE,
+    status TEXT DEFAULT 'لم تبدأ' CHECK(status IN ('لم تبدأ', 'قيد التنفيذ', 'مكتملة', 'ملغاة')),
+    created_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
   )`
 ];
 
