@@ -215,6 +215,18 @@ const migrations = [
     status TEXT DEFAULT 'قيد المراجعة' CHECK(status IN ('قيد المراجعة', 'مقابلة', 'مقبول', 'مرفوض')),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE
+  )`,
+
+  // Platform tenants (Super Admin / SaaS)
+  `CREATE TABLE IF NOT EXISTS companies (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    contact_email TEXT,
+    plan TEXT DEFAULT 'أساسية' CHECK(plan IN ('أساسية', 'احترافية', 'مؤسسية')),
+    users_limit INTEGER DEFAULT 25,
+    storage_limit_gb INTEGER DEFAULT 10,
+    status TEXT DEFAULT 'نشطة' CHECK(status IN ('نشطة', 'معلّقة')),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`
 ];
 

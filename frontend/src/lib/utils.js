@@ -35,6 +35,8 @@ export const STATUS_BADGE = {
   مقابلة: 'badge-info',
   مقبول: 'badge-success',
   مرفوض: 'badge-danger',
+  نشطة: 'badge-success',
+  'معلّقة': 'badge-warning',
   غائب: 'badge-danger',
   مرفوضة: 'badge-danger',
   مستقيل: 'badge-danger',
