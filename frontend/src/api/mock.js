@@ -84,6 +84,20 @@ const leaves = [
 
 const documents = []
 
+let annSeq = 1
+const announcements = [
+  { id: annSeq++, title: 'تحديث سياسة العمل عن بُعد', body: 'يسمح النظام الجديد بيومين عمل عن بُعد أسبوعياً بعد موافقة المدير المباشر. يُرجى تقديم الطلبات عبر بوابة الموظف.', audience: 'الجميع', is_pinned: 1, created_by: 5, created_at: nowIso() },
+  { id: annSeq++, title: 'موعد صرف رواتب الشهر', body: 'سيتم صرف رواتب هذا الشهر يوم 27 كالمعتاد. لأي استفسار يُرجى التواصل مع الموارد البشرية.', audience: 'الجميع', is_pinned: 0, created_by: 5, created_at: nowIso() },
+  { id: annSeq++, title: 'برنامج تدريبي جديد', body: 'انطلق التسجيل في برنامج تطوير المهارات القيادية. الأماكن محدودة — سارع بالتسجيل عبر بوابة الموظف.', audience: 'الجميع', is_pinned: 0, created_by: 5, created_at: nowIso() },
+]
+
+let reqSeq = 1
+const requests = [
+  { id: reqSeq++, employee_id: 6, type: 'خطاب', subject: 'خطاب تعريف بالراتب', details: 'مطلوب لغرض فتح حساب بنكي.', status: 'مكتملة', response: 'تم إصدار الخطاب.', resolved_by: 5, created_at: nowIso() },
+  { id: reqSeq++, employee_id: 6, type: 'عمل عن بعد', subject: 'طلب عمل عن بُعد ليوم الخميس', details: 'لظرف عائلي.', status: 'معلقة', response: null, resolved_by: null, created_at: nowIso() },
+  { id: reqSeq++, employee_id: 10, type: 'عمل إضافي', subject: 'عمل إضافي لإنهاء مشروع', details: 'ساعتان إضافيتان.', status: 'مقبولة', response: 'تمت الموافقة.', resolved_by: 2, created_at: nowIso() },
+]
+
 function addDays(n) {
   const d = new Date()
   d.setDate(d.getDate() + n)
@@ -374,6 +388,97 @@ export const mockDocumentsApi = {
   async remove() {
     await delay()
     return { message: 'تم الحذف (وضع تجريبي)' }
+  },
+}
+
+function currentUser() {
+  try {
+    return JSON.parse(localStorage.getItem('quant-hr-auth') || 'null')?.state?.user || null
+  } catch {
+    return null
+  }
+}
+
+const AR_MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
+
+export const mockAnnouncementsApi = {
+  async list() {
+    await delay()
+    return [...announcements]
+      .sort((a, b) => (b.is_pinned - a.is_pinned) || b.id - a.id)
+      .map((a) => ({ ...a, created_by_name: empName(a.created_by) }))
+  },
+  async create(data) {
+    await delay()
+    const ann = { id: annSeq++, is_pinned: data.is_pinned ? 1 : 0, audience: data.audience || 'الجميع', created_by: currentUser()?.employee_id || null, created_at: nowIso(), ...data }
+    announcements.unshift(ann)
+    return { message: 'تم النشر', announcement: ann }
+  },
+  async remove(id) {
+    await delay()
+    const i = announcements.findIndex((a) => a.id === Number(id))
+    if (i > -1) announcements.splice(i, 1)
+    return { message: 'تم الحذف' }
+  },
+}
+
+export const mockRequestsApi = {
+  async list({ type = '', status = '' } = {}) {
+    await delay()
+    const u = currentUser()
+    let rows = requests
+    if (u && ['employee', 'candidate'].includes(u.role)) {
+      rows = rows.filter((r) => r.employee_id === u.employee_id)
+    }
+    if (type) rows = rows.filter((r) => r.type === type)
+    if (status) rows = rows.filter((r) => r.status === status)
+    const order = { معلقة: 1, مقبولة: 2, مرفوضة: 3, مكتملة: 4 }
+    return [...rows]
+      .sort((a, b) => (order[a.status] || 9) - (order[b.status] || 9) || b.id - a.id)
+      .map((r) => ({
+        ...r,
+        full_name: empName(r.employee_id),
+        job_title: employees.find((e) => e.id === r.employee_id)?.job_title,
+        department_name: deptName(employees.find((e) => e.id === r.employee_id)?.department_id),
+        resolved_by_name: empName(r.resolved_by),
+        profile_picture: null,
+      }))
+  },
+  async create(data) {
+    await delay()
+    const u = currentUser()
+    const req = { id: reqSeq++, employee_id: u?.employee_id || data.employee_id, status: 'معلقة', response: null, resolved_by: null, created_at: nowIso(), ...data }
+    requests.unshift(req)
+    return { message: 'تم إرسال الطلب', request: req }
+  },
+  async resolve(id, { status, response }) {
+    await delay()
+    const r = requests.find((x) => x.id === Number(id))
+    if (r) { r.status = status; r.response = response || null; r.resolved_by = currentUser()?.employee_id || 5; r.resolved_at = nowIso() }
+    return { message: 'تم تحديث الطلب' }
+  },
+}
+
+export const mockPayslipsApi = {
+  async forEmployee(employeeId) {
+    await delay()
+    const emp = employees.find((e) => e.id === Number(employeeId))
+    if (!emp) throw notFound()
+    const basic = emp.salary || 0
+    const allowances = emp.allowances || 0
+    const gosi = Math.round(basic * 0.1)
+    const gross = basic + allowances
+    const net = gross - gosi
+    const now = new Date()
+    const payslips = []
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      payslips.push({ id: `${d.getFullYear()}-${d.getMonth() + 1}`, month: AR_MONTHS[d.getMonth()], year: d.getFullYear(), basic, allowances, deductions: gosi, gross, net, status: 'مدفوع' })
+    }
+    return {
+      employee: { id: emp.id, full_name: emp.full_name, employee_number: emp.employee_number, job_title: emp.job_title, bank_name: emp.bank_name, bank_account: emp.bank_account },
+      payslips,
+    }
   },
 }
 

@@ -134,6 +134,34 @@ const migrations = [
     link TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  )`,
+
+  // Announcements table
+  `CREATE TABLE IF NOT EXISTS announcements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    body TEXT NOT NULL,
+    audience TEXT DEFAULT 'الجميع',
+    is_pinned INTEGER DEFAULT 0,
+    created_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
+  // Employee self-service requests table
+  `CREATE TABLE IF NOT EXISTS requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    type TEXT NOT NULL CHECK(type IN ('شهادة', 'خطاب', 'تحديث بيانات', 'عمل عن بعد', 'عمل إضافي', 'شكوى', 'أخرى')),
+    subject TEXT NOT NULL,
+    details TEXT,
+    status TEXT DEFAULT 'معلقة' CHECK(status IN ('معلقة', 'مقبولة', 'مرفوضة', 'مكتملة')),
+    response TEXT,
+    resolved_by INTEGER,
+    resolved_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+    FOREIGN KEY (resolved_by) REFERENCES employees(id) ON DELETE SET NULL
   )`
 ];
 
@@ -144,6 +172,8 @@ const indexes = `
   CREATE INDEX IF NOT EXISTS idx_leaves_employee ON leaves(employee_id);
   CREATE INDEX IF NOT EXISTS idx_leaves_status ON leaves(status);
   CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read);
+  CREATE INDEX IF NOT EXISTS idx_requests_employee ON requests(employee_id);
+  CREATE INDEX IF NOT EXISTS idx_requests_status ON requests(status);
 `;
 
 function runMigrations() {

@@ -5,6 +5,7 @@ import {
   ArrowUpDown, Bot, Wallet, ClipboardList, Target, TrendingUp, GraduationCap,
   MessageSquare, ShieldCheck, Laptop, Clock, BarChart3, Briefcase,
   FileSignature, Video, Send, Star, Search, Receipt, PlusCircle, ListChecks,
+  Inbox,
 } from 'lucide-react'
 
 import Dashboard from '../pages/Dashboard'
@@ -15,6 +16,9 @@ import Leaves from '../pages/Leaves'
 import Profile from '../pages/Profile'
 import SuperAdminHome from '../pages/portals/SuperAdminHome'
 import CandidateHome from '../pages/portals/CandidateHome'
+import Announcements from '../pages/employee/Announcements'
+import Requests from '../pages/employee/Requests'
+import Payslips from '../pages/employee/Payslips'
 import ComingSoon from '../components/ui/ComingSoon'
 
 // Helper for scaffolded (not-yet-built) features
@@ -77,6 +81,8 @@ export const PORTALS = {
       { to: '/hr/recruitment', label: 'التوظيف', icon: Briefcase, element: cs('التوظيف', 'الوظائف والمرشحون وخط التوظيف', Briefcase) },
       { to: '/hr/performance', label: 'الأداء', icon: Target, element: cs('إدارة الأداء', 'دورات التقييم والأهداف', Target) },
       { to: '/hr/reports', label: 'التقارير', icon: BarChart3, element: cs('التقارير', 'تقارير الموارد البشرية والتحليلات', BarChart3) },
+      { to: '/hr/requests', label: 'طلبات الموظفين', icon: Inbox, element: <Requests title="طلبات الموظفين" description="راجع واعتمد طلبات الموظفين (خطابات، تحديث بيانات، عمل عن بُعد…)." /> },
+      { to: '/hr/announcements', label: 'الإعلانات', icon: Megaphone, element: <Announcements /> },
       { to: '/profile', label: 'ملفي الشخصي', icon: UserCircle, element: <Profile /> },
     ],
   },
@@ -95,6 +101,7 @@ export const PORTALS = {
       { to: '/leaves', label: 'الموافقة على الإجازات', icon: CalendarDays, element: <Leaves /> },
       { to: '/mgr/schedule', label: 'جداول الفريق', icon: Clock, element: cs('جداول الفريق', 'إدارة جداول ومناوبات الفريق', Clock) },
       { to: '/mgr/performance', label: 'مراجعة الأداء', icon: Target, element: cs('مراجعة الأداء', 'تقييم أداء أعضاء الفريق', Target) },
+      { to: '/mgr/requests', label: 'طلبات الفريق', icon: Inbox, element: <Requests title="طلبات الفريق" description="راجع واعتمد طلبات أعضاء فريقك." /> },
       { to: '/mgr/expenses', label: 'اعتماد المصروفات', icon: Receipt, element: cs('اعتماد المصروفات والعمل الإضافي', 'اعتماد مطالبات المصروفات والعمل الإضافي', Receipt) },
       { to: '/mgr/tasks', label: 'المهام والأهداف', icon: ClipboardList, element: cs('المهام والأهداف', 'متابعة مهام وأهداف الفريق', ClipboardList) },
       { to: '/mgr/metrics', label: 'مؤشرات الفريق', icon: TrendingUp, element: cs('مؤشرات الفريق', 'مؤشرات الأداء الرئيسية للفريق', TrendingUp) },
@@ -118,18 +125,18 @@ export const PORTALS = {
       { to: '/profile', label: 'الملف الشخصي', icon: UserCircle, element: <Profile /> },
       { to: '/attendance', label: 'الحضور والانصراف', icon: CalendarCheck, element: <Attendance /> },
       { to: '/leaves', label: 'الإجازات ورصيدها', icon: CalendarDays, element: <Leaves /> },
-      { to: '/ess/payslips', label: 'قسائم الراتب', icon: Wallet, element: cs('قسائم الراتب', 'تحميل قسائم الراتب الشهرية', Wallet) },
-      { to: '/ess/letters', label: 'الشهادات والخطابات', icon: FileText, element: cs('طلب الشهادات والخطابات', 'طلب خطابات وتعريفات رسمية', FileText) },
+      { to: '/ess/payslips', label: 'قسائم الراتب', icon: Wallet, element: <Payslips /> },
+      { to: '/ess/letters', label: 'الشهادات والخطابات', icon: FileText, element: <Requests typeOptions={['شهادة', 'خطاب']} title="الشهادات والخطابات" description="اطلب خطاب تعريف أو شهادة رسمية وتابع حالتها." /> },
       { to: '/ess/expenses', label: 'المصروفات', icon: Receipt, element: cs('تقديم المصروفات', 'رفع مطالبات المصروفات', Receipt) },
       { to: '/ess/goals', label: 'الأهداف والتقييم', icon: Target, element: cs('الأهداف والتقييم', 'متابعة أهدافك وتقييمك', Target) },
       { to: '/ess/courses', label: 'الدورات', icon: GraduationCap, element: cs('التسجيل في الدورات', 'استعراض والتسجيل في الدورات', GraduationCap) },
       { to: '/ess/sign', label: 'توقيع المستندات', icon: FileSignature, element: cs('توقيع المستندات', 'توقيع المستندات إلكترونياً', FileSignature) },
-      { to: '/ess/complaints', label: 'الشكاوى والاستفسارات', icon: MessageSquare, element: cs('الشكاوى والاستفسارات', 'تقديم شكوى أو استفسار', MessageSquare) },
-      { to: '/ess/data-update', label: 'تحديث البيانات', icon: UserCog, element: cs('طلب تحديث البيانات', 'طلب تعديل بياناتك الشخصية', UserCog) },
-      { to: '/ess/announcements', label: 'الإعلانات', icon: Megaphone, element: cs('الإعلانات', 'إعلانات المؤسسة', Megaphone) },
+      { to: '/ess/complaints', label: 'الشكاوى والاستفسارات', icon: MessageSquare, element: <Requests type="شكوى" title="الشكاوى والاستفسارات" description="قدّم شكوى أو استفساراً وتابع الرد عليه." /> },
+      { to: '/ess/data-update', label: 'تحديث البيانات', icon: UserCog, element: <Requests type="تحديث بيانات" title="طلب تحديث البيانات" description="اطلب تعديل بياناتك الشخصية لدى الموارد البشرية." /> },
+      { to: '/ess/announcements', label: 'الإعلانات', icon: Megaphone, element: <Announcements /> },
       { to: '/ess/benefits', label: 'المزايا والتأمين', icon: ShieldCheck, element: cs('المزايا والتأمين', 'الاطلاع على مزاياك وتأمينك', ShieldCheck) },
-      { to: '/ess/remote', label: 'العمل عن بُعد', icon: Laptop, element: cs('طلب العمل عن بُعد', 'تقديم طلب عمل عن بُعد', Laptop) },
-      { to: '/ess/overtime', label: 'العمل الإضافي', icon: Clock, element: cs('طلب العمل الإضافي', 'تقديم طلب عمل إضافي', Clock) },
+      { to: '/ess/remote', label: 'العمل عن بُعد', icon: Laptop, element: <Requests type="عمل عن بعد" title="طلب العمل عن بُعد" description="قدّم طلب عمل عن بُعد لموافقة مديرك." /> },
+      { to: '/ess/overtime', label: 'العمل الإضافي', icon: Clock, element: <Requests type="عمل إضافي" title="طلب العمل الإضافي" description="قدّم طلب عمل إضافي وتابع اعتماده." /> },
       { to: '/ess/schedule', label: 'جدول الدوام', icon: CalendarDays, element: cs('جدول الدوام', 'الاطلاع على جدول دوامك', CalendarDays) },
       { to: '/ess/policies', label: 'السياسات', icon: ScrollText, element: cs('السياسات', 'الاطلاع على سياسات المؤسسة', ScrollText) },
       { to: '/ess/surveys', label: 'الاستطلاعات', icon: ListChecks, element: cs('استطلاعات الموظفين', 'المشاركة في استطلاعات الرأي', ListChecks) },
