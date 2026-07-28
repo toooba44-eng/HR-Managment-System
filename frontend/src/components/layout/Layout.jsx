@@ -15,6 +15,8 @@ export default function Layout() {
   const match = portal.nav.find((n) => n.to === location.pathname)
   let title = match?.label || portal.name
   if (location.pathname.startsWith('/employees/')) title = 'ملف الموظف'
+  if (location.pathname === '/profile') title = 'ملفي الشخصي'
+  if (location.pathname === '/hr/policies') title = 'السياسات'
 
   return (
     <div className="flex min-h-screen bg-slate-50">
