@@ -136,6 +136,23 @@ const companies = [
   { id: companySeq++, name: 'شركة الريادة', contact_email: 'info@alriyada.com', plan: 'احترافية', users_limit: 75, storage_limit_gb: 50, status: 'معلّقة', created_at: nowIso() },
 ]
 
+let expenseSeq = 1
+const expenses = [
+  { id: expenseSeq++, employee_id: 6, type: 'مصروف', category: 'مواصلات', amount: 350, description: 'أجرة مواصلات لزيارة عميل.', status: 'معلقة', approved_by: null, created_at: nowIso() },
+  { id: expenseSeq++, employee_id: 6, type: 'سلفة', category: 'سلفة راتب', amount: 3000, description: 'سلفة على راتب الشهر القادم.', status: 'معتمدة', approved_by: 2, created_at: nowIso() },
+  { id: expenseSeq++, employee_id: 10, type: 'مصروف', category: 'قرطاسية', amount: 180, description: 'شراء مستلزمات مكتبية.', status: 'مصروفة', approved_by: 5, created_at: nowIso() },
+  { id: expenseSeq++, employee_id: 4, type: 'مصروف', category: 'ضيافة', amount: 620, description: 'ضيافة اجتماع مبيعات.', status: 'معلقة', approved_by: null, created_at: nowIso() },
+]
+
+let assetSeq = 1
+const assets = [
+  { id: assetSeq++, name: 'لابتوب Dell Latitude', category: 'أجهزة حاسب', serial_number: 'DL-2024-0012', assigned_to: 6, status: 'مُخصّص', assigned_date: addDays(-120), notes: 'مخصّص لفريق التطوير.' },
+  { id: assetSeq++, name: 'شاشة LG 27"', category: 'ملحقات', serial_number: 'LG-27-0345', assigned_to: 6, status: 'مُخصّص', assigned_date: addDays(-120), notes: null },
+  { id: assetSeq++, name: 'هاتف iPhone 15', category: 'أجهزة جوال', serial_number: 'IP-15-0088', assigned_to: 4, status: 'مُخصّص', assigned_date: addDays(-60), notes: 'لمندوب المبيعات.' },
+  { id: assetSeq++, name: 'لابتوب MacBook Pro', category: 'أجهزة حاسب', serial_number: 'MBP-2024-0021', assigned_to: null, status: 'متاح', assigned_date: null, notes: 'متاح للتخصيص.' },
+  { id: assetSeq++, name: 'طابعة HP LaserJet', category: 'أجهزة مكتبية', serial_number: 'HP-LJ-0007', assigned_to: null, status: 'صيانة', assigned_date: null, notes: 'قيد الصيانة الدورية.' },
+]
+
 function addDays(n) {
   const d = new Date()
   d.setDate(d.getDate() + n)
@@ -710,6 +727,90 @@ export const mockCompaniesApi = {
     await delay()
     const i = companies.findIndex((x) => x.id === Number(id))
     if (i > -1) companies.splice(i, 1)
+    return { message: 'تم الحذف' }
+  },
+}
+
+export const mockExpensesApi = {
+  async list({ type = '', status = '' } = {}) {
+    await delay()
+    const u = currentUser()
+    let rows = expenses
+    if (u && ['employee', 'candidate'].includes(u.role)) {
+      rows = rows.filter((x) => x.employee_id === u.employee_id)
+    } else if (u && u.role === 'department_head') {
+      const dep = employees.find((e) => e.id === u.employee_id)?.department_id
+      rows = rows.filter((x) => employees.find((e) => e.id === x.employee_id)?.department_id === dep)
+    }
+    if (type) rows = rows.filter((x) => x.type === type)
+    if (status) rows = rows.filter((x) => x.status === status)
+    const so = { معلقة: 1, معتمدة: 2, مصروفة: 3, مرفوضة: 4 }
+    const list = [...rows]
+      .sort((a, b) => (so[a.status] - so[b.status]) || b.id - a.id)
+      .map((x) => ({ ...x, full_name: empName(x.employee_id), job_title: employees.find((e) => e.id === x.employee_id)?.job_title, department_name: deptName(employees.find((e) => e.id === x.employee_id)?.department_id), approved_by_name: empName(x.approved_by), profile_picture: null }))
+    const summary = list.reduce((s, r) => {
+      s.count += 1; s.total += r.amount
+      if (r.status === 'معلقة') s.pending += r.amount
+      if (r.status === 'معتمدة' || r.status === 'مصروفة') s.approved += r.amount
+      return s
+    }, { count: 0, total: 0, pending: 0, approved: 0 })
+    return { expenses: list, summary }
+  },
+  async create(data) {
+    await delay()
+    const x = { id: expenseSeq++, employee_id: currentUser()?.employee_id, status: 'معلقة', approved_by: null, created_at: nowIso(), type: data.type || 'مصروف', category: data.category || 'أخرى', ...data }
+    expenses.unshift(x)
+    return { message: 'تم الإرسال', expense: x }
+  },
+  async setStatus(id, status) {
+    await delay()
+    const x = expenses.find((e) => e.id === Number(id))
+    if (x) { x.status = status; x.approved_by = currentUser()?.employee_id || 5 }
+    return { message: 'تم التحديث' }
+  },
+}
+
+export const mockAssetsApi = {
+  async list({ status = '', category = '' } = {}) {
+    await delay()
+    const u = currentUser()
+    let rows = assets
+    if (u && ['employee', 'candidate', 'department_head'].includes(u.role)) {
+      rows = rows.filter((a) => a.assigned_to === u.employee_id)
+    }
+    if (status) rows = rows.filter((a) => a.status === status)
+    if (category) rows = rows.filter((a) => a.category === category)
+    const list = rows.map((a) => ({ ...a, assigned_to_name: empName(a.assigned_to) }))
+    const summary = {
+      total: list.length,
+      assigned: list.filter((a) => a.status === 'مُخصّص').length,
+      available: list.filter((a) => a.status === 'متاح').length,
+      maintenance: list.filter((a) => a.status === 'صيانة').length,
+    }
+    return { assets: list, summary }
+  },
+  async create(data) {
+    await delay()
+    const a = { id: assetSeq++, category: data.category || 'أخرى', status: 'متاح', assigned_to: null, assigned_date: null, ...data }
+    assets.unshift(a)
+    return { message: 'تم الإنشاء', asset: a }
+  },
+  async update(id, data) {
+    await delay()
+    const a = assets.find((x) => x.id === Number(id))
+    if (a) {
+      Object.assign(a, data)
+      if (data.assigned_to !== undefined) {
+        if (data.assigned_to) { a.status = 'مُخصّص'; a.assigned_date = a.assigned_date || addDays(0) }
+        else { if (a.status === 'مُخصّص') a.status = 'متاح'; a.assigned_date = null }
+      }
+    }
+    return { message: 'تم التحديث' }
+  },
+  async remove(id) {
+    await delay()
+    const i = assets.findIndex((x) => x.id === Number(id))
+    if (i > -1) assets.splice(i, 1)
     return { message: 'تم الحذف' }
   },
 }

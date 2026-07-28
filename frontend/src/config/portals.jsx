@@ -29,6 +29,8 @@ import Applications from '../pages/candidate/Applications'
 import Recruitment from '../pages/hr/Recruitment'
 import Companies from '../pages/superadmin/Companies'
 import Subscriptions from '../pages/superadmin/Subscriptions'
+import Expenses from '../pages/hr/Expenses'
+import Assets from '../pages/hr/Assets'
 import ComingSoon from '../components/ui/ComingSoon'
 
 // Helper for scaffolded (not-yet-built) features
@@ -95,10 +97,10 @@ export const PORTALS = {
       { to: '/hr/performance', label: 'الأداء والأهداف', icon: Target, element: cs('الأداء والأهداف', 'دورات التقييم وإدارة الأهداف (OKR/KPI)', Target) },
       { to: '/hr/training', label: 'التدريب والتطوير', icon: GraduationCap, element: cs('التدريب والتطوير', 'الدورات والبرامج التدريبية ومسارات التطوير', GraduationCap) },
       { to: '/hr/talent', label: 'المواهب والتعاقب الوظيفي', icon: Star, element: cs('المواهب والتعاقب الوظيفي', 'إدارة المواهب وخطط التعاقب الوظيفي', Star) },
-      { to: '/hr/expenses', label: 'المصروفات والسلف', icon: Receipt, element: cs('المصروفات والسلف', 'مطالبات المصروفات وطلبات السلف واعتمادها', Receipt) },
+      { to: '/hr/expenses', label: 'المصروفات والسلف', icon: Receipt, element: <Expenses /> },
       { to: '/hr/requests', label: 'الخدمات والطلبات', icon: Inbox, element: <Requests title="الخدمات والطلبات" description="راجع واعتمد طلبات الموظفين (خطابات، تحديث بيانات، عمل عن بُعد…)." /> },
       { to: '/hr/documents', label: 'المستندات', icon: FileText, element: cs('المستندات', 'مستندات الموظفين والمؤسسة وإدارة انتهاء الصلاحية', FileText) },
-      { to: '/hr/assets', label: 'الأصول والعهد', icon: Package, element: cs('الأصول والعهد', 'تسليم واستلام عهد الموظفين وأصول الشركة', Package) },
+      { to: '/hr/assets', label: 'الأصول والعهد', icon: Package, element: <Assets /> },
       { to: '/hr/engagement', label: 'المشاركة والتواصل', icon: Megaphone, element: <Announcements /> },
       { to: '/hr/health-safety', label: 'الصحة والسلامة', icon: ShieldPlus, element: cs('الصحة والسلامة', 'السلامة المهنية والحوادث والفحوصات الطبية', ShieldPlus) },
       { to: '/hr/grievances', label: 'المخالفات والشكاوى', icon: AlertTriangle, element: cs('المخالفات والشكاوى', 'إدارة المخالفات والإجراءات التأديبية والشكاوى', AlertTriangle) },
@@ -125,7 +127,7 @@ export const PORTALS = {
       { to: '/mgr/schedule', label: 'جداول الفريق', icon: Clock, element: cs('جداول الفريق', 'إدارة جداول ومناوبات الفريق', Clock) },
       { to: '/mgr/performance', label: 'مراجعة الأداء', icon: Target, element: cs('مراجعة الأداء', 'تقييم أداء أعضاء الفريق', Target) },
       { to: '/mgr/requests', label: 'طلبات الفريق', icon: Inbox, element: <Requests title="طلبات الفريق" description="راجع واعتمد طلبات أعضاء فريقك." /> },
-      { to: '/mgr/expenses', label: 'اعتماد المصروفات', icon: Receipt, element: cs('اعتماد المصروفات والعمل الإضافي', 'اعتماد مطالبات المصروفات والعمل الإضافي', Receipt) },
+      { to: '/mgr/expenses', label: 'اعتماد المصروفات', icon: Receipt, element: <Expenses /> },
       { to: '/mgr/tasks', label: 'المهام والأهداف', icon: ClipboardList, element: <Tasks title="مهام الفريق" description="أسند المهام لأعضاء فريقك وتابع تقدّمها." /> },
       { to: '/mgr/metrics', label: 'مؤشرات الفريق', icon: TrendingUp, element: <TeamMetrics /> },
       { to: '/mgr/hiring', label: 'طلب موظفين', icon: PlusCircle, element: cs('طلب موظفين جدد', 'رفع طلبات توظيف جديدة', PlusCircle) },
@@ -150,7 +152,7 @@ export const PORTALS = {
       { to: '/leaves', label: 'الإجازات ورصيدها', icon: CalendarDays, element: <Leaves /> },
       { to: '/ess/payslips', label: 'قسائم الراتب', icon: Wallet, element: <Payslips /> },
       { to: '/ess/letters', label: 'الشهادات والخطابات', icon: FileText, element: <Requests typeOptions={['شهادة', 'خطاب']} title="الشهادات والخطابات" description="اطلب خطاب تعريف أو شهادة رسمية وتابع حالتها." /> },
-      { to: '/ess/expenses', label: 'المصروفات', icon: Receipt, element: cs('تقديم المصروفات', 'رفع مطالبات المصروفات', Receipt) },
+      { to: '/ess/expenses', label: 'المصروفات', icon: Receipt, element: <Expenses /> },
       { to: '/ess/goals', label: 'مهامي وأهدافي', icon: Target, element: <Tasks title="مهامي" description="المهام المسندة إليك — حدّث حالتها فور إنجازها." /> },
       { to: '/ess/courses', label: 'الدورات', icon: GraduationCap, element: cs('التسجيل في الدورات', 'استعراض والتسجيل في الدورات', GraduationCap) },
       { to: '/ess/sign', label: 'توقيع المستندات', icon: FileSignature, element: cs('توقيع المستندات', 'توقيع المستندات إلكترونياً', FileSignature) },
