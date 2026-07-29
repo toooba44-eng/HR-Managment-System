@@ -194,6 +194,21 @@ const incidents = [
   { id: incSeq++, title: 'فحص طفايات الحريق', type: 'ملاحظة سلامة', employee_id: null, location: 'المبنى الرئيسي', severity: 'متوسطة', description: 'حان موعد الفحص الدوري لطفايات الحريق.', status: 'مفتوح', incident_date: addDays(-2), reported_by: 5, created_at: nowIso() },
 ]
 
+let shiftSeq = 1
+const shifts = [
+  { id: shiftSeq++, employee_id: 6, date: addDays(0), shift_type: 'صباحية', start_time: '08:00', end_time: '16:00', location: 'المقر الرئيسي', notes: null, created_by: 5 },
+  { id: shiftSeq++, employee_id: 6, date: addDays(1), shift_type: 'صباحية', start_time: '08:00', end_time: '16:00', location: 'المقر الرئيسي', notes: null, created_by: 5 },
+  { id: shiftSeq++, employee_id: 10, date: addDays(0), shift_type: 'مسائية', start_time: '16:00', end_time: '00:00', location: 'فرع جدة', notes: null, created_by: 5 },
+  { id: shiftSeq++, employee_id: 4, date: addDays(0), shift_type: 'صباحية', start_time: '09:00', end_time: '17:00', location: 'فرع جدة', notes: null, created_by: 5 },
+]
+
+let tsSeq = 1
+const timesheets = [
+  { id: tsSeq++, employee_id: 6, date: addDays(-1), project: 'منصة الموارد البشرية', task: 'تطوير وحدة التقارير', hours: 6, status: 'معتمد', approved_by: 2, created_at: nowIso() },
+  { id: tsSeq++, employee_id: 6, date: addDays(0), project: 'منصة الموارد البشرية', task: 'إصلاح أخطاء', hours: 3, status: 'مقدّم', approved_by: null, created_at: nowIso() },
+  { id: tsSeq++, employee_id: 10, date: addDays(0), project: 'تطبيق الجوال', task: 'تصميم الواجهات', hours: 5, status: 'مسودة', approved_by: null, created_at: nowIso() },
+]
+
 function addDays(n) {
   const d = new Date()
   d.setDate(d.getDate() + n)
@@ -1055,6 +1070,46 @@ export const mockIncidentsApi = {
   async create(data) { await delay(); const i = { id: incSeq++, type: data.type || 'ملاحظة سلامة', severity: data.severity || 'متوسطة', status: 'مفتوح', incident_date: data.incident_date || addDays(0), reported_by: currentUser()?.employee_id || 5, created_at: nowIso(), ...data }; incidents.unshift(i); return { message: 'تم', incident: i } },
   async update(id, data) { await delay(); const i = incidents.find((x) => x.id === Number(id)); if (i) Object.assign(i, data); return { message: 'تم التحديث' } },
   async remove(id) { await delay(); const idx = incidents.findIndex((x) => x.id === Number(id)); if (idx > -1) incidents.splice(idx, 1); return { message: 'تم الحذف' } },
+}
+
+function scopeByRole(rows, key = 'employee_id') {
+  const u = currentUser()
+  if (u && ['employee', 'candidate'].includes(u.role)) return rows.filter((r) => r[key] === u.employee_id)
+  if (u && u.role === 'department_head') {
+    const dep = employees.find((e) => e.id === u.employee_id)?.department_id
+    return rows.filter((r) => employees.find((e) => e.id === r[key])?.department_id === dep)
+  }
+  return rows
+}
+
+export const mockShiftsApi = {
+  async list({ from, to } = {}) {
+    await delay()
+    let rows = scopeByRole(shifts)
+    if (from) rows = rows.filter((s) => s.date >= from)
+    if (to) rows = rows.filter((s) => s.date <= to)
+    return [...rows].sort((a, b) => b.date.localeCompare(a.date)).map((s) => ({ ...s, full_name: empName(s.employee_id), job_title: employees.find((e) => e.id === s.employee_id)?.job_title, profile_picture: null }))
+  },
+  async create(data) { await delay(); const s = { id: shiftSeq++, shift_type: data.shift_type || 'صباحية', location: data.location || 'المقر الرئيسي', created_by: currentUser()?.employee_id || 5, ...data }; shifts.unshift(s); return { message: 'تم', shift: s } },
+  async update(id, data) { await delay(); const s = shifts.find((x) => x.id === Number(id)); if (s) Object.assign(s, data); return { message: 'تم التحديث' } },
+  async remove(id) { await delay(); const i = shifts.findIndex((x) => x.id === Number(id)); if (i > -1) shifts.splice(i, 1); return { message: 'تم الحذف' } },
+}
+
+export const mockTimesheetsApi = {
+  async list({ status } = {}) {
+    await delay()
+    let rows = scopeByRole(timesheets)
+    if (status) rows = rows.filter((t) => t.status === status)
+    const so = { 'مقدّم': 1, مسودة: 2, معتمد: 3, مرفوض: 4 }
+    const list = [...rows].sort((a, b) => (so[a.status] - so[b.status]) || b.date.localeCompare(a.date))
+      .map((t) => ({ ...t, full_name: empName(t.employee_id), job_title: employees.find((e) => e.id === t.employee_id)?.job_title, profile_picture: null, approved_by_name: empName(t.approved_by) }))
+    const summary = list.reduce((s, r) => { s.totalHours += r.hours; if (r.status === 'معتمد') s.approvedHours += r.hours; if (r.status === 'مقدّم') s.pending += 1; return s }, { totalHours: 0, approvedHours: 0, pending: 0, count: list.length })
+    return { timesheets: list, summary }
+  },
+  async create(data) { await delay(); const t = { id: tsSeq++, employee_id: currentUser()?.employee_id, status: 'مسودة', approved_by: null, created_at: nowIso(), ...data }; timesheets.unshift(t); return { message: 'تم', timesheet: t } },
+  async submit(id) { await delay(); const t = timesheets.find((x) => x.id === Number(id)); if (t) t.status = 'مقدّم'; return { message: 'تم' } },
+  async review(id, status) { await delay(); const t = timesheets.find((x) => x.id === Number(id)); if (t) { t.status = status; t.approved_by = currentUser()?.employee_id || 5 } return { message: 'تم' } },
+  async remove(id) { await delay(); const i = timesheets.findIndex((x) => x.id === Number(id)); if (i > -1) timesheets.splice(i, 1); return { message: 'تم الحذف' } },
 }
 
 function notFound() {

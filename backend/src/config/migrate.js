@@ -347,6 +347,37 @@ const migrations = [
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL,
     FOREIGN KEY (reported_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
+  // Shifts & schedules
+  `CREATE TABLE IF NOT EXISTS shifts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    date DATE NOT NULL,
+    shift_type TEXT DEFAULT 'صباحية' CHECK(shift_type IN ('صباحية', 'مسائية', 'ليلية', 'راحة')),
+    start_time TEXT,
+    end_time TEXT,
+    location TEXT DEFAULT 'المقر الرئيسي',
+    notes TEXT,
+    created_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
+  // Timesheets (project hours)
+  `CREATE TABLE IF NOT EXISTS timesheets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    date DATE NOT NULL,
+    project TEXT NOT NULL,
+    task TEXT,
+    hours REAL NOT NULL DEFAULT 0,
+    status TEXT DEFAULT 'مسودة' CHECK(status IN ('مسودة', 'مقدّم', 'معتمد', 'مرفوض')),
+    approved_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+    FOREIGN KEY (approved_by) REFERENCES employees(id) ON DELETE SET NULL
   )`
 ];
 
