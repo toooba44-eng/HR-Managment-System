@@ -203,6 +203,14 @@ const realCompensationApi = {
   remove: (id) => api.delete(`/compensation/${id}`).then((r) => r.data),
 }
 
+// ---------- Talent & succession ----------
+const realSuccessionApi = {
+  list: (params) => api.get('/succession', { params }).then((r) => r.data),
+  create: (data) => api.post('/succession', data).then((r) => r.data),
+  update: (id, data) => api.put(`/succession/${id}`, data).then((r) => r.data),
+  remove: (id) => api.delete(`/succession/${id}`).then((r) => r.data),
+}
+
 // ---------- Training & development ----------
 const realTrainingApi = {
   courses: () => api.get('/training/courses').then((r) => r.data),
@@ -252,3 +260,4 @@ export const incidentsApi = DEMO ? mock.mockIncidentsApi : realIncidentsApi
 export const shiftsApi = DEMO ? mock.mockShiftsApi : realShiftsApi
 export const timesheetsApi = DEMO ? mock.mockTimesheetsApi : realTimesheetsApi
 export const compensationApi = DEMO ? mock.mockCompensationApi : realCompensationApi
+export const successionApi = DEMO ? mock.mockSuccessionApi : realSuccessionApi

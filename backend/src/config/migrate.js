@@ -398,6 +398,26 @@ const migrations = [
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
     FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
+  // Talent & succession planning (critical positions + successors)
+  `CREATE TABLE IF NOT EXISTS succession (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    position_title TEXT NOT NULL,
+    department_id INTEGER,
+    incumbent_id INTEGER,
+    successor_id INTEGER,
+    readiness TEXT DEFAULT 'خلال سنة' CHECK(readiness IN ('جاهز الآن', 'خلال سنة', 'خلال سنتين', 'غير جاهز')),
+    risk_level TEXT DEFAULT 'متوسط' CHECK(risk_level IN ('مرتفع', 'متوسط', 'منخفض')),
+    potential TEXT DEFAULT 'أداء عالٍ' CHECK(potential IN ('نجم صاعد', 'أداء عالٍ', 'موثوق', 'يحتاج تطوير')),
+    status TEXT DEFAULT 'نشط' CHECK(status IN ('نشط', 'مؤرشف')),
+    notes TEXT,
+    created_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL,
+    FOREIGN KEY (incumbent_id) REFERENCES employees(id) ON DELETE SET NULL,
+    FOREIGN KEY (successor_id) REFERENCES employees(id) ON DELETE SET NULL,
+    FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
   )`
 ];
 
