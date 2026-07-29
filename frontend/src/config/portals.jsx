@@ -41,6 +41,7 @@ import Shifts from '../pages/hr/Shifts'
 import Timesheets from '../pages/hr/Timesheets'
 import Compensation from '../pages/hr/Compensation'
 import Talent from '../pages/hr/Talent'
+import Documents from '../pages/hr/Documents'
 import ComingSoon from '../components/ui/ComingSoon'
 
 // Helper for scaffolded (not-yet-built) features
@@ -120,7 +121,7 @@ export const PORTALS = {
       { section: 'الأداء والتطوير', to: '/hr/talent', label: 'المواهب والتعاقب الوظيفي', icon: Star, element: <Talent /> },
 
       { section: 'خدمات الموظفين', to: '/hr/requests', label: 'الخدمات والطلبات', icon: Inbox, element: <Requests title="الخدمات والطلبات" description="راجع واعتمد طلبات الموظفين (خطابات، تحديث بيانات، عمل عن بُعد…)." /> },
-      { section: 'خدمات الموظفين', to: '/hr/documents', label: 'المستندات', icon: FileText, element: cs('المستندات', 'مستندات الموظفين والمؤسسة وإدارة انتهاء الصلاحية', FileText) },
+      { section: 'خدمات الموظفين', to: '/hr/documents', label: 'المستندات', icon: FileText, element: <Documents /> },
       { section: 'خدمات الموظفين', to: '/hr/assets', label: 'الأصول والعهد', icon: Package, element: <Assets /> },
       { section: 'خدمات الموظفين', to: '/hr/engagement', label: 'المشاركة والتواصل', icon: Megaphone, element: <Announcements /> },
 

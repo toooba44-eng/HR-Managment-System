@@ -117,6 +117,7 @@ const migrations = [
     file_path TEXT,
     file_name TEXT,
     file_size INTEGER,
+    expiry_date DATE,
     uploaded_by INTEGER,
     uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
@@ -443,6 +444,20 @@ function runMigrations() {
     } catch (err) {
       if (!err.message.includes('already exists')) {
         console.error('❌ Migration error:', err.message);
+      }
+    }
+  }
+
+  // Additive column migrations for tables that already exist on older databases
+  const columnAdditions = [
+    `ALTER TABLE documents ADD COLUMN expiry_date DATE`,
+  ];
+  for (const stmt of columnAdditions) {
+    try {
+      db.exec(stmt);
+    } catch (err) {
+      if (!err.message.includes('duplicate column')) {
+        console.error('❌ Column migration error:', err.message);
       }
     }
   }

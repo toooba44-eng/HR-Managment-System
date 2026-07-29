@@ -156,15 +156,17 @@ function seedData() {
 
   // Documents
   if (isEmpty('documents')) {
-    const insertDoc = db.prepare(`INSERT INTO documents (employee_id, type, title, file_name, uploaded_by) VALUES (?, ?, ?, ?, ?)`);
+    const insertDoc = db.prepare(`INSERT INTO documents (employee_id, type, title, file_name, expiry_date, uploaded_by) VALUES (?, ?, ?, ?, ?, ?)`);
     const docs = [
-      [1, 'هوية', 'بطاقة الهوية الوطنية', 'id_card_ceo.pdf', 1],
-      [1, 'عقد عمل', 'عقد العقد الرئيسي', 'contract_ceo.pdf', 1],
-      [2, 'هوية', 'بطاقة الهوية الوطنية', 'id_card_tech.pdf', 5],
-      [2, 'شهادة', 'شهادة البكالوريوس', 'degree_tech.pdf', 5],
-      [2, 'عقد عمل', 'عقد العمل الحالي', 'contract_tech.pdf', 5],
-      [3, 'هوية', 'بطاقة الهوية الوطنية', 'id_card_finance.pdf', 5],
-      [3, 'عقد عمل', 'عقد العمل', 'contract_finance.pdf', 5],
+      [1, 'هوية', 'بطاقة الهوية الوطنية', 'id_card_ceo.pdf', addDaysStr(400), 1],
+      [1, 'عقد عمل', 'عقد العقد الرئيسي', 'contract_ceo.pdf', addDaysStr(180), 1],
+      [2, 'هوية', 'بطاقة الهوية الوطنية', 'id_card_tech.pdf', addDaysStr(20), 5],
+      [2, 'شهادة', 'شهادة البكالوريوس', 'degree_tech.pdf', null, 5],
+      [2, 'عقد عمل', 'عقد العمل الحالي', 'contract_tech.pdf', addDaysStr(90), 5],
+      [2, 'تأمين', 'وثيقة التأمين الطبي', 'insurance_tech.pdf', addDaysStr(-10), 5],
+      [3, 'هوية', 'بطاقة الهوية الوطنية', 'id_card_finance.pdf', addDaysStr(15), 5],
+      [3, 'عقد عمل', 'عقد العمل', 'contract_finance.pdf', addDaysStr(365), 5],
+      [3, 'جواز', 'جواز السفر', 'passport_finance.pdf', addDaysStr(-45), 5],
     ];
     docs.forEach(doc => insertDoc.run(doc));
     console.log('✅ Documents seeded');

@@ -82,7 +82,18 @@ const leaves = [
   { id: leaveSeq++, employee_id: 7, type: 'طارئة', start_date: addDays(-5), end_date: addDays(-4), days_count: 2, reason: 'ظرف طارئ', status: 'موافقة', approved_by: 1, created_at: nowIso() },
 ]
 
-const documents = []
+let docSeq = 1
+const documents = [
+  { id: docSeq++, employee_id: 1, type: 'هوية', title: 'بطاقة الهوية الوطنية', file_name: 'id_card_ceo.pdf', expiry_date: addDays(400), uploaded_by: 1, uploaded_at: nowIso() },
+  { id: docSeq++, employee_id: 1, type: 'عقد عمل', title: 'عقد العقد الرئيسي', file_name: 'contract_ceo.pdf', expiry_date: addDays(180), uploaded_by: 1, uploaded_at: nowIso() },
+  { id: docSeq++, employee_id: 2, type: 'هوية', title: 'بطاقة الهوية الوطنية', file_name: 'id_card_tech.pdf', expiry_date: addDays(20), uploaded_by: 5, uploaded_at: nowIso() },
+  { id: docSeq++, employee_id: 2, type: 'شهادة', title: 'شهادة البكالوريوس', file_name: 'degree_tech.pdf', expiry_date: null, uploaded_by: 5, uploaded_at: nowIso() },
+  { id: docSeq++, employee_id: 2, type: 'عقد عمل', title: 'عقد العمل الحالي', file_name: 'contract_tech.pdf', expiry_date: addDays(90), uploaded_by: 5, uploaded_at: nowIso() },
+  { id: docSeq++, employee_id: 2, type: 'تأمين', title: 'وثيقة التأمين الطبي', file_name: 'insurance_tech.pdf', expiry_date: addDays(-10), uploaded_by: 5, uploaded_at: nowIso() },
+  { id: docSeq++, employee_id: 3, type: 'هوية', title: 'بطاقة الهوية الوطنية', file_name: 'id_card_finance.pdf', expiry_date: addDays(15), uploaded_by: 5, uploaded_at: nowIso() },
+  { id: docSeq++, employee_id: 3, type: 'عقد عمل', title: 'عقد العمل', file_name: 'contract_finance.pdf', expiry_date: addDays(365), uploaded_by: 5, uploaded_at: nowIso() },
+  { id: docSeq++, employee_id: 3, type: 'جواز', title: 'جواز السفر', file_name: 'passport_finance.pdf', expiry_date: addDays(-45), uploaded_by: 5, uploaded_at: nowIso() },
+]
 
 let annSeq = 1
 const announcements = [
@@ -505,18 +516,71 @@ export const mockLeavesApi = {
   },
 }
 
+const docDaysLeft = (d) => (d ? Math.ceil((new Date(d) - new Date()) / 86400000) : null)
+const docStatus = (d) => {
+  if (!d) return 'بدون انتهاء'
+  const dl = docDaysLeft(d)
+  if (dl < 0) return 'منتهية'
+  if (dl <= 30) return 'تنتهي قريباً'
+  return 'سارية'
+}
+
 export const mockDocumentsApi = {
   async forEmployee(employeeId) {
     await delay()
     return documents.filter((d) => d.employee_id === Number(employeeId))
   },
+  async list({ type, employee_id } = {}) {
+    await delay()
+    let rows = scopeByRole(documents)
+    if (type) rows = rows.filter((d) => d.type === type)
+    if (employee_id) rows = rows.filter((d) => d.employee_id === Number(employee_id))
+    const items = [...rows]
+      .sort((a, b) => {
+        if (!a.expiry_date && !b.expiry_date) return 0
+        if (!a.expiry_date) return 1
+        if (!b.expiry_date) return -1
+        return a.expiry_date.localeCompare(b.expiry_date)
+      })
+      .map((d) => ({
+        ...d,
+        days_left: docDaysLeft(d.expiry_date),
+        doc_status: docStatus(d.expiry_date),
+        full_name: empName(d.employee_id),
+        job_title: employees.find((e) => e.id === d.employee_id)?.job_title || null,
+        department_name: deptName(employees.find((e) => e.id === d.employee_id)?.department_id),
+        uploaded_by_name: empName(d.uploaded_by),
+        profile_picture: null,
+      }))
+    const summary = items.reduce((s, r) => {
+      s.total += 1
+      if (r.doc_status === 'منتهية') s.expired += 1
+      if (r.doc_status === 'تنتهي قريباً') s.expiringSoon += 1
+      return s
+    }, { total: 0, expired: 0, expiringSoon: 0 })
+    return { documents: items, summary }
+  },
+  async register(data) {
+    await delay()
+    const d = { id: docSeq++, type: data.type || 'أخرى', title: data.title, file_name: data.file_name || null, expiry_date: data.expiry_date || null, uploaded_by: currentUser()?.employee_id || 5, uploaded_at: nowIso(), ...data, employee_id: Number(data.employee_id) }
+    documents.unshift(d)
+    return { message: 'تم التسجيل', document: d }
+  },
+  async update(id, data) {
+    await delay()
+    const d = documents.find((x) => x.id === Number(id))
+    if (d) Object.assign(d, data)
+    return { message: 'تم التحديث' }
+  },
   async upload() {
     await delay()
     return { message: 'رفع المستندات غير متاح في الوضع التجريبي' }
   },
-  async remove() {
+  async remove(id) {
     await delay()
-    return { message: 'تم الحذف (وضع تجريبي)' }
+    const i = documents.findIndex((x) => x.id === Number(id))
+    if (i > -1) documents.splice(i, 1)
+    return { message: 'تم الحذف' }
   },
 }
 

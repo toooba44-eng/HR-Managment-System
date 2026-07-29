@@ -225,6 +225,9 @@ const realTrainingApi = {
 // ---------- Documents ----------
 const realDocumentsApi = {
   forEmployee: (employeeId) => api.get(`/documents/employee/${employeeId}`).then((r) => r.data),
+  list: (params) => api.get('/documents', { params }).then((r) => r.data),
+  register: (data) => api.post('/documents/register', data).then((r) => r.data),
+  update: (id, data) => api.put(`/documents/${id}`, data).then((r) => r.data),
   upload: (formData) =>
     api
       .post('/documents', formData, { headers: { 'Content-Type': 'multipart/form-data' } })

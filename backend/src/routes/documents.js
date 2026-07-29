@@ -34,6 +34,95 @@ const upload = multer({
 
 router.use(authenticateToken);
 
+const MANAGE = ['admin', 'hr_manager'];
+
+// Org-wide document register (role-scoped) with expiry tracking + summary
+router.get('/', (req, res, next) => {
+  try {
+    const { type, employee_id } = req.query;
+    let where = 'WHERE 1=1';
+    const params = [];
+    if (type) { where += ' AND d.type = ?'; params.push(type); }
+    if (employee_id) { where += ' AND d.employee_id = ?'; params.push(employee_id); }
+
+    if (['employee', 'candidate'].includes(req.user.role)) {
+      where += ' AND d.employee_id = ?';
+      params.push(req.user.employee_id);
+    } else if (req.user.role === 'department_head') {
+      const dept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(req.user.employee_id);
+      if (dept) { where += ' AND e.department_id = ?'; params.push(dept.department_id); }
+    }
+
+    const rows = db.prepare(`
+      SELECT d.*, e.full_name, e.job_title, e.profile_picture, dep.name as department_name,
+             uploader.full_name as uploaded_by_name
+      FROM documents d
+      JOIN employees e ON d.employee_id = e.id
+      LEFT JOIN departments dep ON e.department_id = dep.id
+      LEFT JOIN employees uploader ON d.uploaded_by = uploader.id
+      ${where}
+      ORDER BY (d.expiry_date IS NULL), d.expiry_date ASC, d.uploaded_at DESC
+    `).all(...params);
+
+    const today = new Date();
+    const daysLeft = (d) => (d ? Math.ceil((new Date(d) - today) / 86400000) : null);
+    const items = rows.map((r) => {
+      const dl = daysLeft(r.expiry_date);
+      let doc_status = 'سارية';
+      if (dl != null && dl < 0) doc_status = 'منتهية';
+      else if (dl != null && dl <= 30) doc_status = 'تنتهي قريباً';
+      else if (!r.expiry_date) doc_status = 'بدون انتهاء';
+      return { ...r, days_left: dl, doc_status };
+    });
+
+    const summary = items.reduce((s, r) => {
+      s.total += 1;
+      if (r.doc_status === 'منتهية') s.expired += 1;
+      if (r.doc_status === 'تنتهي قريباً') s.expiringSoon += 1;
+      return s;
+    }, { total: 0, expired: 0, expiringSoon: 0 });
+
+    res.json({ documents: items, summary });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Register a document record (metadata only, no file upload)
+router.post('/register', requireRole(...MANAGE), (req, res, next) => {
+  try {
+    const { employee_id, type, title, expiry_date, file_name } = req.body;
+    if (!employee_id) return res.status(400).json({ error: 'Employee is required' });
+    if (!title) return res.status(400).json({ error: 'Title is required' });
+    const emp = db.prepare('SELECT id FROM employees WHERE id = ?').get(employee_id);
+    if (!emp) return res.status(404).json({ error: 'Employee not found' });
+
+    const result = db.prepare(`
+      INSERT INTO documents (employee_id, type, title, file_name, expiry_date, uploaded_by)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(employee_id, type || 'أخرى', title, file_name || null, expiry_date || null, req.user.employee_id || null);
+
+    res.status(201).json({ message: 'Registered', document: { id: result.lastInsertRowid } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Update a document's metadata / expiry
+router.put('/:id', requireRole(...MANAGE), (req, res, next) => {
+  try {
+    const existing = db.prepare('SELECT * FROM documents WHERE id = ?').get(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Not found' });
+    const b = req.body;
+    db.prepare('UPDATE documents SET type = ?, title = ?, expiry_date = ? WHERE id = ?')
+      .run(b.type ?? existing.type, b.title ?? existing.title,
+        b.expiry_date !== undefined ? b.expiry_date : existing.expiry_date, req.params.id);
+    res.json({ message: 'Updated' });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Get documents for an employee
 router.get('/employee/:employee_id', (req, res, next) => {
   try {
