@@ -178,6 +178,23 @@ const realIncidentsApi = {
   remove: (id) => api.delete(`/incidents/${id}`).then((r) => r.data),
 }
 
+// ---------- Shifts & schedules ----------
+const realShiftsApi = {
+  list: (params) => api.get('/shifts', { params }).then((r) => r.data),
+  create: (data) => api.post('/shifts', data).then((r) => r.data),
+  update: (id, data) => api.put(`/shifts/${id}`, data).then((r) => r.data),
+  remove: (id) => api.delete(`/shifts/${id}`).then((r) => r.data),
+}
+
+// ---------- Timesheets ----------
+const realTimesheetsApi = {
+  list: (params) => api.get('/timesheets', { params }).then((r) => r.data),
+  create: (data) => api.post('/timesheets', data).then((r) => r.data),
+  submit: (id) => api.put(`/timesheets/${id}/submit`).then((r) => r.data),
+  review: (id, status) => api.put(`/timesheets/${id}/review`, { status }).then((r) => r.data),
+  remove: (id) => api.delete(`/timesheets/${id}`).then((r) => r.data),
+}
+
 // ---------- Training & development ----------
 const realTrainingApi = {
   courses: () => api.get('/training/courses').then((r) => r.data),
@@ -224,3 +241,5 @@ export const reportsApi = DEMO ? mock.mockReportsApi : realReportsApi
 export const offboardingApi = DEMO ? mock.mockOffboardingApi : realOffboardingApi
 export const grievancesApi = DEMO ? mock.mockGrievancesApi : realGrievancesApi
 export const incidentsApi = DEMO ? mock.mockIncidentsApi : realIncidentsApi
+export const shiftsApi = DEMO ? mock.mockShiftsApi : realShiftsApi
+export const timesheetsApi = DEMO ? mock.mockTimesheetsApi : realTimesheetsApi

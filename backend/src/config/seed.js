@@ -335,6 +335,25 @@ function seedData() {
     console.log('✅ Incidents seeded');
   }
 
+  // Shifts
+  if (isEmpty('shifts')) {
+    const ins = db.prepare(`INSERT INTO shifts (employee_id, date, shift_type, start_time, end_time, location, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)`);
+    ins.run(6, addDaysStr(0), 'صباحية', '08:00', '16:00', 'المقر الرئيسي', 5);
+    ins.run(6, addDaysStr(1), 'صباحية', '08:00', '16:00', 'المقر الرئيسي', 5);
+    ins.run(10, addDaysStr(0), 'مسائية', '16:00', '00:00', 'فرع جدة', 5);
+    ins.run(4, addDaysStr(0), 'صباحية', '09:00', '17:00', 'فرع جدة', 5);
+    console.log('✅ Shifts seeded');
+  }
+
+  // Timesheets
+  if (isEmpty('timesheets')) {
+    const ins = db.prepare(`INSERT INTO timesheets (employee_id, date, project, task, hours, status, approved_by) VALUES (?, ?, ?, ?, ?, ?, ?)`);
+    ins.run(6, addDaysStr(-1), 'منصة الموارد البشرية', 'تطوير وحدة التقارير', 6, 'معتمد', 2);
+    ins.run(6, addDaysStr(0), 'منصة الموارد البشرية', 'إصلاح أخطاء', 3, 'مقدّم', null);
+    ins.run(10, addDaysStr(0), 'تطبيق الجوال', 'تصميم الواجهات', 5, 'مسودة', null);
+    console.log('✅ Timesheets seeded');
+  }
+
   console.log('🎉 Database seeding completed!');
 }
 

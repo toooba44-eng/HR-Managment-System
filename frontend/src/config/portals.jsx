@@ -37,6 +37,8 @@ import Reports from '../pages/hr/Reports'
 import Offboarding from '../pages/hr/Offboarding'
 import Grievances from '../pages/hr/Grievances'
 import HealthSafety from '../pages/hr/HealthSafety'
+import Shifts from '../pages/hr/Shifts'
+import Timesheets from '../pages/hr/Timesheets'
 import ComingSoon from '../components/ui/ComingSoon'
 
 // Helper for scaffolded (not-yet-built) features
@@ -103,8 +105,8 @@ export const PORTALS = {
       { section: 'التوظيف والتعيين', to: '/hr/onboarding', label: 'التهيئة Onboarding', icon: UserPlus, element: cs('التهيئة (Onboarding)', 'خطط ومهام تهيئة الموظفين الجدد', UserPlus) },
 
       { section: 'الوقت والحضور', to: '/attendance', label: 'الحضور والدوام', icon: CalendarCheck, element: <Attendance /> },
-      { section: 'الوقت والحضور', to: '/hr/shifts', label: 'الورديات والجداول', icon: CalendarRange, element: cs('الورديات والجداول', 'تنظيم الورديات ومناوبات العمل', CalendarRange) },
-      { section: 'الوقت والحضور', to: '/hr/timesheets', label: 'الجداول الزمنية Timesheets', icon: Timer, element: cs('الجداول الزمنية (Timesheets)', 'تسجيل واعتماد ساعات العمل على المشاريع', Timer) },
+      { section: 'الوقت والحضور', to: '/hr/shifts', label: 'الورديات والجداول', icon: CalendarRange, element: <Shifts /> },
+      { section: 'الوقت والحضور', to: '/hr/timesheets', label: 'الجداول الزمنية Timesheets', icon: Timer, element: <Timesheets /> },
       { section: 'الوقت والحضور', to: '/leaves', label: 'الإجازات', icon: CalendarDays, element: <Leaves /> },
 
       { section: 'الرواتب والتعويضات', to: '/hr/payroll', label: 'الرواتب', icon: Wallet, element: <Payroll /> },
@@ -144,7 +146,7 @@ export const PORTALS = {
 
       { section: 'إدارة الفريق', to: '/employees', label: 'أعضاء الفريق', icon: Users, element: <Employees /> },
       { section: 'إدارة الفريق', to: '/attendance', label: 'حضور الفريق', icon: CalendarCheck, element: <Attendance /> },
-      { section: 'إدارة الفريق', to: '/mgr/schedule', label: 'جداول الفريق', icon: Clock, element: cs('جداول الفريق', 'إدارة جداول ومناوبات الفريق', Clock) },
+      { section: 'إدارة الفريق', to: '/mgr/schedule', label: 'جداول الفريق', icon: Clock, element: <Shifts /> },
 
       { section: 'الموافقات', to: '/leaves', label: 'الموافقة على الإجازات', icon: CalendarDays, element: <Leaves /> },
       { section: 'الموافقات', to: '/mgr/requests', label: 'طلبات الفريق', icon: Inbox, element: <Requests title="طلبات الفريق" description="راجع واعتمد طلبات أعضاء فريقك." /> },
@@ -175,7 +177,7 @@ export const PORTALS = {
 
       { section: 'الوقت والحضور', to: '/attendance', label: 'الحضور والانصراف', icon: CalendarCheck, element: <Attendance /> },
       { section: 'الوقت والحضور', to: '/leaves', label: 'الإجازات ورصيدها', icon: CalendarDays, element: <Leaves /> },
-      { section: 'الوقت والحضور', to: '/ess/schedule', label: 'جدول الدوام', icon: CalendarRange, element: cs('جدول الدوام', 'الاطلاع على جدول دوامك', CalendarRange) },
+      { section: 'الوقت والحضور', to: '/ess/schedule', label: 'جدول الدوام', icon: CalendarRange, element: <Shifts /> },
       { section: 'الوقت والحضور', to: '/ess/remote', label: 'العمل عن بُعد', icon: Laptop, element: <Requests type="عمل عن بعد" title="طلب العمل عن بُعد" description="قدّم طلب عمل عن بُعد لموافقة مديرك." /> },
       { section: 'الوقت والحضور', to: '/ess/overtime', label: 'العمل الإضافي', icon: Clock, element: <Requests type="عمل إضافي" title="طلب العمل الإضافي" description="قدّم طلب عمل إضافي وتابع اعتماده." /> },
 
