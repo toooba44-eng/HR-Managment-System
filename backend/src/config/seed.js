@@ -366,6 +366,16 @@ function seedData() {
     console.log('✅ Compensation seeded');
   }
 
+  // Talent & succession planning
+  if (isEmpty('succession')) {
+    const ins = db.prepare(`INSERT INTO succession (position_title, department_id, incumbent_id, successor_id, readiness, risk_level, potential, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    ins.run('الرئيس التنفيذي', 1, 1, 2, 'خلال سنتين', 'مرتفع', 'نجم صاعد', 'يحتاج برنامج تطوير قيادي', 5);
+    ins.run('مدير التقنية', 1, 2, 6, 'خلال سنة', 'متوسط', 'أداء عالٍ', 'خبرة تقنية قوية', 5);
+    ins.run('مدير المالية', 3, 3, null, 'غير جاهز', 'مرتفع', 'موثوق', 'لا يوجد مرشح داخلي — يُنصح بالتوظيف الخارجي', 5);
+    ins.run('مدير الموارد البشرية', 5, 5, 7, 'جاهز الآن', 'منخفض', 'نجم صاعد', 'جاهز للترقية الفورية', 5);
+    console.log('✅ Succession seeded');
+  }
+
   console.log('🎉 Database seeding completed!');
 }
 

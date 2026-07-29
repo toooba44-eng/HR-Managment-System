@@ -219,6 +219,14 @@ const compensation = [
   { id: compSeq++, employee_id: 10, grade: 'الدرجة الرابعة', base_salary: 9000, housing_allowance: 2500, transport_allowance: 800, other_allowances: 0, bonus: 0, insurance_class: 'الفئة ج', effective_date: addDays(-30), status: 'نشط', notes: null, created_by: 5 },
 ]
 
+let succSeq = 1
+const succession = [
+  { id: succSeq++, position_title: 'الرئيس التنفيذي', department_id: 1, incumbent_id: 1, successor_id: 2, readiness: 'خلال سنتين', risk_level: 'مرتفع', potential: 'نجم صاعد', status: 'نشط', notes: 'يحتاج برنامج تطوير قيادي', created_by: 5 },
+  { id: succSeq++, position_title: 'مدير التقنية', department_id: 1, incumbent_id: 2, successor_id: 6, readiness: 'خلال سنة', risk_level: 'متوسط', potential: 'أداء عالٍ', status: 'نشط', notes: 'خبرة تقنية قوية', created_by: 5 },
+  { id: succSeq++, position_title: 'مدير المالية', department_id: 3, incumbent_id: 3, successor_id: null, readiness: 'غير جاهز', risk_level: 'مرتفع', potential: 'موثوق', status: 'نشط', notes: 'لا يوجد مرشح داخلي — يُنصح بالتوظيف الخارجي', created_by: 5 },
+  { id: succSeq++, position_title: 'مدير الموارد البشرية', department_id: 5, incumbent_id: 5, successor_id: 7, readiness: 'جاهز الآن', risk_level: 'منخفض', potential: 'نجم صاعد', status: 'نشط', notes: 'جاهز للترقية الفورية', created_by: 5 },
+]
+
 function addDays(n) {
   const d = new Date()
   d.setDate(d.getDate() + n)
@@ -1143,6 +1151,42 @@ export const mockCompensationApi = {
   async create(data) { await delay(); const c = { id: compSeq++, grade: 'الدرجة الأولى', base_salary: 0, housing_allowance: 0, transport_allowance: 0, other_allowances: 0, bonus: 0, insurance_class: 'الفئة أ', status: 'نشط', notes: null, created_by: currentUser()?.employee_id || 5, ...data, employee_id: Number(data.employee_id) }; compensation.unshift(c); return { message: 'تم', compensation: c } },
   async update(id, data) { await delay(); const c = compensation.find((x) => x.id === Number(id)); if (c) Object.assign(c, data); return { message: 'تم التحديث' } },
   async remove(id) { await delay(); const i = compensation.findIndex((x) => x.id === Number(id)); if (i > -1) compensation.splice(i, 1); return { message: 'تم الحذف' } },
+}
+
+const riskOrder = { مرتفع: 1, متوسط: 2, منخفض: 3 }
+export const mockSuccessionApi = {
+  async list({ status } = {}) {
+    await delay()
+    const u = currentUser()
+    if (u && ['employee', 'candidate'].includes(u.role)) return { succession: [], summary: { count: 0, atRisk: 0, readyNow: 0, noSuccessor: 0 } }
+    let rows = [...succession]
+    if (u && u.role === 'department_head') {
+      const dep = employees.find((e) => e.id === u.employee_id)?.department_id
+      rows = rows.filter((s) => s.department_id === dep)
+    }
+    if (status) rows = rows.filter((s) => s.status === status)
+    const list = rows
+      .sort((a, b) => (riskOrder[a.risk_level] - riskOrder[b.risk_level]) || b.id - a.id)
+      .map((s) => ({
+        ...s,
+        department_name: deptName(s.department_id),
+        incumbent_name: empName(s.incumbent_id),
+        incumbent_job_title: employees.find((e) => e.id === s.incumbent_id)?.job_title || null,
+        successor_name: empName(s.successor_id),
+        successor_job_title: employees.find((e) => e.id === s.successor_id)?.job_title || null,
+      }))
+    const summary = list.reduce((acc, r) => {
+      acc.count += 1
+      if (r.status === 'نشط' && r.risk_level === 'مرتفع') acc.atRisk += 1
+      if (r.status === 'نشط' && r.readiness === 'جاهز الآن') acc.readyNow += 1
+      if (r.status === 'نشط' && !r.successor_id) acc.noSuccessor += 1
+      return acc
+    }, { count: 0, atRisk: 0, readyNow: 0, noSuccessor: 0 })
+    return { succession: list, summary }
+  },
+  async create(data) { await delay(); const s = { id: succSeq++, readiness: 'خلال سنة', risk_level: 'متوسط', potential: 'أداء عالٍ', status: 'نشط', notes: null, created_by: currentUser()?.employee_id || 5, ...data, department_id: data.department_id ? Number(data.department_id) : null, incumbent_id: data.incumbent_id ? Number(data.incumbent_id) : null, successor_id: data.successor_id ? Number(data.successor_id) : null }; succession.unshift(s); return { message: 'تم', succession: s } },
+  async update(id, data) { await delay(); const s = succession.find((x) => x.id === Number(id)); if (s) Object.assign(s, data); return { message: 'تم التحديث' } },
+  async remove(id) { await delay(); const i = succession.findIndex((x) => x.id === Number(id)); if (i > -1) succession.splice(i, 1); return { message: 'تم الحذف' } },
 }
 
 function notFound() {
