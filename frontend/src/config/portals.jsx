@@ -39,6 +39,7 @@ import Grievances from '../pages/hr/Grievances'
 import HealthSafety from '../pages/hr/HealthSafety'
 import Shifts from '../pages/hr/Shifts'
 import Timesheets from '../pages/hr/Timesheets'
+import Compensation from '../pages/hr/Compensation'
 import ComingSoon from '../components/ui/ComingSoon'
 
 // Helper for scaffolded (not-yet-built) features
@@ -110,7 +111,7 @@ export const PORTALS = {
       { section: 'الوقت والحضور', to: '/leaves', label: 'الإجازات', icon: CalendarDays, element: <Leaves /> },
 
       { section: 'الرواتب والتعويضات', to: '/hr/payroll', label: 'الرواتب', icon: Wallet, element: <Payroll /> },
-      { section: 'الرواتب والتعويضات', to: '/hr/compensation', label: 'التعويضات والمزايا', icon: Gift, element: cs('التعويضات والمزايا', 'هياكل الرواتب والبدلات والمزايا والتأمين', Gift) },
+      { section: 'الرواتب والتعويضات', to: '/hr/compensation', label: 'التعويضات والمزايا', icon: Gift, element: <Compensation /> },
       { section: 'الرواتب والتعويضات', to: '/hr/expenses', label: 'المصروفات والسلف', icon: Receipt, element: <Expenses /> },
 
       { section: 'الأداء والتطوير', to: '/hr/performance', label: 'الأداء والأهداف', icon: Target, element: <Performance /> },
@@ -183,7 +184,7 @@ export const PORTALS = {
 
       { section: 'الرواتب والمصروفات', to: '/ess/payslips', label: 'قسائم الراتب', icon: Wallet, element: <Payslips /> },
       { section: 'الرواتب والمصروفات', to: '/ess/expenses', label: 'المصروفات', icon: Receipt, element: <Expenses /> },
-      { section: 'الرواتب والمصروفات', to: '/ess/benefits', label: 'المزايا والتأمين', icon: ShieldCheck, element: cs('المزايا والتأمين', 'الاطلاع على مزاياك وتأمينك', ShieldCheck) },
+      { section: 'الرواتب والمصروفات', to: '/ess/benefits', label: 'المزايا والتأمين', icon: ShieldCheck, element: <Compensation /> },
 
       { section: 'الأداء والتطوير', to: '/ess/goals', label: 'مهامي', icon: ClipboardList, element: <Tasks title="مهامي" description="المهام المسندة إليك — حدّث حالتها فور إنجازها." /> },
       { section: 'الأداء والتطوير', to: '/ess/performance', label: 'الأداء والأهداف', icon: Target, element: <Performance /> },

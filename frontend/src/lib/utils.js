@@ -52,6 +52,7 @@ export const STATUS_BADGE = {
   'قيد التقدم': 'badge-warning',
   مكتمل: 'badge-success',
   مسودة: 'badge-info',
+  مؤرشف: 'badge-info',
   'مقدّم': 'badge-warning',
   معتمد: 'badge-success',
   غائب: 'badge-danger',

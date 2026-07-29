@@ -195,6 +195,14 @@ const realTimesheetsApi = {
   remove: (id) => api.delete(`/timesheets/${id}`).then((r) => r.data),
 }
 
+// ---------- Compensation & benefits ----------
+const realCompensationApi = {
+  list: (params) => api.get('/compensation', { params }).then((r) => r.data),
+  create: (data) => api.post('/compensation', data).then((r) => r.data),
+  update: (id, data) => api.put(`/compensation/${id}`, data).then((r) => r.data),
+  remove: (id) => api.delete(`/compensation/${id}`).then((r) => r.data),
+}
+
 // ---------- Training & development ----------
 const realTrainingApi = {
   courses: () => api.get('/training/courses').then((r) => r.data),
@@ -243,3 +251,4 @@ export const grievancesApi = DEMO ? mock.mockGrievancesApi : realGrievancesApi
 export const incidentsApi = DEMO ? mock.mockIncidentsApi : realIncidentsApi
 export const shiftsApi = DEMO ? mock.mockShiftsApi : realShiftsApi
 export const timesheetsApi = DEMO ? mock.mockTimesheetsApi : realTimesheetsApi
+export const compensationApi = DEMO ? mock.mockCompensationApi : realCompensationApi

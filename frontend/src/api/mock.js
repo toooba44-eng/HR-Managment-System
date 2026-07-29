@@ -209,6 +209,16 @@ const timesheets = [
   { id: tsSeq++, employee_id: 10, date: addDays(0), project: 'تطبيق الجوال', task: 'تصميم الواجهات', hours: 5, status: 'مسودة', approved_by: null, created_at: nowIso() },
 ]
 
+let compSeq = 1
+const compensation = [
+  { id: compSeq++, employee_id: 1, grade: 'الدرجة التنفيذية', base_salary: 35000, housing_allowance: 8000, transport_allowance: 2000, other_allowances: 3000, bonus: 5000, insurance_class: 'الفئة أ', effective_date: addDays(-120), status: 'نشط', notes: null, created_by: 5 },
+  { id: compSeq++, employee_id: 2, grade: 'الدرجة الأولى', base_salary: 22000, housing_allowance: 5000, transport_allowance: 1500, other_allowances: 1000, bonus: 2000, insurance_class: 'الفئة أ', effective_date: addDays(-90), status: 'نشط', notes: null, created_by: 5 },
+  { id: compSeq++, employee_id: 3, grade: 'الدرجة الأولى', base_salary: 21000, housing_allowance: 5000, transport_allowance: 1500, other_allowances: 800, bonus: 1500, insurance_class: 'الفئة أ', effective_date: addDays(-90), status: 'نشط', notes: null, created_by: 5 },
+  { id: compSeq++, employee_id: 5, grade: 'الدرجة الثانية', base_salary: 18000, housing_allowance: 4000, transport_allowance: 1200, other_allowances: 500, bonus: 1000, insurance_class: 'الفئة ب', effective_date: addDays(-60), status: 'نشط', notes: null, created_by: 5 },
+  { id: compSeq++, employee_id: 6, grade: 'الدرجة الثالثة', base_salary: 12000, housing_allowance: 3000, transport_allowance: 1000, other_allowances: 0, bonus: 500, insurance_class: 'الفئة ب', effective_date: addDays(-45), status: 'نشط', notes: null, created_by: 5 },
+  { id: compSeq++, employee_id: 10, grade: 'الدرجة الرابعة', base_salary: 9000, housing_allowance: 2500, transport_allowance: 800, other_allowances: 0, bonus: 0, insurance_class: 'الفئة ج', effective_date: addDays(-30), status: 'نشط', notes: null, created_by: 5 },
+]
+
 function addDays(n) {
   const d = new Date()
   d.setDate(d.getDate() + n)
@@ -1110,6 +1120,29 @@ export const mockTimesheetsApi = {
   async submit(id) { await delay(); const t = timesheets.find((x) => x.id === Number(id)); if (t) t.status = 'مقدّم'; return { message: 'تم' } },
   async review(id, status) { await delay(); const t = timesheets.find((x) => x.id === Number(id)); if (t) { t.status = status; t.approved_by = currentUser()?.employee_id || 5 } return { message: 'تم' } },
   async remove(id) { await delay(); const i = timesheets.findIndex((x) => x.id === Number(id)); if (i > -1) timesheets.splice(i, 1); return { message: 'تم الحذف' } },
+}
+
+const compTotal = (r) => r.base_salary + r.housing_allowance + r.transport_allowance + r.other_allowances + r.bonus
+export const mockCompensationApi = {
+  async list({ status } = {}) {
+    await delay()
+    let rows = scopeByRole(compensation)
+    if (status) rows = rows.filter((c) => c.status === status)
+    const items = [...rows]
+      .sort((a, b) => (a.status === b.status ? b.base_salary - a.base_salary : a.status === 'نشط' ? -1 : 1))
+      .map((c) => ({ ...c, total_salary: compTotal(c), full_name: empName(c.employee_id), job_title: employees.find((e) => e.id === c.employee_id)?.job_title, department_name: deptName(employees.find((e) => e.id === c.employee_id)?.department_id), profile_picture: null }))
+    const active = items.filter((r) => r.status === 'نشط')
+    const summary = {
+      count: items.length,
+      monthlyPayroll: active.reduce((s, r) => s + r.total_salary, 0),
+      avgSalary: active.length ? Math.round(active.reduce((s, r) => s + r.total_salary, 0) / active.length) : 0,
+      insured: active.filter((r) => r.insurance_class !== 'بدون').length,
+    }
+    return { compensation: items, summary }
+  },
+  async create(data) { await delay(); const c = { id: compSeq++, grade: 'الدرجة الأولى', base_salary: 0, housing_allowance: 0, transport_allowance: 0, other_allowances: 0, bonus: 0, insurance_class: 'الفئة أ', status: 'نشط', notes: null, created_by: currentUser()?.employee_id || 5, ...data, employee_id: Number(data.employee_id) }; compensation.unshift(c); return { message: 'تم', compensation: c } },
+  async update(id, data) { await delay(); const c = compensation.find((x) => x.id === Number(id)); if (c) Object.assign(c, data); return { message: 'تم التحديث' } },
+  async remove(id) { await delay(); const i = compensation.findIndex((x) => x.id === Number(id)); if (i > -1) compensation.splice(i, 1); return { message: 'تم الحذف' } },
 }
 
 function notFound() {

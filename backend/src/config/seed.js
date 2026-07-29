@@ -354,6 +354,18 @@ function seedData() {
     console.log('✅ Timesheets seeded');
   }
 
+  // Compensation & benefits
+  if (isEmpty('compensation')) {
+    const ins = db.prepare(`INSERT INTO compensation (employee_id, grade, base_salary, housing_allowance, transport_allowance, other_allowances, bonus, insurance_class, effective_date, status, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    ins.run(1, 'الدرجة التنفيذية', 35000, 8000, 2000, 3000, 5000, 'الفئة أ', addDaysStr(-120), 'نشط', 5);
+    ins.run(2, 'الدرجة الأولى', 22000, 5000, 1500, 1000, 2000, 'الفئة أ', addDaysStr(-90), 'نشط', 5);
+    ins.run(3, 'الدرجة الأولى', 21000, 5000, 1500, 800, 1500, 'الفئة أ', addDaysStr(-90), 'نشط', 5);
+    ins.run(5, 'الدرجة الثانية', 18000, 4000, 1200, 500, 1000, 'الفئة ب', addDaysStr(-60), 'نشط', 5);
+    ins.run(6, 'الدرجة الثالثة', 12000, 3000, 1000, 0, 500, 'الفئة ب', addDaysStr(-45), 'نشط', 5);
+    ins.run(10, 'الدرجة الرابعة', 9000, 2500, 800, 0, 0, 'الفئة ج', addDaysStr(-30), 'نشط', 5);
+    console.log('✅ Compensation seeded');
+  }
+
   console.log('🎉 Database seeding completed!');
 }
 

@@ -378,6 +378,26 @@ const migrations = [
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
     FOREIGN KEY (approved_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
+  // Compensation & benefits (salary package per employee)
+  `CREATE TABLE IF NOT EXISTS compensation (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    grade TEXT DEFAULT 'الدرجة الأولى',
+    base_salary REAL NOT NULL DEFAULT 0,
+    housing_allowance REAL NOT NULL DEFAULT 0,
+    transport_allowance REAL NOT NULL DEFAULT 0,
+    other_allowances REAL NOT NULL DEFAULT 0,
+    bonus REAL NOT NULL DEFAULT 0,
+    insurance_class TEXT DEFAULT 'الفئة أ' CHECK(insurance_class IN ('الفئة أ', 'الفئة ب', 'الفئة ج', 'بدون')),
+    effective_date DATE,
+    status TEXT DEFAULT 'نشط' CHECK(status IN ('نشط', 'مؤرشف')),
+    notes TEXT,
+    created_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
   )`
 ];
 
