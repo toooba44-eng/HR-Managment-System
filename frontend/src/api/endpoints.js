@@ -238,6 +238,15 @@ const realAutomationApi = {
   removeStep: (stepId) => api.delete(`/automation/steps/${stepId}`).then((r) => r.data),
 }
 
+// ---------- Integrations ----------
+const realIntegrationsApi = {
+  list: (params) => api.get('/integrations', { params }).then((r) => r.data),
+  create: (data) => api.post('/integrations', data).then((r) => r.data),
+  setConnection: (id, connect) => api.put(`/integrations/${id}/connection`, { connect }).then((r) => r.data),
+  sync: (id) => api.post(`/integrations/${id}/sync`).then((r) => r.data),
+  remove: (id) => api.delete(`/integrations/${id}`).then((r) => r.data),
+}
+
 // ---------- Onboarding ----------
 const realOnboardingApi = {
   list: (params) => api.get('/onboarding', { params }).then((r) => r.data),
@@ -307,3 +316,4 @@ export const companyApi = DEMO ? mock.mockCompanyApi : realCompanyApi
 export const settingsApi = DEMO ? mock.mockSettingsApi : realSettingsApi
 export const onboardingApi = DEMO ? mock.mockOnboardingApi : realOnboardingApi
 export const automationApi = DEMO ? mock.mockAutomationApi : realAutomationApi
+export const integrationsApi = DEMO ? mock.mockIntegrationsApi : realIntegrationsApi
