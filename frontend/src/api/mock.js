@@ -574,7 +574,56 @@ export const mockAttendanceApi = {
     await delay()
     return []
   },
+  async corrections({ status } = {}) {
+    await delay()
+    let rows = scopeByRole(attendanceCorrections)
+    if (status) rows = rows.filter((c) => c.status === status)
+    const list = rows.sort((a, b) => ({ معلق: 1, 'موافق عليه': 2, مرفوض: 3 }[a.status] - { معلق: 1, 'موافق عليه': 2, مرفوض: 3 }[b.status]) || b.id - a.id)
+      .map((c) => ({ ...c, full_name: empName(c.employee_id), job_title: employees.find((e) => e.id === c.employee_id)?.job_title || null, reviewed_by_name: empName(c.reviewed_by), profile_picture: null }))
+    const summary = list.reduce((s, r) => { s.total += 1; if (r.status === 'معلق') s.pending += 1; return s }, { total: 0, pending: 0 })
+    return { corrections: list, summary }
+  },
+  async requestCorrection(data) {
+    await delay()
+    const u = currentUser()
+    if (!u?.employee_id) throw badReq('لا يوجد موظف مرتبط بالحساب')
+    if (!data.date) throw badReq('التاريخ مطلوب')
+    if (!data.requested_check_in && !data.requested_check_out) throw badReq('مطلوب وقت واحد على الأقل')
+    const c = { id: attnCorrSeq++, employee_id: u.employee_id, date: data.date, requested_check_in: data.requested_check_in || null, requested_check_out: data.requested_check_out || null, reason: data.reason || null, status: 'معلق', reviewed_by: null, created_at: nowIso() }
+    attendanceCorrections.unshift(c)
+    return { message: 'تم', correction: { id: c.id } }
+  },
+  async reviewCorrection(id, status) {
+    await delay()
+    const c = attendanceCorrections.find((x) => x.id === Number(id))
+    if (!c) throw notFound()
+    c.status = status
+    c.reviewed_by = currentUser()?.employee_id || 5
+    if (status === 'موافق عليه') {
+      const rec = attendance.find((a) => a.employee_id === c.employee_id && a.date === c.date)
+      const ci = c.requested_check_in ? `${c.date} ${c.requested_check_in}` : (rec?.check_in || null)
+      const co = c.requested_check_out ? `${c.date} ${c.requested_check_out}` : (rec?.check_out || null)
+      let hrs = rec?.work_hours || 0
+      if (ci && co) hrs = Math.max(0, Math.round(((new Date(co) - new Date(ci)) / 3600000) * 10) / 10)
+      if (rec) { rec.check_in = ci; rec.check_out = co; rec.work_hours = hrs; rec.status = 'حاضر' }
+      else attendance.push({ id: attendanceSeq++, employee_id: c.employee_id, date: c.date, check_in: ci, check_out: co, work_hours: hrs, status: 'حاضر', notes: 'تصحيح معتمد' })
+    }
+    return { message: 'تم' }
+  },
+  async removeCorrection(id) {
+    await delay()
+    const i = attendanceCorrections.findIndex((x) => x.id === Number(id))
+    if (i > -1) attendanceCorrections.splice(i, 1)
+    return { message: 'تم الحذف' }
+  },
 }
+
+let attnCorrSeq = 1
+const attendanceCorrections = [
+  { id: attnCorrSeq++, employee_id: 6, date: addDays(-1), requested_check_in: '08:05', requested_check_out: '16:10', reason: 'نسيت تسجيل الدخول بسبب اجتماع صباحي', status: 'معلق', reviewed_by: null, created_at: nowIso() },
+  { id: attnCorrSeq++, employee_id: 10, date: addDays(-2), requested_check_in: '09:00', requested_check_out: '17:00', reason: 'عطل في جهاز البصمة', status: 'موافق عليه', reviewed_by: 5, created_at: nowIso() },
+  { id: attnCorrSeq++, employee_id: 4, date: addDays(-3), requested_check_in: null, requested_check_out: '16:30', reason: 'نسيت تسجيل الخروج', status: 'مرفوض', reviewed_by: 5, created_at: nowIso() },
+]
 
 export const mockLeavesApi = {
   async list({ status = '' } = {}) {

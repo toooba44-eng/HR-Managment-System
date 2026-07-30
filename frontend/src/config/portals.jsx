@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Users, Building2, Building, CalendarCheck, CalendarDays,
+  LayoutDashboard, Users, Building2, Building, CalendarCheck, CalendarDays, ClipboardCheck,
   UserCircle, CreditCard, Package, HardDrive, Activity, LifeBuoy, Settings,
   Globe, FileText, ScrollText, Plug, Gauge, Database, Megaphone, UserCog,
   ArrowUpDown, Bot, Wallet, ClipboardList, Target, TrendingUp, GraduationCap,
@@ -78,6 +78,7 @@ import CandidateOffer from '../pages/candidate/Offer'
 import CandidateContact from '../pages/candidate/Contact'
 import OrgChart from '../pages/OrgChart'
 import Pipeline from '../pages/hr/Pipeline'
+import AttendanceCorrections from '../pages/AttendanceCorrections'
 
 /**
  * Each portal maps to one or more roles and declares its own navigation.
@@ -140,6 +141,7 @@ export const PORTALS = {
       { section: 'التوظيف والتعيين', to: '/hr/onboarding', label: 'التهيئة Onboarding', icon: UserPlus, element: <Onboarding /> },
 
       { section: 'الوقت والحضور', to: '/attendance', label: 'الحضور والدوام', icon: CalendarCheck, element: <Attendance /> },
+      { section: 'الوقت والحضور', to: '/hr/attendance-corrections', label: 'تصحيح الحضور', icon: ClipboardCheck, element: <AttendanceCorrections /> },
       { section: 'الوقت والحضور', to: '/hr/shifts', label: 'الورديات والجداول', icon: CalendarRange, element: <Shifts /> },
       { section: 'الوقت والحضور', to: '/hr/timesheets', label: 'الجداول الزمنية Timesheets', icon: Timer, element: <Timesheets /> },
       { section: 'الوقت والحضور', to: '/leaves', label: 'الإجازات', icon: CalendarDays, element: <Leaves /> },
@@ -211,6 +213,7 @@ export const PORTALS = {
       { to: '/profile', label: 'الملف الشخصي', icon: UserCircle, element: <Profile /> },
 
       { section: 'الوقت والحضور', to: '/attendance', label: 'الحضور والانصراف', icon: CalendarCheck, element: <Attendance /> },
+      { section: 'الوقت والحضور', to: '/ess/attendance-corrections', label: 'تصحيح الحضور', icon: ClipboardCheck, element: <AttendanceCorrections /> },
       { section: 'الوقت والحضور', to: '/leaves', label: 'الإجازات ورصيدها', icon: CalendarDays, element: <Leaves /> },
       { section: 'الوقت والحضور', to: '/ess/schedule', label: 'جدول الدوام', icon: CalendarRange, element: <Shifts /> },
       { section: 'الوقت والحضور', to: '/ess/remote', label: 'العمل عن بُعد', icon: Laptop, element: <Requests type="عمل عن بعد" title="طلب العمل عن بُعد" description="قدّم طلب عمل عن بُعد لموافقة مديرك." /> },

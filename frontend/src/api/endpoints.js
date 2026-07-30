@@ -53,6 +53,10 @@ const realAttendanceApi = {
   checkOut: (data) => api.post('/attendance/checkout', data).then((r) => r.data),
   mine: (employeeId) => api.get(`/attendance/my/${employeeId}`).then((r) => r.data),
   report: (params) => api.get('/attendance/report/summary', { params }).then((r) => r.data),
+  corrections: (params) => api.get('/attendance-corrections', { params }).then((r) => r.data),
+  requestCorrection: (data) => api.post('/attendance-corrections', data).then((r) => r.data),
+  reviewCorrection: (id, status) => api.put(`/attendance-corrections/${id}/status`, { status }).then((r) => r.data),
+  removeCorrection: (id) => api.delete(`/attendance-corrections/${id}`).then((r) => r.data),
 }
 
 // ---------- Leaves ----------
