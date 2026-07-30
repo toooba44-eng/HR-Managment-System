@@ -126,12 +126,44 @@ router.get('/:id', (req, res, next) => {
       ORDER BY d.uploaded_at DESC
     `).all(id);
 
+    // Optional related data (tables may not exist on older databases)
+    const safe = (fn, fallback) => { try { return fn(); } catch { return fallback; } };
+
+    const goals = safe(() => db.prepare(`
+      SELECT * FROM goals WHERE employee_id = ? ORDER BY
+        CASE status WHEN 'قيد التنفيذ' THEN 1 WHEN 'لم تبدأ' THEN 2 WHEN 'مكتملة' THEN 3 ELSE 4 END, id DESC
+    `).all(id), []);
+
+    const training = safe(() => db.prepare(`
+      SELECT en.*, c.title, c.category, c.hours
+      FROM enrollments en JOIN courses c ON en.course_id = c.id
+      WHERE en.employee_id = ? ORDER BY en.id DESC
+    `).all(id), []);
+
+    const assets = safe(() => db.prepare(`
+      SELECT * FROM assets WHERE assigned_to = ? ORDER BY assigned_date DESC
+    `).all(id), []);
+
+    const compensation = safe(() => db.prepare(`
+      SELECT * FROM compensation WHERE employee_id = ? AND status = 'نشط' ORDER BY id DESC LIMIT 1
+    `).get(id), null);
+
+    const history = safe(() => db.prepare(`
+      SELECT id, type, current_title, new_title, effective_date, status, created_at
+      FROM promotions WHERE employee_id = ? ORDER BY COALESCE(effective_date, created_at) DESC
+    `).all(id), []);
+
     res.json({
       ...employee,
       subordinates,
       attendance,
       leaves,
-      documents
+      documents,
+      goals,
+      training,
+      assets,
+      compensation,
+      history,
     });
   } catch (err) {
     next(err);
