@@ -33,6 +33,7 @@ const realEmployeesApi = {
   create: (data) => api.post('/employees', data).then((r) => r.data),
   update: (id, data) => api.put(`/employees/${id}`, data).then((r) => r.data),
   remove: (id) => api.delete(`/employees/${id}`).then((r) => r.data),
+  orgChart: () => api.get('/employees/org-chart').then((r) => r.data),
 }
 
 // ---------- Departments ----------
