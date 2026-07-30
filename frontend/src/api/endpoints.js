@@ -66,6 +66,7 @@ const realLeavesApi = {
   approve: (id, data) => api.put(`/leaves/${id}/approve`, data).then((r) => r.data),
   cancel: (id) => api.put(`/leaves/${id}/cancel`).then((r) => r.data),
   balance: (employeeId) => api.get(`/leaves/balance/${employeeId}`).then((r) => r.data),
+  calendar: (month) => api.get('/leaves/calendar', { params: month ? { month } : {} }).then((r) => r.data),
 }
 
 // ---------- Announcements ----------

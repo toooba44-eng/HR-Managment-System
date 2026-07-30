@@ -663,6 +663,23 @@ export const mockLeavesApi = {
     const e = employees.find((x) => x.id === Number(employeeId))
     return { annual_leave_balance: e?.annual_leave_balance ?? 30, sick_leave_balance: e?.sick_leave_balance ?? 10, emergency_leave_balance: e?.emergency_leave_balance ?? 5, used_annual: 0, used_sick: 0 }
   },
+  async calendar(month) {
+    await delay()
+    const mo = /^\d{4}-\d{2}$/.test(month || '') ? month : nowIso().slice(0, 7)
+    const start = `${mo}-01`, end = `${mo}-31`
+    const rows = leaves
+      .filter((l) => ['موافقة', 'معلقة'].includes(l.status) && l.start_date <= end && l.end_date >= start)
+      .sort((a, b) => a.start_date.localeCompare(b.start_date))
+      .map((l) => { const e = employees.find((x) => x.id === l.employee_id); return { id: l.id, employee_id: l.employee_id, type: l.type, start_date: l.start_date, end_date: l.end_date, days_count: l.days_count, status: l.status, full_name: empName(l.employee_id), profile_picture: null, department_name: deptName(e?.department_id), department_color: deptColor(e?.department_id) } })
+    const [y, m] = mo.split('-').map(Number)
+    const daysInMonth = new Date(y, m, 0).getDate()
+    const perDay = Array.from({ length: daysInMonth }, (_, i) => {
+      const day = `${mo}-${String(i + 1).padStart(2, '0')}`
+      return { day: i + 1, count: rows.filter((r) => r.status === 'موافقة' && r.start_date <= day && r.end_date >= day).length }
+    })
+    const peak = perDay.reduce((mx, d) => Math.max(mx, d.count), 0)
+    return { month: mo, days_in_month: daysInMonth, leaves: rows, per_day: perDay, summary: { people: new Set(rows.map((r) => r.employee_id)).size, total: rows.length, peak } }
+  },
 }
 
 const docDaysLeft = (d) => (d ? Math.ceil((new Date(d) - new Date()) / 86400000) : null)
