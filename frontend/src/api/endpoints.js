@@ -226,6 +226,18 @@ const realSettingsApi = {
   update: (data) => api.put('/settings', data).then((r) => r.data),
 }
 
+// ---------- Automation & workflows ----------
+const realAutomationApi = {
+  list: () => api.get('/automation').then((r) => r.data),
+  get: (id) => api.get(`/automation/${id}`).then((r) => r.data),
+  create: (data) => api.post('/automation', data).then((r) => r.data),
+  update: (id, data) => api.put(`/automation/${id}`, data).then((r) => r.data),
+  run: (id) => api.post(`/automation/${id}/run`).then((r) => r.data),
+  remove: (id) => api.delete(`/automation/${id}`).then((r) => r.data),
+  addStep: (id, data) => api.post(`/automation/${id}/steps`, data).then((r) => r.data),
+  removeStep: (stepId) => api.delete(`/automation/steps/${stepId}`).then((r) => r.data),
+}
+
 // ---------- Onboarding ----------
 const realOnboardingApi = {
   list: (params) => api.get('/onboarding', { params }).then((r) => r.data),
@@ -294,3 +306,4 @@ export const successionApi = DEMO ? mock.mockSuccessionApi : realSuccessionApi
 export const companyApi = DEMO ? mock.mockCompanyApi : realCompanyApi
 export const settingsApi = DEMO ? mock.mockSettingsApi : realSettingsApi
 export const onboardingApi = DEMO ? mock.mockOnboardingApi : realOnboardingApi
+export const automationApi = DEMO ? mock.mockAutomationApi : realAutomationApi

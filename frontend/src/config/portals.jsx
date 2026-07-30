@@ -45,6 +45,7 @@ import Documents from '../pages/hr/Documents'
 import Company from '../pages/hr/Company'
 import HrSettings from '../pages/hr/Settings'
 import Onboarding from '../pages/hr/Onboarding'
+import Automation from '../pages/hr/Automation'
 import ComingSoon from '../components/ui/ComingSoon'
 
 // Helper for scaffolded (not-yet-built) features
@@ -133,7 +134,7 @@ export const PORTALS = {
       { section: 'الامتثال والعلاقات', to: '/hr/offboarding', label: 'إنهاء الخدمة', icon: UserMinus, element: <Offboarding /> },
 
       { section: 'النظام والتقارير', to: '/hr/reports', label: 'التقارير والتحليلات', icon: BarChart3, element: <Reports /> },
-      { section: 'النظام والتقارير', to: '/hr/automation', label: 'الأتمتة وسير العمل', icon: Workflow, element: cs('الأتمتة وسير العمل', 'بناء مسارات الموافقات والأتمتة', Workflow) },
+      { section: 'النظام والتقارير', to: '/hr/automation', label: 'الأتمتة وسير العمل', icon: Workflow, element: <Automation /> },
       { section: 'النظام والتقارير', to: '/hr/integrations', label: 'التكاملات', icon: Plug, element: cs('التكاملات', 'الربط مع الأنظمة والخدمات الخارجية عبر API', Plug) },
       { section: 'النظام والتقارير', to: '/hr/settings', label: 'الإعدادات', icon: Settings, element: <HrSettings /> },
     ],
