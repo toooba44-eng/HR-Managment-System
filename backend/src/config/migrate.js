@@ -505,6 +505,19 @@ const migrations = [
     FOREIGN KEY (workflow_id) REFERENCES workflows(id) ON DELETE CASCADE
   )`,
 
+  // External integrations catalog
+  `CREATE TABLE IF NOT EXISTS integrations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    provider TEXT,
+    category TEXT DEFAULT 'أخرى' CHECK(category IN ('تواصل', 'تخزين', 'محاسبة', 'توظيف', 'تقويم', 'مصادقة', 'أخرى')),
+    description TEXT,
+    is_connected INTEGER DEFAULT 0,
+    status TEXT DEFAULT 'غير متصل' CHECK(status IN ('متصل', 'غير متصل', 'خطأ')),
+    last_sync DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`,
+
   // Organization settings (single row)
   `CREATE TABLE IF NOT EXISTS org_settings (
     id INTEGER PRIMARY KEY CHECK(id = 1),

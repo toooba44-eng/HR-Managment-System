@@ -428,6 +428,23 @@ function seedData() {
     console.log('✅ Workflows seeded');
   }
 
+  // External integrations catalog
+  if (isEmpty('integrations')) {
+    const ins = db.prepare(`INSERT INTO integrations (name, provider, category, description, is_connected, status, last_sync) VALUES (?, ?, ?, ?, ?, ?, ?)`);
+    const rows = [
+      ['Slack', 'Slack Technologies', 'تواصل', 'إرسال إشعارات الموارد البشرية إلى قنوات سلاك', 1, 'متصل', addDaysStr(0)],
+      ['Google Workspace', 'Google', 'تخزين', 'مزامنة المستخدمين والمستندات مع مساحة العمل', 1, 'متصل', addDaysStr(-1)],
+      ['Microsoft 365', 'Microsoft', 'تخزين', 'التكامل مع بريد وأدوات مايكروسوفت', 0, 'غير متصل', null],
+      ['QuickBooks', 'Intuit', 'محاسبة', 'مزامنة الرواتب والمصروفات مع المحاسبة', 0, 'غير متصل', null],
+      ['Zoom', 'Zoom Video', 'تواصل', 'جدولة مقابلات واجتماعات الفيديو', 1, 'متصل', addDaysStr(-2)],
+      ['LinkedIn', 'LinkedIn', 'توظيف', 'نشر الوظائف واستقطاب المرشحين', 0, 'غير متصل', null],
+      ['Google Calendar', 'Google', 'تقويم', 'مزامنة الإجازات والمقابلات مع التقويم', 1, 'متصل', addDaysStr(0)],
+      ['Active Directory', 'Microsoft', 'مصادقة', 'الدخول الموحّد وإدارة الهوية', 0, 'خطأ', addDaysStr(-5)],
+    ];
+    rows.forEach((r) => ins.run(...r));
+    console.log('✅ Integrations seeded');
+  }
+
   // Organization settings (defaults)
   if (isEmpty('org_settings')) {
     db.prepare('INSERT INTO org_settings (id) VALUES (1)').run();

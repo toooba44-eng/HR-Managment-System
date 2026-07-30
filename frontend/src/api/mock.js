@@ -1587,6 +1587,59 @@ export const mockAutomationApi = {
   },
 }
 
+let intSeq = 1
+const integrations = [
+  { id: intSeq++, name: 'Slack', provider: 'Slack Technologies', category: 'تواصل', description: 'إرسال إشعارات الموارد البشرية إلى قنوات سلاك', is_connected: 1, status: 'متصل', last_sync: addDays(0) },
+  { id: intSeq++, name: 'Google Workspace', provider: 'Google', category: 'تخزين', description: 'مزامنة المستخدمين والمستندات مع مساحة العمل', is_connected: 1, status: 'متصل', last_sync: addDays(-1) },
+  { id: intSeq++, name: 'Microsoft 365', provider: 'Microsoft', category: 'تخزين', description: 'التكامل مع بريد وأدوات مايكروسوفت', is_connected: 0, status: 'غير متصل', last_sync: null },
+  { id: intSeq++, name: 'QuickBooks', provider: 'Intuit', category: 'محاسبة', description: 'مزامنة الرواتب والمصروفات مع المحاسبة', is_connected: 0, status: 'غير متصل', last_sync: null },
+  { id: intSeq++, name: 'Zoom', provider: 'Zoom Video', category: 'تواصل', description: 'جدولة مقابلات واجتماعات الفيديو', is_connected: 1, status: 'متصل', last_sync: addDays(-2) },
+  { id: intSeq++, name: 'LinkedIn', provider: 'LinkedIn', category: 'توظيف', description: 'نشر الوظائف واستقطاب المرشحين', is_connected: 0, status: 'غير متصل', last_sync: null },
+  { id: intSeq++, name: 'Google Calendar', provider: 'Google', category: 'تقويم', description: 'مزامنة الإجازات والمقابلات مع التقويم', is_connected: 1, status: 'متصل', last_sync: addDays(0) },
+  { id: intSeq++, name: 'Active Directory', provider: 'Microsoft', category: 'مصادقة', description: 'الدخول الموحّد وإدارة الهوية', is_connected: 0, status: 'خطأ', last_sync: addDays(-5) },
+]
+
+export const mockIntegrationsApi = {
+  async list({ category } = {}) {
+    await delay()
+    let rows = [...integrations]
+    if (category) rows = rows.filter((i) => i.category === category)
+    rows.sort((a, b) => (b.is_connected - a.is_connected) || a.category.localeCompare(b.category) || a.name.localeCompare(b.name))
+    const summary = rows.reduce((s, r) => { s.total += 1; if (r.is_connected) s.connected += 1; if (r.status === 'خطأ') s.errors += 1; return s }, { total: 0, connected: 0, errors: 0 })
+    return { integrations: rows, summary }
+  },
+  async create(data) {
+    await delay()
+    const i = { id: intSeq++, name: data.name, provider: data.provider || null, category: data.category || 'أخرى', description: data.description || null, is_connected: 0, status: 'غير متصل', last_sync: null }
+    integrations.push(i)
+    return { message: 'تم', integration: { id: i.id } }
+  },
+  async setConnection(id, connect) {
+    await delay()
+    const i = integrations.find((x) => x.id === Number(id))
+    if (!i) throw notFound()
+    i.is_connected = connect ? 1 : 0
+    i.status = connect ? 'متصل' : 'غير متصل'
+    i.last_sync = connect ? nowIso() : null
+    return { message: connect ? 'تم الربط' : 'تم الفصل' }
+  },
+  async sync(id) {
+    await delay()
+    const i = integrations.find((x) => x.id === Number(id))
+    if (!i) throw notFound()
+    if (!i.is_connected) throw badReq('التكامل غير مربوط')
+    i.last_sync = nowIso()
+    i.status = 'متصل'
+    return { message: 'تمت المزامنة', last_sync: i.last_sync }
+  },
+  async remove(id) {
+    await delay()
+    const idx = integrations.findIndex((x) => x.id === Number(id))
+    if (idx > -1) integrations.splice(idx, 1)
+    return { message: 'تم الحذف' }
+  },
+}
+
 function notFound() {
   const e = new Error('Not found')
   e.response = { status: 404, data: { error: 'غير موجود' } }
