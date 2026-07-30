@@ -254,6 +254,21 @@ function seedData() {
     console.log('✅ Companies seeded');
   }
 
+  // Billing invoices
+  if (isEmpty('invoices')) {
+    const ins = db.prepare(`INSERT INTO invoices (company_id, invoice_number, plan, period, amount, issue_date, due_date, status, paid_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    const rows = [
+      [1, 'INV-2026-0001', 'مؤسسية', 'يناير 2026', 24000, addDaysStr(-60), addDaysStr(-45), 'مدفوعة', addDaysStr(-50)],
+      [1, 'INV-2026-0002', 'مؤسسية', 'فبراير 2026', 24000, addDaysStr(-30), addDaysStr(-15), 'مدفوعة', addDaysStr(-20)],
+      [2, 'INV-2026-0003', 'احترافية', 'فبراير 2026', 9000, addDaysStr(-30), addDaysStr(-15), 'مدفوعة', addDaysStr(-18)],
+      [2, 'INV-2026-0004', 'احترافية', 'مارس 2026', 9000, addDaysStr(-5), addDaysStr(10), 'غير مدفوعة', null],
+      [3, 'INV-2026-0005', 'أساسية', 'مارس 2026', 3000, addDaysStr(-5), addDaysStr(10), 'غير مدفوعة', null],
+      [4, 'INV-2026-0006', 'احترافية', 'فبراير 2026', 9000, addDaysStr(-40), addDaysStr(-25), 'متأخرة', null],
+    ];
+    rows.forEach((r) => ins.run(...r));
+    console.log('✅ Invoices seeded');
+  }
+
   // Expenses & advances
   if (isEmpty('expenses')) {
     const insertExpense = db.prepare(`INSERT INTO expenses (employee_id, type, category, amount, description, status, approved_by) VALUES (?, ?, ?, ?, ?, ?, ?)`);
