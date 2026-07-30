@@ -22,6 +22,7 @@ const realDashboardApi = {
   attendanceChart: () => api.get('/dashboard/attendance-chart').then((r) => r.data),
   departmentDistribution: () => api.get('/dashboard/department-distribution').then((r) => r.data),
   upcomingLeaves: () => api.get('/dashboard/upcoming-leaves').then((r) => r.data),
+  hrOverview: () => api.get('/dashboard/hr-overview').then((r) => r.data),
 }
 
 // ---------- Employees ----------
