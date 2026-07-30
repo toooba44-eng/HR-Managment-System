@@ -152,6 +152,16 @@ const realSaConfigApi = {
   removeTicket: (id) => api.delete(`/sa/support/${id}`).then((r) => r.data),
   settings: () => api.get('/sa/settings').then((r) => r.data),
   updateSettings: (data) => api.put('/sa/settings', data).then((r) => r.data),
+  locales: () => api.get('/sa/locales').then((r) => r.data),
+  createLocale: (data) => api.post('/sa/locales', data).then((r) => r.data),
+  updateLocale: (id, data) => api.put(`/sa/locales/${id}`, data).then((r) => r.data),
+  removeLocale: (id) => api.delete(`/sa/locales/${id}`).then((r) => r.data),
+  templates: (params) => api.get('/sa/templates', { params }).then((r) => r.data),
+  createTemplate: (data) => api.post('/sa/templates', data).then((r) => r.data),
+  updateTemplate: (id, data) => api.put(`/sa/templates/${id}`, data).then((r) => r.data),
+  removeTemplate: (id) => api.delete(`/sa/templates/${id}`).then((r) => r.data),
+  ai: () => api.get('/sa/ai').then((r) => r.data),
+  updateAi: (data) => api.put('/sa/ai', data).then((r) => r.data),
 }
 
 // ---------- Billing (super admin) ----------
