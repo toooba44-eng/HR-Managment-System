@@ -463,6 +463,16 @@ export const mockEmployeesApi = {
       },
     }
   },
+  async orgChart() {
+    await delay()
+    const node = (e) => ({ id: e.id, full_name: e.full_name, job_title: e.job_title, profile_picture: null, status: e.status, manager_id: e.manager_id, department_name: deptName(e.department_id), department_color: deptColor(e.department_id) })
+    const build = (n) => {
+      const children = employees.filter((e) => e.manager_id === n.id).map(node).map(build)
+      return { ...n, children, direct_reports: children.length, total_reports: children.reduce((s, c) => s + c.total_reports + 1, 0) }
+    }
+    const roots = employees.filter((e) => !e.manager_id).map(node).map(build)
+    return { tree: roots, total: employees.length }
+  },
   async create(data) {
     await delay()
     const id = Math.max(...employees.map((e) => e.id)) + 1

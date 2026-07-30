@@ -70,6 +70,36 @@ router.get('/', (req, res, next) => {
   }
 });
 
+// Reporting-hierarchy org chart (built from manager_id)
+router.get('/org-chart', (req, res, next) => {
+  try {
+    const rows = db.prepare(`
+      SELECT e.id, e.full_name, e.job_title, e.profile_picture, e.status, e.manager_id,
+             d.name as department_name, d.color as department_color
+      FROM employees e
+      LEFT JOIN departments d ON e.department_id = d.id
+      ORDER BY e.job_title
+    `).all();
+
+    const byManager = new Map();
+    for (const r of rows) {
+      const key = r.manager_id || 'root';
+      if (!byManager.has(key)) byManager.set(key, []);
+      byManager.get(key).push(r);
+    }
+    const build = (node) => {
+      const children = (byManager.get(node.id) || []).map(build);
+      const directReports = children.length;
+      const totalReports = children.reduce((s, c) => s + c.total_reports + 1, 0);
+      return { ...node, children, direct_reports: directReports, total_reports: totalReports };
+    };
+    const roots = (byManager.get('root') || []).map(build);
+    res.json({ tree: roots, total: rows.length });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Get single employee
 router.get('/:id', (req, res, next) => {
   try {

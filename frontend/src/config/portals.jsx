@@ -76,6 +76,7 @@ import CandidateForms from '../pages/candidate/Forms'
 import CandidateDocuments from '../pages/candidate/Documents'
 import CandidateOffer from '../pages/candidate/Offer'
 import CandidateContact from '../pages/candidate/Contact'
+import OrgChart from '../pages/OrgChart'
 
 /**
  * Each portal maps to one or more roles and declares its own navigation.
@@ -129,7 +130,8 @@ export const PORTALS = {
       { to: '/', label: 'الصفحة الرئيسية', icon: LayoutDashboard, element: <Dashboard />, exact: true },
 
       { section: 'المؤسسة', to: '/hr/company', label: 'مؤسستي', icon: Building2, element: <Company /> },
-      { section: 'المؤسسة', to: '/departments', label: 'الهيكل التنظيمي', icon: Network, element: <Departments /> },
+      { section: 'المؤسسة', to: '/departments', label: 'الإدارات والأقسام', icon: Building, element: <Departments /> },
+      { section: 'المؤسسة', to: '/hr/org-chart', label: 'الهيكل التنظيمي', icon: Network, element: <OrgChart /> },
       { section: 'المؤسسة', to: '/employees', label: 'الموظفون', icon: Users, element: <Employees /> },
 
       { section: 'التوظيف والتعيين', to: '/hr/recruitment', label: 'التوظيف', icon: Briefcase, element: <Recruitment /> },
