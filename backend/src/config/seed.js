@@ -398,6 +398,12 @@ function seedData() {
     console.log('✅ Branches seeded');
   }
 
+  // Organization settings (defaults)
+  if (isEmpty('org_settings')) {
+    db.prepare('INSERT INTO org_settings (id) VALUES (1)').run();
+    console.log('✅ Org settings seeded');
+  }
+
   console.log('🎉 Database seeding completed!');
 }
 
