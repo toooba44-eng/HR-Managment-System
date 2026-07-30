@@ -294,6 +294,13 @@ const realPromotionsApi = {
   remove: (id) => api.delete(`/manager/promotions/${id}`).then((r) => r.data),
 }
 
+// ---------- Candidate profile ----------
+const realCandidateApi = {
+  getProfile: () => api.get('/candidate/profile').then((r) => r.data),
+  updateProfile: (data) => api.put('/candidate/profile', data).then((r) => r.data),
+  setTalentPool: (join) => api.put('/candidate/talent-pool', { join }).then((r) => r.data),
+}
+
 // ---------- Onboarding ----------
 const realOnboardingApi = {
   list: (params) => api.get('/onboarding', { params }).then((r) => r.data),
@@ -370,3 +377,4 @@ export const signaturesApi = DEMO ? mock.mockSignaturesApi : realSignaturesApi
 export const hiringApi = DEMO ? mock.mockHiringApi : realHiringApi
 export const interviewsApi = DEMO ? mock.mockInterviewsApi : realInterviewsApi
 export const promotionsApi = DEMO ? mock.mockPromotionsApi : realPromotionsApi
+export const candidateApi = DEMO ? mock.mockCandidateApi : realCandidateApi
