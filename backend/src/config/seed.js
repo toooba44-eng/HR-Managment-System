@@ -460,6 +460,22 @@ function seedData() {
     console.log('✅ Integrations seeded');
   }
 
+  // Platform: support tickets
+  if (isEmpty('support_tickets')) {
+    const ins = db.prepare(`INSERT INTO support_tickets (company_id, subject, category, priority, status, description) VALUES (?, ?, ?, ?, ?, ?)`);
+    ins.run(2, 'مشكلة في تسجيل الدخول لبعض المستخدمين', 'تقني', 'عالية', 'مفتوحة', 'يواجه 3 مستخدمين خطأ عند تسجيل الدخول');
+    ins.run(3, 'استفسار عن ترقية الباقة', 'اشتراكات', 'متوسطة', 'قيد المعالجة', 'ما الفرق بين الباقة الاحترافية والمؤسسية؟');
+    ins.run(1, 'طلب تفعيل وحدة التكاملات', 'ميزات', 'منخفضة', 'مفتوحة', 'نرغب بتفعيل تكامل Slack');
+    ins.run(4, 'بطء في تحميل التقارير', 'أداء', 'حرجة', 'مغلقة', 'تم حل المشكلة بعد التحديث');
+    console.log('✅ Support tickets seeded');
+  }
+
+  // Platform: system settings (defaults)
+  if (isEmpty('platform_settings')) {
+    db.prepare('INSERT INTO platform_settings (id) VALUES (1)').run();
+    console.log('✅ Platform settings seeded');
+  }
+
   // Platform: backups
   if (isEmpty('backups')) {
     const ins = db.prepare(`INSERT INTO backups (type, size_mb, status, note, created_at) VALUES (?, ?, ?, ?, ?)`);

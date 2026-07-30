@@ -1056,6 +1056,58 @@ const backups = [
   { id: backupSeq++, type: 'يدوي', size_mb: 176.8, status: 'مكتمل', note: 'قبل تحديث النظام', created_at: addDays(-2) },
   { id: backupSeq++, type: 'تلقائي', size_mb: 175.0, status: 'مكتمل', note: 'نسخة يومية تلقائية', created_at: addDays(-3) },
 ]
+let ticketSeq = 1
+const supportTickets = [
+  { id: ticketSeq++, company_id: 2, subject: 'مشكلة في تسجيل الدخول لبعض المستخدمين', category: 'تقني', priority: 'عالية', status: 'مفتوحة', description: 'يواجه 3 مستخدمين خطأ عند تسجيل الدخول', response: null, created_at: nowIso() },
+  { id: ticketSeq++, company_id: 3, subject: 'استفسار عن ترقية الباقة', category: 'اشتراكات', priority: 'متوسطة', status: 'قيد المعالجة', description: 'ما الفرق بين الباقة الاحترافية والمؤسسية؟', response: null, created_at: nowIso() },
+  { id: ticketSeq++, company_id: 1, subject: 'طلب تفعيل وحدة التكاملات', category: 'ميزات', priority: 'منخفضة', status: 'مفتوحة', description: 'نرغب بتفعيل تكامل Slack', response: null, created_at: nowIso() },
+  { id: ticketSeq++, company_id: 4, subject: 'بطء في تحميل التقارير', category: 'أداء', priority: 'حرجة', status: 'مغلقة', description: 'تم حل المشكلة بعد التحديث', response: null, created_at: nowIso() },
+]
+const ticketStatusOrder = { مفتوحة: 1, 'قيد المعالجة': 2, مغلقة: 3 }
+const ticketPrioOrder = { حرجة: 1, عالية: 2, متوسطة: 3, منخفضة: 4 }
+const platformSettings = {
+  id: 1, platform_name: 'كوانت للموارد البشرية', support_email: 'support@quant-hr.com', default_plan: 'أساسية',
+  session_timeout_min: 60, max_upload_mb: 10, maintenance_mode: 0, signups_enabled: 1,
+}
+const saBool = ['maintenance_mode', 'signups_enabled']
+const saInt = ['session_timeout_min', 'max_upload_mb']
+export const mockSaConfigApi = {
+  async support({ status } = {}) {
+    await delay()
+    let rows = [...supportTickets]
+    if (status) rows = rows.filter((t) => t.status === status)
+    const list = rows.sort((a, b) => ticketStatusOrder[a.status] - ticketStatusOrder[b.status] || ticketPrioOrder[a.priority] - ticketPrioOrder[b.priority] || b.id - a.id)
+      .map((t) => ({ ...t, company_name: compName(t.company_id) }))
+    const summary = list.reduce((s, r) => { s.total += 1; if (r.status === 'مفتوحة') s.open += 1; if (r.status === 'قيد المعالجة') s.inProgress += 1; return s }, { total: 0, open: 0, inProgress: 0 })
+    return { tickets: list, summary }
+  },
+  async createTicket(data) {
+    await delay()
+    const t = { id: ticketSeq++, company_id: data.company_id ? Number(data.company_id) : null, subject: data.subject, category: data.category || 'عام', priority: data.priority || 'متوسطة', status: 'مفتوحة', description: data.description || null, response: null, created_at: nowIso() }
+    supportTickets.unshift(t)
+    return { message: 'تم', ticket: { id: t.id } }
+  },
+  async updateTicket(id, data) {
+    await delay()
+    const t = supportTickets.find((x) => x.id === Number(id))
+    if (!t) throw notFound()
+    if (data.status !== undefined) t.status = data.status
+    if (data.response !== undefined) t.response = data.response
+    return { message: 'تم' }
+  },
+  async removeTicket(id) { await delay(); const i = supportTickets.findIndex((x) => x.id === Number(id)); if (i > -1) supportTickets.splice(i, 1); return { message: 'تم الحذف' } },
+  async settings() { await delay(); return { settings: { ...platformSettings } } },
+  async updateSettings(data) {
+    await delay()
+    for (const [k, v] of Object.entries(data)) {
+      if (saBool.includes(k)) platformSettings[k] = v ? 1 : 0
+      else if (saInt.includes(k)) platformSettings[k] = parseInt(v, 10) || 0
+      else if (k in platformSettings) platformSettings[k] = v
+    }
+    return { message: 'تم التحديث', settings: { ...platformSettings } }
+  },
+}
+
 let auditSeq = 1
 const auditLogs = [
   { id: auditSeq++, actor: 'superadmin@quant.com', action: 'تسجيل دخول', entity: 'auth', severity: 'معلومة', details: 'دخول ناجح لبوابة إدارة المنصة', created_at: addDays(0) },

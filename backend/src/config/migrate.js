@@ -534,6 +534,33 @@ const migrations = [
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`,
 
+  // Platform: support tickets (from client organizations)
+  `CREATE TABLE IF NOT EXISTS support_tickets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    company_id INTEGER,
+    subject TEXT NOT NULL,
+    category TEXT DEFAULT 'عام',
+    priority TEXT DEFAULT 'متوسطة' CHECK(priority IN ('منخفضة', 'متوسطة', 'عالية', 'حرجة')),
+    status TEXT DEFAULT 'مفتوحة' CHECK(status IN ('مفتوحة', 'قيد المعالجة', 'مغلقة')),
+    description TEXT,
+    response TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE SET NULL
+  )`,
+
+  // Platform: system-wide settings (single row)
+  `CREATE TABLE IF NOT EXISTS platform_settings (
+    id INTEGER PRIMARY KEY CHECK(id = 1),
+    platform_name TEXT DEFAULT 'كوانت للموارد البشرية',
+    support_email TEXT DEFAULT 'support@quant-hr.com',
+    default_plan TEXT DEFAULT 'أساسية',
+    session_timeout_min INTEGER DEFAULT 60,
+    max_upload_mb INTEGER DEFAULT 10,
+    maintenance_mode INTEGER DEFAULT 0,
+    signups_enabled INTEGER DEFAULT 1,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`,
+
   // Platform: backups
   `CREATE TABLE IF NOT EXISTS backups (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
