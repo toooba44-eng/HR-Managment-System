@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query'
 import {
   ArrowRight, Mail, Phone, MapPin, Calendar, Building2,
   CreditCard, Briefcase, Trash2, FileText, Clock,
+  Target, GraduationCap, Package, GitBranch, Gift, ArrowLeft, Users,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { employeesApi } from '../api/endpoints'
@@ -17,9 +18,14 @@ import { formatDate, formatTime, formatCurrency } from '../lib/utils'
 
 const TABS = [
   { id: 'info', label: 'المعلومات' },
+  { id: 'financial', label: 'المالية والمزايا' },
   { id: 'attendance', label: 'الحضور' },
   { id: 'leaves', label: 'الإجازات' },
+  { id: 'performance', label: 'الأداء' },
+  { id: 'training', label: 'التدريب' },
   { id: 'documents', label: 'المستندات' },
+  { id: 'assets', label: 'العهد' },
+  { id: 'history', label: 'التاريخ الوظيفي' },
 ]
 
 function InfoRow({ icon: Icon, label, value }) {
@@ -148,15 +154,6 @@ export default function EmployeeDetail() {
             <InfoRow icon={Building2} label="المدير المباشر" value={emp.manager_name} />
             <InfoRow icon={Calendar} label="نوع العقد" value={emp.contract_type} />
           </div>
-          {isHR() && (
-            <div className="card">
-              <h3 className="font-bold text-slate-800 mb-3">المعلومات المالية</h3>
-              <InfoRow icon={CreditCard} label="الراتب الأساسي" value={formatCurrency(emp.salary)} />
-              <InfoRow icon={CreditCard} label="البدلات" value={formatCurrency(emp.allowances)} />
-              <InfoRow icon={Building2} label="البنك" value={emp.bank_name} />
-              <InfoRow icon={CreditCard} label="رقم الحساب" value={emp.bank_account} />
-            </div>
-          )}
           <div className="card">
             <h3 className="font-bold text-slate-800 mb-3">المعلومات الشخصية</h3>
             <InfoRow icon={Calendar} label="تاريخ الميلاد" value={formatDate(emp.date_of_birth)} />
@@ -164,6 +161,89 @@ export default function EmployeeDetail() {
             <InfoRow icon={Briefcase} label="الحالة الاجتماعية" value={emp.marital_status} />
             <InfoRow icon={CreditCard} label="رقم الهوية" value={emp.national_id} />
           </div>
+          {(emp.subordinates || []).length > 0 && (
+            <div className="card lg:col-span-2">
+              <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2"><Users className="w-5 h-5 text-slate-400" /> المرؤوسون ({emp.subordinates.length})</h3>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {emp.subordinates.map((s) => (
+                  <div key={s.id} className="flex items-center gap-2 p-2 rounded-xl border border-slate-100">
+                    <Avatar name={s.full_name} src={s.profile_picture} size="sm" />
+                    <div className="min-w-0"><p className="text-sm font-medium text-slate-700 truncate">{s.full_name}</p><p className="text-xs text-slate-400 truncate">{s.job_title}</p></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === 'financial' && (
+        isHR() ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="card">
+              <h3 className="font-bold text-slate-800 mb-3">بيانات الراتب والبنك</h3>
+              <InfoRow icon={CreditCard} label="الراتب الأساسي" value={formatCurrency(emp.salary)} />
+              <InfoRow icon={CreditCard} label="البدلات" value={formatCurrency(emp.allowances)} />
+              <InfoRow icon={CreditCard} label="الإجمالي التقريبي" value={formatCurrency((emp.salary || 0) + (emp.allowances || 0))} />
+              <InfoRow icon={Building2} label="البنك" value={emp.bank_name} />
+              <InfoRow icon={CreditCard} label="رقم الحساب / IBAN" value={emp.bank_account} />
+            </div>
+            <div className="card">
+              <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2"><Gift className="w-5 h-5 text-slate-400" /> حزمة التعويضات</h3>
+              {emp.compensation ? (
+                <>
+                  <InfoRow icon={Briefcase} label="الدرجة الوظيفية" value={emp.compensation.grade} />
+                  <InfoRow icon={CreditCard} label="بدل السكن" value={formatCurrency(emp.compensation.housing_allowance)} />
+                  <InfoRow icon={CreditCard} label="بدل النقل" value={formatCurrency(emp.compensation.transport_allowance)} />
+                  <InfoRow icon={Gift} label="المكافآت" value={formatCurrency(emp.compensation.bonus)} />
+                  <InfoRow icon={FileText} label="فئة التأمين" value={emp.compensation.insurance_class} />
+                </>
+              ) : <EmptyState icon={Gift} title="لا توجد حزمة تعويضات مسجّلة" />}
+            </div>
+          </div>
+        ) : (
+          <div className="card"><EmptyState icon={CreditCard} title="البيانات المالية متاحة للموارد البشرية فقط" /></div>
+        )
+      )}
+
+      {tab === 'performance' && (
+        <div className="card">
+          {!emp.goals?.length ? <EmptyState icon={Target} title="لا توجد أهداف أداء" /> : (
+            <div className="space-y-4">
+              {emp.goals.map((g) => (
+                <div key={g.id} className="p-3 rounded-xl border border-slate-100">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-medium text-slate-700">{g.title}</p>
+                    <Badge status={g.status} />
+                  </div>
+                  {g.description && <p className="text-xs text-slate-400 mt-1">{g.description}</p>}
+                  <div className="flex items-center gap-2 mt-2">
+                    <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden"><div className="h-full bg-blue-600 rounded-full" style={{ width: `${g.progress || 0}%` }} /></div>
+                    <span className="text-xs text-slate-500 w-10 text-left">{g.progress || 0}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === 'training' && (
+        <div className="card">
+          {!emp.training?.length ? <EmptyState icon={GraduationCap} title="لا توجد دورات تدريبية" /> : (
+            <div className="space-y-3">
+              {emp.training.map((t) => (
+                <div key={t.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100">
+                  <div className="w-10 h-10 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center"><GraduationCap className="w-5 h-5" /></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-slate-700 truncate">{t.title}</p>
+                    <p className="text-xs text-slate-400">{t.category}{t.hours ? ` · ${t.hours} ساعة` : ''}</p>
+                  </div>
+                  <Badge status={t.status} />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -229,10 +309,52 @@ export default function EmployeeDetail() {
                   <div className="w-10 h-10 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center">
                     <FileText className="w-5 h-5" />
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="font-medium text-slate-700 truncate">{d.title}</p>
-                    <p className="text-xs text-slate-400">{d.type}</p>
+                    <p className="text-xs text-slate-400">{d.type}{d.expiry_date ? ` · ينتهي ${formatDate(d.expiry_date)}` : ''}</p>
                   </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === 'assets' && (
+        <div className="card">
+          {!emp.assets?.length ? <EmptyState icon={Package} title="لا توجد عهد مسندة" /> : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {emp.assets.map((a) => (
+                <div key={a.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100">
+                  <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center"><Package className="w-5 h-5" /></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-slate-700 truncate">{a.name}</p>
+                    <p className="text-xs text-slate-400">{a.category}{a.serial_number ? ` · ${a.serial_number}` : ''}</p>
+                  </div>
+                  <Badge status={a.status} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === 'history' && (
+        <div className="card">
+          {!emp.history?.length ? <EmptyState icon={GitBranch} title="لا يوجد تاريخ وظيفي" /> : (
+            <div className="space-y-3">
+              {emp.history.map((h) => (
+                <div key={h.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center"><GitBranch className="w-5 h-5" /></div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-slate-500">{h.current_title || '—'}</span>
+                      <ArrowLeft className="w-3.5 h-3.5 text-slate-300" />
+                      <span className="font-medium text-slate-700">{h.new_title || h.type}</span>
+                    </div>
+                    <p className="text-xs text-slate-400">{h.type}{h.effective_date ? ` · ${formatDate(h.effective_date)}` : ''}</p>
+                  </div>
+                  <Badge status={h.status} />
                 </div>
               ))}
             </div>

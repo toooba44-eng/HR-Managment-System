@@ -435,6 +435,14 @@ export const mockEmployeesApi = {
       attendance: attendance.filter((a) => a.employee_id === e.id).slice(-10).reverse(),
       leaves: leaves.filter((l) => l.employee_id === e.id).map((l) => ({ ...l, approved_by_name: empName(l.approved_by) })),
       documents: documents.filter((d) => d.employee_id === e.id),
+      goals: (typeof goals !== 'undefined' ? goals : []).filter((g) => g.employee_id === e.id),
+      training: (typeof enrollments !== 'undefined' ? enrollments : []).filter((en) => en.employee_id === e.id).map((en) => {
+        const c = (typeof courses !== 'undefined' ? courses : []).find((x) => x.id === en.course_id) || {}
+        return { ...en, title: c.title, category: c.category, hours: c.hours }
+      }),
+      assets: (typeof assets !== 'undefined' ? assets : []).filter((a) => a.assigned_to === e.id),
+      compensation: (typeof compensation !== 'undefined' ? compensation : []).find((c) => c.employee_id === e.id && c.status === 'نشط') || null,
+      history: (typeof promotions !== 'undefined' ? promotions : []).filter((p) => p.employee_id === e.id).map((p) => ({ id: p.id, type: p.type, current_title: p.current_title, new_title: p.new_title, effective_date: p.effective_date, status: p.status, created_at: p.created_at })),
     }
   },
   async stats(id) {
