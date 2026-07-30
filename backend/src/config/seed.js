@@ -235,8 +235,17 @@ function seedData() {
     ];
     const jobIds = jobs.map(j => insertJob.run(j).lastInsertRowid);
     if (isEmpty('applications')) {
-      db.prepare(`INSERT INTO applications (job_id, candidate_email, candidate_name, cover_note, status) VALUES (?, ?, ?, ?, ?)`)
-        .run(jobIds[0], 'candidate@quant.com', 'مرشح تجريبي', 'لديّ خبرة 3 سنوات في تطوير الواجهات.', 'مقابلة');
+      const insApp = db.prepare(`INSERT INTO applications (job_id, candidate_email, candidate_name, cover_note, status, stage, source, rating) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+      const S2ST = { 'متقدم جديد': 'قيد المراجعة', 'مراجعة أولية': 'قيد المراجعة', 'اختبار': 'قيد المراجعة', 'مقابلة': 'مقابلة', 'عرض وظيفي': 'مقابلة', 'تم التوظيف': 'مقبول', 'مرفوض': 'مرفوض' };
+      const app = (job, email, name, note, stage, source, rating) => insApp.run(job, email, name, note, S2ST[stage], stage, source, rating);
+      app(jobIds[0], 'candidate@quant.com', 'مرشح تجريبي', 'لديّ خبرة 3 سنوات في تطوير الواجهات.', 'مقابلة', 'LinkedIn', 4);
+      app(jobIds[0], 'sultan.dev@mail.com', 'سلطان الحربي', 'خبرة قوية في React و TypeScript.', 'اختبار', 'الموقع', null);
+      app(jobIds[0], 'tariq.dev@mail.com', 'طارق القحطاني', 'مطوّر شغوف بواجهات المستخدم.', 'عرض وظيفي', 'LinkedIn', 5);
+      app(jobIds[0], 'huda.dev@mail.com', 'هدى العنزي', 'حديثة تخرّج بمشاريع متميزة.', 'متقدم جديد', 'إحالة موظف', null);
+      app(jobIds[1], 'mona.hr@mail.com', 'منى العتيبي', 'خبرة 5 سنوات في التوظيف.', 'مراجعة أولية', 'الموقع', 3);
+      app(jobIds[1], 'faisal.hr@mail.com', 'فيصل النمر', 'أخصائي موارد بشرية معتمد.', 'مقابلة', 'Indeed', 4);
+      app(jobIds[2], 'saad.sales@mail.com', 'سعد الدوسري', 'سجل مبيعات حافل.', 'تم التوظيف', 'إحالة موظف', 5);
+      app(jobIds[2], 'noor.sales@mail.com', 'نور الشهري', 'خبرة في مبيعات التجزئة.', 'مرفوض', 'الموقع', 2);
     }
     console.log('✅ Jobs & applications seeded');
   }

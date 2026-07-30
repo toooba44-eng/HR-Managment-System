@@ -118,6 +118,9 @@ const realApplicationsApi = {
   mine: () => api.get('/applications/mine').then((r) => r.data),
   apply: (data) => api.post('/applications', data).then((r) => r.data),
   setStatus: (id, status) => api.put(`/applications/${id}/status`, { status }).then((r) => r.data),
+  pipeline: (params) => api.get('/applications/pipeline', { params }).then((r) => r.data),
+  moveStage: (id, stage) => api.put(`/applications/${id}/stage`, { stage }).then((r) => r.data),
+  rate: (id, rating) => api.put(`/applications/${id}/rating`, { rating }).then((r) => r.data),
 }
 
 // ---------- Platform companies (Super Admin) ----------
