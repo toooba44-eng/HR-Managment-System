@@ -378,6 +378,26 @@ function seedData() {
     console.log('✅ Succession seeded');
   }
 
+  // Organization profile + branches
+  if (isEmpty('org_profile')) {
+    db.prepare(`INSERT INTO org_profile (id, name, legal_name, cr_number, tax_number, industry, size, founded_year, about, phone, email, website, address, city, country)
+      VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+      'كوانت للموارد البشرية', 'شركة كوانت لتقنية الموارد البشرية', '1010123456', '300012345600003',
+      'التقنية والبرمجيات', '201-500 موظف', 2018,
+      'منصة سعودية متكاملة لإدارة الموارد البشرية تخدم المؤسسات في المملكة والخليج.',
+      '+966 11 234 5678', 'info@quant-hr.com', 'https://quant-hr.com',
+      'طريق الملك فهد، حي العليا', 'الرياض', 'السعودية',
+    );
+    console.log('✅ Org profile seeded');
+  }
+  if (isEmpty('branches')) {
+    const ins = db.prepare(`INSERT INTO branches (name, city, address, phone, manager_id, is_headquarters, status) VALUES (?, ?, ?, ?, ?, ?, ?)`);
+    ins.run('المقر الرئيسي', 'الرياض', 'طريق الملك فهد، حي العليا', '+966 11 234 5678', 1, 1, 'نشط');
+    ins.run('فرع جدة', 'جدة', 'طريق الأمير سلطان', '+966 12 345 6789', 4, 0, 'نشط');
+    ins.run('فرع الدمام', 'الدمام', 'شارع الملك سعود', '+966 13 456 7890', 9, 0, 'نشط');
+    console.log('✅ Branches seeded');
+  }
+
   console.log('🎉 Database seeding completed!');
 }
 

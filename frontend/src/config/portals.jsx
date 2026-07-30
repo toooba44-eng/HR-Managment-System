@@ -42,6 +42,7 @@ import Timesheets from '../pages/hr/Timesheets'
 import Compensation from '../pages/hr/Compensation'
 import Talent from '../pages/hr/Talent'
 import Documents from '../pages/hr/Documents'
+import Company from '../pages/hr/Company'
 import ComingSoon from '../components/ui/ComingSoon'
 
 // Helper for scaffolded (not-yet-built) features
@@ -100,7 +101,7 @@ export const PORTALS = {
     nav: [
       { to: '/', label: 'الصفحة الرئيسية', icon: LayoutDashboard, element: <Dashboard />, exact: true },
 
-      { section: 'المؤسسة', to: '/hr/company', label: 'مؤسستي', icon: Building2, element: cs('مؤسستي', 'الملف التعريفي للمؤسسة وبياناتها العامة والفروع', Building2) },
+      { section: 'المؤسسة', to: '/hr/company', label: 'مؤسستي', icon: Building2, element: <Company /> },
       { section: 'المؤسسة', to: '/departments', label: 'الهيكل التنظيمي', icon: Network, element: <Departments /> },
       { section: 'المؤسسة', to: '/employees', label: 'الموظفون', icon: Users, element: <Employees /> },
 

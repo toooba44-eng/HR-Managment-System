@@ -1253,6 +1253,44 @@ export const mockSuccessionApi = {
   async remove(id) { await delay(); const i = succession.findIndex((x) => x.id === Number(id)); if (i > -1) succession.splice(i, 1); return { message: 'تم الحذف' } },
 }
 
+const orgProfile = {
+  id: 1,
+  name: 'كوانت للموارد البشرية',
+  legal_name: 'شركة كوانت لتقنية الموارد البشرية',
+  cr_number: '1010123456',
+  tax_number: '300012345600003',
+  industry: 'التقنية والبرمجيات',
+  size: '201-500 موظف',
+  founded_year: 2018,
+  about: 'منصة سعودية متكاملة لإدارة الموارد البشرية تخدم المؤسسات في المملكة والخليج.',
+  phone: '+966 11 234 5678',
+  email: 'info@quant-hr.com',
+  website: 'https://quant-hr.com',
+  address: 'طريق الملك فهد، حي العليا',
+  city: 'الرياض',
+  country: 'السعودية',
+}
+let branchSeq = 1
+const branches = [
+  { id: branchSeq++, name: 'المقر الرئيسي', city: 'الرياض', address: 'طريق الملك فهد، حي العليا', phone: '+966 11 234 5678', manager_id: 1, is_headquarters: 1, status: 'نشط' },
+  { id: branchSeq++, name: 'فرع جدة', city: 'جدة', address: 'طريق الأمير سلطان', phone: '+966 12 345 6789', manager_id: 4, is_headquarters: 0, status: 'نشط' },
+  { id: branchSeq++, name: 'فرع الدمام', city: 'الدمام', address: 'شارع الملك سعود', phone: '+966 13 456 7890', manager_id: 9, is_headquarters: 0, status: 'نشط' },
+]
+
+export const mockCompanyApi = {
+  async get() {
+    await delay()
+    const list = [...branches]
+      .sort((a, b) => b.is_headquarters - a.is_headquarters || a.id - b.id)
+      .map((b) => ({ ...b, manager_name: empName(b.manager_id), manager_job_title: employees.find((e) => e.id === b.manager_id)?.job_title || null }))
+    return { profile: { ...orgProfile }, branches: list }
+  },
+  async updateProfile(data) { await delay(); Object.assign(orgProfile, data); return { message: 'تم التحديث', profile: { ...orgProfile } } },
+  async createBranch(data) { await delay(); const b = { id: branchSeq++, city: null, address: null, phone: null, status: 'نشط', ...data, is_headquarters: data.is_headquarters ? 1 : 0, manager_id: data.manager_id ? Number(data.manager_id) : null }; branches.push(b); return { message: 'تم', branch: b } },
+  async updateBranch(id, data) { await delay(); const b = branches.find((x) => x.id === Number(id)); if (b) Object.assign(b, data, { is_headquarters: data.is_headquarters !== undefined ? (data.is_headquarters ? 1 : 0) : b.is_headquarters, manager_id: data.manager_id !== undefined ? (data.manager_id ? Number(data.manager_id) : null) : b.manager_id }); return { message: 'تم التحديث' } },
+  async removeBranch(id) { await delay(); const i = branches.findIndex((x) => x.id === Number(id)); if (i > -1) branches.splice(i, 1); return { message: 'تم الحذف' } },
+}
+
 function notFound() {
   const e = new Error('Not found')
   e.response = { status: 404, data: { error: 'غير موجود' } }
