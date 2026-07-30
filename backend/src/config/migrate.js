@@ -419,6 +419,39 @@ const migrations = [
     FOREIGN KEY (incumbent_id) REFERENCES employees(id) ON DELETE SET NULL,
     FOREIGN KEY (successor_id) REFERENCES employees(id) ON DELETE SET NULL,
     FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
+  // Organization profile (single row) + branches
+  `CREATE TABLE IF NOT EXISTS org_profile (
+    id INTEGER PRIMARY KEY CHECK(id = 1),
+    name TEXT NOT NULL DEFAULT 'كوانت للموارد البشرية',
+    legal_name TEXT,
+    cr_number TEXT,
+    tax_number TEXT,
+    industry TEXT,
+    size TEXT,
+    founded_year INTEGER,
+    about TEXT,
+    phone TEXT,
+    email TEXT,
+    website TEXT,
+    address TEXT,
+    city TEXT,
+    country TEXT DEFAULT 'السعودية',
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS branches (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    city TEXT,
+    address TEXT,
+    phone TEXT,
+    manager_id INTEGER,
+    is_headquarters INTEGER DEFAULT 0,
+    status TEXT DEFAULT 'نشط' CHECK(status IN ('نشط', 'مغلق')),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (manager_id) REFERENCES employees(id) ON DELETE SET NULL
   )`
 ];
 
