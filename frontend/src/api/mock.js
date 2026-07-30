@@ -1655,6 +1655,61 @@ export const mockReportsApi = {
       training: { courses: courses.length, enrollments: enrollments.length, completed: enrollments.filter((e) => e.status === 'مكتمل').length },
     }
   },
+  async datasets() {
+    await delay()
+    return {
+      datasets: Object.entries(RB_DATASETS).map(([key, ds]) => ({ key, label: ds.label, fields: Object.entries(ds.fields).map(([fk, f]) => ({ key: fk, label: f.label, type: f.type })) })),
+      operators: [{ key: 'eq', label: 'يساوي' }, { key: 'ne', label: 'لا يساوي' }, { key: 'gt', label: 'أكبر من' }, { key: 'lt', label: 'أصغر من' }, { key: 'contains', label: 'يحتوي' }],
+    }
+  },
+  async run({ dataset, fields, filters, group_by } = {}) {
+    await delay()
+    const ds = RB_DATASETS[dataset]
+    if (!ds) throw badReq('مصدر بيانات غير معروف')
+    let rows = ds.rows()
+    for (const f of (Array.isArray(filters) ? filters : [])) {
+      const field = ds.fields[f.field]
+      if (!field || f.value === undefined || f.value === '') continue
+      const v = field.type === 'number' ? Number(f.value) : String(f.value)
+      rows = rows.filter((r) => {
+        const cell = r[f.field]
+        if (f.op === 'eq') return String(cell) === String(v)
+        if (f.op === 'ne') return String(cell) !== String(v)
+        if (f.op === 'gt') return Number(cell) > v
+        if (f.op === 'lt') return Number(cell) < v
+        if (f.op === 'contains') return String(cell ?? '').includes(v)
+        return true
+      })
+    }
+    if (group_by && ds.fields[group_by]) {
+      const m = {}
+      for (const r of rows) { const k = r[group_by]; m[k] = (m[k] || 0) + 1 }
+      const grouped = Object.entries(m).map(([group_value, count]) => ({ group_value, count })).sort((a, b) => b.count - a.count)
+      return { grouped: true, columns: [{ key: 'group_value', label: ds.fields[group_by].label }, { key: 'count', label: 'العدد' }], rows: grouped, total: grouped.length }
+    }
+    const cols = (Array.isArray(fields) && fields.length ? fields : Object.keys(ds.fields)).filter((k) => ds.fields[k])
+    const out = rows.slice(0, 1000).map((r) => { const o = {}; for (const k of cols) o[k] = r[k]; return o })
+    return { grouped: false, columns: cols.map((k) => ({ key: k, label: ds.fields[k].label })), rows: out, total: out.length }
+  },
+}
+
+// Report-builder datasets for the demo mock (mirror the backend whitelist)
+const RB_DATASETS = {
+  employees: {
+    label: 'الموظفون',
+    fields: { full_name: { label: 'الاسم', type: 'text' }, employee_number: { label: 'الرقم الوظيفي', type: 'text' }, job_title: { label: 'المسمى', type: 'text' }, department: { label: 'الإدارة', type: 'text' }, status: { label: 'الحالة', type: 'text' }, employment_type: { label: 'نوع التوظيف', type: 'text' }, nationality: { label: 'الجنسية', type: 'text' }, hire_date: { label: 'تاريخ التعيين', type: 'date' }, salary: { label: 'الراتب', type: 'number' } },
+    rows: () => employees.map((e) => ({ full_name: e.full_name, employee_number: e.employee_number, job_title: e.job_title, department: deptName(e.department_id), status: e.status, employment_type: e.employment_type, nationality: e.nationality, hire_date: e.hire_date, salary: e.salary })),
+  },
+  attendance: {
+    label: 'الحضور',
+    fields: { full_name: { label: 'الموظف', type: 'text' }, date: { label: 'التاريخ', type: 'date' }, status: { label: 'الحالة', type: 'text' }, work_hours: { label: 'ساعات العمل', type: 'number' } },
+    rows: () => attendance.map((a) => ({ full_name: empName(a.employee_id), date: a.date, status: a.status, work_hours: a.work_hours })),
+  },
+  leaves: {
+    label: 'الإجازات',
+    fields: { full_name: { label: 'الموظف', type: 'text' }, type: { label: 'النوع', type: 'text' }, status: { label: 'الحالة', type: 'text' }, days_count: { label: 'عدد الأيام', type: 'number' }, start_date: { label: 'تاريخ البداية', type: 'date' } },
+    rows: () => leaves.map((l) => ({ full_name: empName(l.employee_id), type: l.type, status: l.status, days_count: l.days_count, start_date: l.start_date })),
+  },
 }
 
 const withEmp = (r) => ({ ...r, full_name: empName(r.employee_id), job_title: employees.find((e) => e.id === r.employee_id)?.job_title, department_name: deptName(employees.find((e) => e.id === r.employee_id)?.department_id), profile_picture: null })

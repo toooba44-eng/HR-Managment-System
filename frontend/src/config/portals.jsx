@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Users, Building2, Building, CalendarCheck, CalendarDays, ClipboardCheck,
+  LayoutDashboard, Users, Building2, Building, CalendarCheck, CalendarDays, ClipboardCheck, Table2,
   UserCircle, CreditCard, Package, HardDrive, Activity, LifeBuoy, Settings,
   Globe, FileText, ScrollText, Plug, Gauge, Database, Megaphone, UserCog,
   ArrowUpDown, Bot, Wallet, ClipboardList, Target, TrendingUp, GraduationCap,
@@ -80,6 +80,7 @@ import OrgChart from '../pages/OrgChart'
 import Pipeline from '../pages/hr/Pipeline'
 import AttendanceCorrections from '../pages/AttendanceCorrections'
 import LeaveCalendar from '../pages/LeaveCalendar'
+import ReportBuilder from '../pages/hr/ReportBuilder'
 
 /**
  * Each portal maps to one or more roles and declares its own navigation.
@@ -166,6 +167,7 @@ export const PORTALS = {
       { section: 'الامتثال والعلاقات', to: '/hr/offboarding', label: 'إنهاء الخدمة', icon: UserMinus, element: <Offboarding /> },
 
       { section: 'النظام والتقارير', to: '/hr/reports', label: 'التقارير والتحليلات', icon: BarChart3, element: <Reports /> },
+      { section: 'النظام والتقارير', to: '/hr/report-builder', label: 'منشئ التقارير', icon: Table2, element: <ReportBuilder /> },
       { section: 'النظام والتقارير', to: '/hr/automation', label: 'الأتمتة وسير العمل', icon: Workflow, element: <Automation /> },
       { section: 'النظام والتقارير', to: '/hr/integrations', label: 'التكاملات', icon: Plug, element: <Integrations /> },
       { section: 'النظام والتقارير', to: '/hr/settings', label: 'الإعدادات', icon: Settings, element: <HrSettings /> },
