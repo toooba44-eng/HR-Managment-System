@@ -134,6 +134,14 @@ const realPlatformApi = {
   modules: (companyId) => api.get('/platform/modules', { params: { company_id: companyId } }).then((r) => r.data),
   setModule: (company_id, module_key, enabled) => api.put('/platform/modules', { company_id, module_key, enabled }).then((r) => r.data),
   setLimits: (companyId, data) => api.put(`/platform/limits/${companyId}`, data).then((r) => r.data),
+  usage: () => api.get('/platform/usage').then((r) => r.data),
+  performance: () => api.get('/platform/performance').then((r) => r.data),
+  apiMonitor: () => api.get('/platform/api-monitor').then((r) => r.data),
+  backups: () => api.get('/platform/backups').then((r) => r.data),
+  createBackup: (note) => api.post('/platform/backups', { note }).then((r) => r.data),
+  restoreBackup: (id) => api.post(`/platform/backups/${id}/restore`).then((r) => r.data),
+  removeBackup: (id) => api.delete(`/platform/backups/${id}`).then((r) => r.data),
+  audit: (params) => api.get('/platform/audit', { params }).then((r) => r.data),
 }
 
 // ---------- Billing (super admin) ----------

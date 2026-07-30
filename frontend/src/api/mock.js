@@ -991,7 +991,80 @@ export const mockPlatformApi = {
     if (data.storage_limit_gb != null) c.storage_limit_gb = parseInt(data.storage_limit_gb, 10)
     return { message: 'تم' }
   },
+  async usage() {
+    await delay()
+    const rows = companies.map((c) => {
+      const used = Math.min(c.users_limit, Math.round(c.users_limit * (0.4 + ((c.id * 17) % 50) / 100)))
+      const storage = Math.min(c.storage_limit_gb, Math.round(c.storage_limit_gb * (0.3 + ((c.id * 23) % 60) / 100)))
+      return { id: c.id, name: c.name, plan: c.plan, status: c.status, users_limit: c.users_limit, users_used: used, storage_limit_gb: c.storage_limit_gb, storage_used_gb: storage }
+    })
+    const summary = rows.reduce((s, r) => { s.companies += 1; if (r.status === 'نشطة') s.active += 1; s.seats += r.users_limit; s.seatsUsed += r.users_used; s.storage += r.storage_limit_gb; s.storageUsed += r.storage_used_gb; return s }, { companies: 0, active: 0, seats: 0, seatsUsed: 0, storage: 0, storageUsed: 0 })
+    return { usage: rows, summary }
+  },
+  async performance() {
+    await delay()
+    const now = Date.now()
+    const series = Array.from({ length: 12 }, (_, i) => { const t = new Date(now - (11 - i) * 3600000); return { time: `${String(t.getHours()).padStart(2, '0')}:00`, response_ms: 90 + ((i * 37) % 120), requests: 400 + ((i * 53) % 600) } })
+    return { health: { uptime: 99.98, avg_response_ms: 142, error_rate: 0.12, requests_today: 48213, cpu: 34, memory: 61, db_connections: 42, status: 'صحّي' }, series }
+  },
+  async apiMonitor() {
+    await delay()
+    const rows = integrations.map((it) => {
+      const calls = it.is_connected ? 500 + ((it.id * 137) % 4000) : 0
+      const errors = it.is_connected ? ((it.id * 7) % 40) : 0
+      return { id: it.id, name: it.name, category: it.category, is_connected: it.is_connected, status: it.status, calls_24h: calls, errors_24h: errors, error_rate: calls ? Math.round((errors / calls) * 1000) / 10 : 0, avg_latency_ms: it.is_connected ? 80 + ((it.id * 29) % 220) : 0 }
+    })
+    const summary = rows.reduce((s, r) => { s.total += 1; if (r.is_connected) s.connected += 1; s.calls += r.calls_24h; s.errors += r.errors_24h; return s }, { total: 0, connected: 0, calls: 0, errors: 0 })
+    return { endpoints: rows, summary }
+  },
+  async backups() {
+    await delay()
+    const rows = [...backups].sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
+    const last = rows.find((r) => r.status === 'مكتمل')
+    return { backups: rows, summary: { total: rows.length, last_at: last ? last.created_at : null } }
+  },
+  async createBackup(note) {
+    await delay()
+    const b = { id: backupSeq++, type: 'يدوي', size_mb: Math.round((120 + Math.random() * 80) * 10) / 10, status: 'مكتمل', note: note || 'نسخة احتياطية يدوية', created_at: nowIso() }
+    backups.unshift(b)
+    auditLogs.unshift({ id: auditSeq++, actor: currentUser()?.email || 'superadmin@quant.com', action: 'إنشاء نسخة احتياطية', entity: 'backup', severity: 'معلومة', details: `نسخة #${b.id}`, created_at: nowIso() })
+    return { message: 'تم', backup: { id: b.id } }
+  },
+  async restoreBackup(id) {
+    await delay()
+    const b = backups.find((x) => x.id === Number(id))
+    if (!b) throw notFound()
+    if (b.status !== 'مكتمل') throw badReq('لا يمكن استعادة هذه النسخة')
+    auditLogs.unshift({ id: auditSeq++, actor: currentUser()?.email || 'superadmin@quant.com', action: 'استعادة نسخة احتياطية', entity: 'backup', severity: 'تحذير', details: `استعادة نسخة #${b.id}`, created_at: nowIso() })
+    return { message: 'تم' }
+  },
+  async removeBackup(id) { await delay(); const i = backups.findIndex((x) => x.id === Number(id)); if (i > -1) backups.splice(i, 1); return { message: 'تم الحذف' } },
+  async audit({ severity } = {}) {
+    await delay()
+    let rows = [...auditLogs]
+    if (severity) rows = rows.filter((l) => l.severity === severity)
+    rows.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
+    const summary = rows.reduce((s, r) => { s.total += 1; if (r.severity === 'تحذير') s.warnings += 1; if (r.severity === 'حرج') s.critical += 1; return s }, { total: 0, warnings: 0, critical: 0 })
+    return { logs: rows, summary }
+  },
 }
+
+let backupSeq = 1
+const backups = [
+  { id: backupSeq++, type: 'تلقائي', size_mb: 182.4, status: 'مكتمل', note: 'نسخة يومية تلقائية', created_at: addDays(0) },
+  { id: backupSeq++, type: 'تلقائي', size_mb: 179.1, status: 'مكتمل', note: 'نسخة يومية تلقائية', created_at: addDays(-1) },
+  { id: backupSeq++, type: 'يدوي', size_mb: 176.8, status: 'مكتمل', note: 'قبل تحديث النظام', created_at: addDays(-2) },
+  { id: backupSeq++, type: 'تلقائي', size_mb: 175.0, status: 'مكتمل', note: 'نسخة يومية تلقائية', created_at: addDays(-3) },
+]
+let auditSeq = 1
+const auditLogs = [
+  { id: auditSeq++, actor: 'superadmin@quant.com', action: 'تسجيل دخول', entity: 'auth', severity: 'معلومة', details: 'دخول ناجح لبوابة إدارة المنصة', created_at: addDays(0) },
+  { id: auditSeq++, actor: 'superadmin@quant.com', action: 'اعتماد طلب اشتراك', entity: 'subscription', severity: 'معلومة', details: 'ترقية باقة مجموعة الأفق', created_at: addDays(0) },
+  { id: auditSeq++, actor: 'noura.hr@quant.com', action: 'تعديل بيانات موظف', entity: 'employee', severity: 'معلومة', details: 'تحديث بيانات موظف #6', created_at: addDays(-1) },
+  { id: auditSeq++, actor: 'نظام', action: 'محاولة دخول فاشلة', entity: 'auth', severity: 'تحذير', details: '3 محاولات دخول فاشلة متتالية', created_at: addDays(-1) },
+  { id: auditSeq++, actor: 'superadmin@quant.com', action: 'استعادة نسخة احتياطية', entity: 'backup', severity: 'تحذير', details: 'استعادة نسخة #3', created_at: addDays(-2) },
+  { id: auditSeq++, actor: 'نظام', action: 'فشل تكامل خارجي', entity: 'integration', severity: 'حرج', details: 'انقطاع الاتصال مع Active Directory', created_at: addDays(-2) },
+]
 
 export const mockExpensesApi = {
   async list({ type = '', status = '' } = {}) {
