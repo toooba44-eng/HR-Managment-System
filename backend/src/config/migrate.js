@@ -721,6 +721,21 @@ const migrations = [
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`,
 
+  // Attendance correction requests
+  `CREATE TABLE IF NOT EXISTS attendance_corrections (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    date DATE NOT NULL,
+    requested_check_in TEXT,
+    requested_check_out TEXT,
+    reason TEXT,
+    status TEXT DEFAULT 'معلق' CHECK(status IN ('معلق', 'موافق عليه', 'مرفوض')),
+    reviewed_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+    FOREIGN KEY (reviewed_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
   // Manager: hiring requests
   `CREATE TABLE IF NOT EXISTS hiring_requests (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

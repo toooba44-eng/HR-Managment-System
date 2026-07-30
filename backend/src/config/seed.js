@@ -142,6 +142,15 @@ function seedData() {
     console.log('✅ Attendance seeded');
   }
 
+  // Attendance correction requests
+  if (isEmpty('attendance_corrections')) {
+    const ins = db.prepare(`INSERT INTO attendance_corrections (employee_id, date, requested_check_in, requested_check_out, reason, status, reviewed_by) VALUES (?, ?, ?, ?, ?, ?, ?)`);
+    ins.run(6, addDaysStr(-1), '08:05', '16:10', 'نسيت تسجيل الدخول بسبب اجتماع صباحي', 'معلق', null);
+    ins.run(10, addDaysStr(-2), '09:00', '17:00', 'عطل في جهاز البصمة', 'موافق عليه', 5);
+    ins.run(4, addDaysStr(-3), null, '16:30', 'نسيت تسجيل الخروج', 'مرفوض', 5);
+    console.log('✅ Attendance corrections seeded');
+  }
+
   // Leaves
   if (isEmpty('leaves')) {
     const insertLeave = db.prepare(`INSERT INTO leaves (employee_id, type, start_date, end_date, days_count, reason, status, approved_by, approved_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);
