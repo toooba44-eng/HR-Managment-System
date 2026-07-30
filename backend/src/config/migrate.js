@@ -230,6 +230,22 @@ const migrations = [
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`,
 
+  // Billing invoices (per company subscription)
+  `CREATE TABLE IF NOT EXISTS invoices (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    company_id INTEGER NOT NULL,
+    invoice_number TEXT NOT NULL,
+    plan TEXT DEFAULT 'أساسية',
+    period TEXT,
+    amount REAL NOT NULL DEFAULT 0,
+    issue_date DATE,
+    due_date DATE,
+    status TEXT DEFAULT 'غير مدفوعة' CHECK(status IN ('مدفوعة', 'غير مدفوعة', 'متأخرة', 'ملغاة')),
+    paid_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+  )`,
+
   // Expenses & advances
   `CREATE TABLE IF NOT EXISTS expenses (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -126,6 +126,14 @@ const realCompaniesApi = {
   remove: (id) => api.delete(`/companies/${id}`).then((r) => r.data),
 }
 
+// ---------- Billing (super admin) ----------
+const realBillingApi = {
+  list: (params) => api.get('/billing', { params }).then((r) => r.data),
+  create: (data) => api.post('/billing', data).then((r) => r.data),
+  setStatus: (id, status) => api.put(`/billing/${id}/status`, { status }).then((r) => r.data),
+  remove: (id) => api.delete(`/billing/${id}`).then((r) => r.data),
+}
+
 // ---------- Expenses & advances ----------
 const realExpensesApi = {
   list: (params) => api.get('/expenses', { params }).then((r) => r.data),
@@ -300,6 +308,7 @@ export const tasksApi = DEMO ? mock.mockTasksApi : realTasksApi
 export const jobsApi = DEMO ? mock.mockJobsApi : realJobsApi
 export const applicationsApi = DEMO ? mock.mockApplicationsApi : realApplicationsApi
 export const companiesApi = DEMO ? mock.mockCompaniesApi : realCompaniesApi
+export const billingApi = DEMO ? mock.mockBillingApi : realBillingApi
 export const expensesApi = DEMO ? mock.mockExpensesApi : realExpensesApi
 export const assetsApi = DEMO ? mock.mockAssetsApi : realAssetsApi
 export const goalsApi = DEMO ? mock.mockGoalsApi : realGoalsApi

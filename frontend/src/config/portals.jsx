@@ -29,6 +29,7 @@ import Applications from '../pages/candidate/Applications'
 import Recruitment from '../pages/hr/Recruitment'
 import Companies from '../pages/superadmin/Companies'
 import Subscriptions from '../pages/superadmin/Subscriptions'
+import Billing from '../pages/superadmin/Billing'
 import Expenses from '../pages/hr/Expenses'
 import Assets from '../pages/hr/Assets'
 import Performance from '../pages/hr/Performance'
@@ -72,7 +73,7 @@ export const PORTALS = {
 
       { section: 'العملاء والاشتراكات', to: '/sa/companies', label: 'الشركات المشتركة', icon: Building, element: <Companies /> },
       { section: 'العملاء والاشتراكات', to: '/sa/subscriptions', label: 'الباقات والاشتراكات', icon: Package, element: <Subscriptions /> },
-      { section: 'العملاء والاشتراكات', to: '/sa/billing', label: 'الفواتير والمدفوعات', icon: CreditCard, element: cs('الفواتير والمدفوعات', 'إدارة الفوترة والمدفوعات', CreditCard) },
+      { section: 'العملاء والاشتراكات', to: '/sa/billing', label: 'الفواتير والمدفوعات', icon: CreditCard, element: <Billing /> },
       { section: 'العملاء والاشتراكات', to: '/sa/requests', label: 'طلبات الترقية والإلغاء', icon: ArrowUpDown, element: cs('طلبات الترقية والإلغاء', 'إدارة طلبات ترقية/إلغاء الاشتراكات', ArrowUpDown) },
 
       { section: 'التحكم والحدود', to: '/sa/modules', label: 'تفعيل الوحدات', icon: ListChecks, element: cs('تفعيل وتعطيل الوحدات', 'التحكم في وحدات النظام لكل مؤسسة', ListChecks) },

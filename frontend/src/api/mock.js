@@ -869,6 +869,67 @@ export const mockCompaniesApi = {
   },
 }
 
+let invoiceSeq = 1
+const invoices = [
+  { id: invoiceSeq++, company_id: 1, invoice_number: 'INV-2026-0001', plan: 'مؤسسية', period: 'يناير 2026', amount: 24000, issue_date: addDays(-60), due_date: addDays(-45), status: 'مدفوعة', paid_at: addDays(-50) },
+  { id: invoiceSeq++, company_id: 1, invoice_number: 'INV-2026-0002', plan: 'مؤسسية', period: 'فبراير 2026', amount: 24000, issue_date: addDays(-30), due_date: addDays(-15), status: 'مدفوعة', paid_at: addDays(-20) },
+  { id: invoiceSeq++, company_id: 2, invoice_number: 'INV-2026-0003', plan: 'احترافية', period: 'فبراير 2026', amount: 9000, issue_date: addDays(-30), due_date: addDays(-15), status: 'مدفوعة', paid_at: addDays(-18) },
+  { id: invoiceSeq++, company_id: 2, invoice_number: 'INV-2026-0004', plan: 'احترافية', period: 'مارس 2026', amount: 9000, issue_date: addDays(-5), due_date: addDays(10), status: 'غير مدفوعة', paid_at: null },
+  { id: invoiceSeq++, company_id: 3, invoice_number: 'INV-2026-0005', plan: 'أساسية', period: 'مارس 2026', amount: 3000, issue_date: addDays(-5), due_date: addDays(10), status: 'غير مدفوعة', paid_at: null },
+  { id: invoiceSeq++, company_id: 4, invoice_number: 'INV-2026-0006', plan: 'احترافية', period: 'فبراير 2026', amount: 9000, issue_date: addDays(-40), due_date: addDays(-25), status: 'متأخرة', paid_at: null },
+]
+const invStatusOrder = { متأخرة: 1, 'غير مدفوعة': 2, مدفوعة: 3, ملغاة: 4 }
+const companyName = (id) => companies.find((c) => c.id === Number(id))?.name || null
+
+export const mockBillingApi = {
+  async list({ status, company_id } = {}) {
+    await delay()
+    let rows = [...invoices]
+    if (status) rows = rows.filter((i) => i.status === status)
+    if (company_id) rows = rows.filter((i) => i.company_id === Number(company_id))
+    rows.sort((a, b) => (invStatusOrder[a.status] - invStatusOrder[b.status]) || (b.issue_date || '').localeCompare(a.issue_date || ''))
+    const list = rows.map((i) => ({ ...i, company_name: companyName(i.company_id), company_plan: companies.find((c) => c.id === i.company_id)?.plan || null }))
+    const summary = list.reduce((s, r) => {
+      s.count += 1
+      if (r.status === 'مدفوعة') s.paid += r.amount
+      if (r.status === 'غير مدفوعة' || r.status === 'متأخرة') s.outstanding += r.amount
+      if (r.status === 'متأخرة') s.overdue += 1
+      return s
+    }, { count: 0, paid: 0, outstanding: 0, overdue: 0 })
+    return { invoices: list, summary }
+  },
+  async create(data) {
+    await delay()
+    if (!data.company_id) throw badReq('الشركة مطلوبة')
+    if (!data.amount || data.amount <= 0) throw badReq('المبلغ غير صالح')
+    const seq = invoices.length + 1
+    const number = data.invoice_number || `INV-${new Date().getFullYear()}-${String(seq).padStart(4, '0')}`
+    const inv = {
+      id: invoiceSeq++, company_id: Number(data.company_id), invoice_number: number,
+      plan: data.plan || companies.find((c) => c.id === Number(data.company_id))?.plan || 'أساسية',
+      period: data.period || null, amount: Number(data.amount),
+      issue_date: data.issue_date || nowIso().slice(0, 10), due_date: data.due_date || null,
+      status: 'غير مدفوعة', paid_at: null,
+    }
+    invoices.push(inv)
+    return { message: 'تم', invoice: { id: inv.id, invoice_number: number } }
+  },
+  async setStatus(id, status) {
+    await delay()
+    const inv = invoices.find((x) => x.id === Number(id))
+    if (!inv) throw notFound()
+    inv.status = status
+    inv.paid_at = status === 'مدفوعة' ? nowIso() : null
+    return { message: 'تم التحديث' }
+  },
+  async remove(id) {
+    await delay()
+    const i = invoices.findIndex((x) => x.id === Number(id))
+    if (i > -1) invoices.splice(i, 1)
+    return { message: 'تم الحذف' }
+  },
+}
+
 export const mockExpensesApi = {
   async list({ type = '', status = '' } = {}) {
     await delay()
