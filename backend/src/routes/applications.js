@@ -31,6 +31,73 @@ router.get('/', requireRole(...MANAGE), (req, res, next) => {
   }
 });
 
+// Ordered ATS pipeline stages
+const STAGES = ['متقدم جديد', 'مراجعة أولية', 'اختبار', 'مقابلة', 'عرض وظيفي', 'تم التوظيف', 'مرفوض'];
+// Keep the legacy status column in sync with the richer stage
+const STAGE_TO_STATUS = {
+  'متقدم جديد': 'قيد المراجعة', 'مراجعة أولية': 'قيد المراجعة', اختبار: 'قيد المراجعة',
+  مقابلة: 'مقابلة', 'عرض وظيفي': 'مقابلة', 'تم التوظيف': 'مقبول', مرفوض: 'مرفوض',
+};
+
+// HR: Kanban pipeline grouped by stage
+router.get('/pipeline', requireRole(...MANAGE), (req, res, next) => {
+  try {
+    const { job_id } = req.query;
+    let where = 'WHERE 1=1';
+    const params = [];
+    if (job_id) { where += ' AND a.job_id = ?'; params.push(job_id); }
+    const rows = db.prepare(`
+      SELECT a.*, j.title as job_title, j.department as job_department
+      FROM applications a JOIN jobs j ON a.job_id = j.id
+      ${where}
+      ORDER BY a.rating DESC, a.created_at DESC
+    `).all(...params);
+
+    const columns = STAGES.map((stage) => ({
+      stage,
+      cards: rows.filter((r) => (r.stage || 'متقدم جديد') === stage),
+    }));
+    const summary = {
+      total: rows.length,
+      hired: rows.filter((r) => r.stage === 'تم التوظيف').length,
+      rejected: rows.filter((r) => r.stage === 'مرفوض').length,
+      active: rows.filter((r) => !['تم التوظيف', 'مرفوض'].includes(r.stage)).length,
+    };
+    res.json({ columns, stages: STAGES, summary });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// HR: move a candidate to a pipeline stage
+router.put('/:id/stage', requireRole(...MANAGE), (req, res, next) => {
+  try {
+    const { stage } = req.body;
+    if (!STAGES.includes(stage)) return res.status(400).json({ error: 'Invalid stage' });
+    const app = db.prepare('SELECT id FROM applications WHERE id = ?').get(req.params.id);
+    if (!app) return res.status(404).json({ error: 'Not found' });
+    db.prepare('UPDATE applications SET stage = ?, status = ? WHERE id = ?')
+      .run(stage, STAGE_TO_STATUS[stage] || 'قيد المراجعة', req.params.id);
+    res.json({ message: 'Moved' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// HR: rate a candidate (1-5)
+router.put('/:id/rating', requireRole(...MANAGE), (req, res, next) => {
+  try {
+    const rating = parseInt(req.body.rating, 10);
+    if (!(rating >= 1 && rating <= 5)) return res.status(400).json({ error: 'Rating must be 1-5' });
+    const app = db.prepare('SELECT id FROM applications WHERE id = ?').get(req.params.id);
+    if (!app) return res.status(404).json({ error: 'Not found' });
+    db.prepare('UPDATE applications SET rating = ? WHERE id = ?').run(rating, req.params.id);
+    res.json({ message: 'Rated' });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Candidate: my applications (matched by account email)
 router.get('/mine', (req, res, next) => {
   try {

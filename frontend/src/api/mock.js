@@ -136,7 +136,14 @@ const jobs = [
 
 let appSeq = 1
 const applications = [
-  { id: appSeq++, job_id: 1, candidate_email: 'candidate@quant.com', candidate_name: 'مرشح تجريبي', cover_note: 'لديّ خبرة 3 سنوات في تطوير الواجهات.', status: 'مقابلة', created_at: nowIso() },
+  { id: appSeq++, job_id: 1, candidate_email: 'candidate@quant.com', candidate_name: 'مرشح تجريبي', cover_note: 'لديّ خبرة 3 سنوات في تطوير الواجهات.', status: 'مقابلة', stage: 'مقابلة', source: 'LinkedIn', rating: 4, created_at: nowIso() },
+  { id: appSeq++, job_id: 1, candidate_email: 'sultan.dev@mail.com', candidate_name: 'سلطان الحربي', cover_note: 'خبرة قوية في React و TypeScript.', status: 'قيد المراجعة', stage: 'اختبار', source: 'الموقع', rating: null, created_at: nowIso() },
+  { id: appSeq++, job_id: 1, candidate_email: 'tariq.dev@mail.com', candidate_name: 'طارق القحطاني', cover_note: 'مطوّر شغوف بواجهات المستخدم.', status: 'مقابلة', stage: 'عرض وظيفي', source: 'LinkedIn', rating: 5, created_at: nowIso() },
+  { id: appSeq++, job_id: 1, candidate_email: 'huda.dev@mail.com', candidate_name: 'هدى العنزي', cover_note: 'حديثة تخرّج بمشاريع متميزة.', status: 'قيد المراجعة', stage: 'متقدم جديد', source: 'إحالة موظف', rating: null, created_at: nowIso() },
+  { id: appSeq++, job_id: 2, candidate_email: 'mona.hr@mail.com', candidate_name: 'منى العتيبي', cover_note: 'خبرة 5 سنوات في التوظيف.', status: 'قيد المراجعة', stage: 'مراجعة أولية', source: 'الموقع', rating: 3, created_at: nowIso() },
+  { id: appSeq++, job_id: 2, candidate_email: 'faisal.hr@mail.com', candidate_name: 'فيصل النمر', cover_note: 'أخصائي موارد بشرية معتمد.', status: 'مقابلة', stage: 'مقابلة', source: 'Indeed', rating: 4, created_at: nowIso() },
+  { id: appSeq++, job_id: 3, candidate_email: 'saad.sales@mail.com', candidate_name: 'سعد الدوسري', cover_note: 'سجل مبيعات حافل.', status: 'مقبول', stage: 'تم التوظيف', source: 'إحالة موظف', rating: 5, created_at: nowIso() },
+  { id: appSeq++, job_id: 3, candidate_email: 'noor.sales@mail.com', candidate_name: 'نور الشهري', cover_note: 'خبرة في مبيعات التجزئة.', status: 'مرفوض', stage: 'مرفوض', source: 'الموقع', rating: 2, created_at: nowIso() },
 ]
 
 let companySeq = 1
@@ -923,6 +930,38 @@ export const mockApplicationsApi = {
     const a = applications.find((x) => x.id === Number(id))
     if (a) a.status = status
     return { message: 'تم التحديث' }
+  },
+  async pipeline({ job_id } = {}) {
+    await delay()
+    const stages = ['متقدم جديد', 'مراجعة أولية', 'اختبار', 'مقابلة', 'عرض وظيفي', 'تم التوظيف', 'مرفوض']
+    let rows = [...applications]
+    if (job_id) rows = rows.filter((a) => a.job_id === Number(job_id))
+    rows = rows.map((a) => { const j = jobs.find((x) => x.id === a.job_id); return { ...a, stage: a.stage || 'متقدم جديد', job_title: j?.title, job_department: j?.department } })
+      .sort((x, y) => (y.rating || 0) - (x.rating || 0))
+    const columns = stages.map((stage) => ({ stage, cards: rows.filter((r) => r.stage === stage) }))
+    const summary = {
+      total: rows.length,
+      hired: rows.filter((r) => r.stage === 'تم التوظيف').length,
+      rejected: rows.filter((r) => r.stage === 'مرفوض').length,
+      active: rows.filter((r) => !['تم التوظيف', 'مرفوض'].includes(r.stage)).length,
+    }
+    return { columns, stages, summary }
+  },
+  async moveStage(id, stage) {
+    await delay()
+    const s2st = { 'متقدم جديد': 'قيد المراجعة', 'مراجعة أولية': 'قيد المراجعة', اختبار: 'قيد المراجعة', مقابلة: 'مقابلة', 'عرض وظيفي': 'مقابلة', 'تم التوظيف': 'مقبول', مرفوض: 'مرفوض' }
+    const a = applications.find((x) => x.id === Number(id))
+    if (!a) throw notFound()
+    a.stage = stage
+    a.status = s2st[stage] || 'قيد المراجعة'
+    return { message: 'تم' }
+  },
+  async rate(id, rating) {
+    await delay()
+    const a = applications.find((x) => x.id === Number(id))
+    if (!a) throw notFound()
+    a.rating = Number(rating)
+    return { message: 'تم' }
   },
 }
 

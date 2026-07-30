@@ -214,6 +214,9 @@ const migrations = [
     candidate_name TEXT,
     cover_note TEXT,
     status TEXT DEFAULT 'قيد المراجعة' CHECK(status IN ('قيد المراجعة', 'مقابلة', 'مقبول', 'مرفوض')),
+    stage TEXT DEFAULT 'متقدم جديد',
+    source TEXT DEFAULT 'الموقع',
+    rating INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE
   )`,
@@ -862,6 +865,9 @@ function runMigrations() {
   // Additive column migrations for tables that already exist on older databases
   const columnAdditions = [
     `ALTER TABLE documents ADD COLUMN expiry_date DATE`,
+    `ALTER TABLE applications ADD COLUMN stage TEXT DEFAULT 'متقدم جديد'`,
+    `ALTER TABLE applications ADD COLUMN source TEXT DEFAULT 'الموقع'`,
+    `ALTER TABLE applications ADD COLUMN rating INTEGER`,
   ];
   for (const stmt of columnAdditions) {
     try {
