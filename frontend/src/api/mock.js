@@ -1920,6 +1920,35 @@ export const mockPromotionsApi = {
   async remove(id) { await delay(); const i = promotions.findIndex((x) => x.id === Number(id)); if (i > -1) promotions.splice(i, 1); return { message: 'تم الحذف' } },
 }
 
+const candidateProfile = {
+  id: 1,
+  email: 'candidate@quant.com',
+  full_name: 'مرشح تجريبي',
+  headline: 'مطوّر واجهات أمامية',
+  summary: 'مطوّر واجهات أمامية بخبرة 3 سنوات في React و Vue، شغوف ببناء تجارب مستخدم متميزة.',
+  skills: 'React, JavaScript, Tailwind CSS, TypeScript, Git',
+  experience_years: 3,
+  education: 'بكالوريوس علوم حاسب',
+  phone: '+966 55 123 4567',
+  location: 'الرياض',
+  linkedin: 'https://linkedin.com/in/candidate',
+  portfolio: 'https://portfolio.dev',
+  cv_file_name: 'cv_candidate.pdf',
+  in_talent_pool: 1,
+}
+export const mockCandidateApi = {
+  async getProfile() { await delay(); return { profile: { ...candidateProfile } } },
+  async updateProfile(data) {
+    await delay()
+    for (const [k, v] of Object.entries(data)) {
+      if (k === 'experience_years') candidateProfile[k] = parseInt(v, 10) || 0
+      else if (k in candidateProfile) candidateProfile[k] = v
+    }
+    return { message: 'تم التحديث', profile: { ...candidateProfile } }
+  },
+  async setTalentPool(join) { await delay(); candidateProfile.in_talent_pool = join ? 1 : 0; return { message: join ? 'تم الانضمام' : 'تم الإلغاء', in_talent_pool: candidateProfile.in_talent_pool } },
+}
+
 function notFound() {
   const e = new Error('Not found')
   e.response = { status: 404, data: { error: 'غير موجود' } }

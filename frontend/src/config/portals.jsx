@@ -53,6 +53,9 @@ import Signatures from '../pages/employee/Signatures'
 import Hiring from '../pages/manager/Hiring'
 import Interviews from '../pages/manager/Interviews'
 import Promotions from '../pages/manager/Promotions'
+import CandidateProfile from '../pages/candidate/Profile'
+import CandidateCV from '../pages/candidate/CV'
+import CandidateTalentPool from '../pages/candidate/TalentPool'
 import ComingSoon from '../components/ui/ComingSoon'
 
 // Helper for scaffolded (not-yet-built) features
@@ -223,8 +226,8 @@ export const PORTALS = {
     home: '/cand',
     nav: [
       { to: '/cand', label: 'الرئيسية', icon: LayoutDashboard, element: <CandidateHome /> },
-      { to: '/cand/profile', label: 'الملف المهني', icon: UserCircle, element: cs('الملف الشخصي المهني', 'استكمال ملفك المهني', UserCircle) },
-      { to: '/cand/cv', label: 'السيرة الذاتية', icon: FileText, element: cs('رفع السيرة الذاتية', 'رفع وتحديث سيرتك الذاتية', FileText) },
+      { to: '/cand/profile', label: 'الملف المهني', icon: UserCircle, element: <CandidateProfile /> },
+      { to: '/cand/cv', label: 'السيرة الذاتية', icon: FileText, element: <CandidateCV /> },
       { to: '/cand/jobs', label: 'تصفح الوظائف', icon: Search, element: <Jobs /> },
       { to: '/cand/applications', label: 'طلباتي', icon: ListChecks, element: <Applications /> },
       { to: '/cand/interview', label: 'المقابلات', icon: CalendarDays, element: cs('حجز موعد المقابلة', 'حجز ومتابعة مواعيد المقابلات', CalendarDays) },
@@ -233,7 +236,7 @@ export const PORTALS = {
       { to: '/cand/documents', label: 'المستندات', icon: FileText, element: cs('المستندات المطلوبة', 'رفع المستندات المطلوبة', FileText) },
       { to: '/cand/offer', label: 'عرض العمل', icon: Send, element: cs('توقيع عرض العمل', 'استلام وتوقيع عرض العمل', Send) },
       { to: '/cand/contact', label: 'التواصل', icon: MessageSquare, element: cs('التواصل مع التوظيف', 'التواصل مع مسؤول التوظيف', MessageSquare) },
-      { to: '/cand/talent-pool', label: 'قاعدة المواهب', icon: Star, element: cs('قاعدة المواهب', 'الانضمام إلى قاعدة المواهب', Star) },
+      { to: '/cand/talent-pool', label: 'قاعدة المواهب', icon: Star, element: <CandidateTalentPool /> },
     ],
   },
 }

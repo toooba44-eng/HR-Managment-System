@@ -460,6 +460,19 @@ function seedData() {
     console.log('✅ Integrations seeded');
   }
 
+  // Candidate professional profile
+  if (isEmpty('candidate_profiles')) {
+    db.prepare(`INSERT INTO candidate_profiles (email, full_name, headline, summary, skills, experience_years, education, phone, location, linkedin, portfolio, cv_file_name, in_talent_pool)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+      'candidate@quant.com', 'مرشح تجريبي', 'مطوّر واجهات أمامية',
+      'مطوّر واجهات أمامية بخبرة 3 سنوات في React و Vue، شغوف ببناء تجارب مستخدم متميزة.',
+      'React, JavaScript, Tailwind CSS, TypeScript, Git', 3, 'بكالوريوس علوم حاسب',
+      '+966 55 123 4567', 'الرياض', 'https://linkedin.com/in/candidate', 'https://portfolio.dev',
+      'cv_candidate.pdf', 1,
+    );
+    console.log('✅ Candidate profile seeded');
+  }
+
   // Manager: hiring requests
   if (isEmpty('hiring_requests')) {
     const ins = db.prepare(`INSERT INTO hiring_requests (requested_by, department_id, job_title, headcount, employment_type, urgency, justification, status, reviewed_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);

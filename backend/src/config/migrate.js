@@ -534,6 +534,26 @@ const migrations = [
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`,
 
+  // Candidate professional profile (keyed by account email)
+  `CREATE TABLE IF NOT EXISTS candidate_profiles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL UNIQUE,
+    full_name TEXT,
+    headline TEXT,
+    summary TEXT,
+    skills TEXT,
+    experience_years INTEGER,
+    education TEXT,
+    phone TEXT,
+    location TEXT,
+    linkedin TEXT,
+    portfolio TEXT,
+    cv_file_name TEXT,
+    in_talent_pool INTEGER DEFAULT 0,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`,
+
   // Manager: hiring requests
   `CREATE TABLE IF NOT EXISTS hiring_requests (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
