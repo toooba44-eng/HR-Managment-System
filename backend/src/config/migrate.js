@@ -534,6 +534,44 @@ const migrations = [
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`,
 
+  // Employee surveys + responses
+  `CREATE TABLE IF NOT EXISTS surveys (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    description TEXT,
+    audience TEXT DEFAULT 'الكل',
+    is_active INTEGER DEFAULT 1,
+    created_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS survey_responses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    survey_id INTEGER NOT NULL,
+    employee_id INTEGER NOT NULL,
+    rating INTEGER,
+    comment TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(survey_id, employee_id),
+    FOREIGN KEY (survey_id) REFERENCES surveys(id) ON DELETE CASCADE,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
+  )`,
+
+  // Document e-signature requests
+  `CREATE TABLE IF NOT EXISTS signatures (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    doc_type TEXT DEFAULT 'عقد',
+    status TEXT DEFAULT 'بانتظار التوقيع' CHECK(status IN ('بانتظار التوقيع', 'موقّع', 'مرفوض')),
+    requested_by INTEGER,
+    signed_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+    FOREIGN KEY (requested_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
   // Organization settings (single row)
   `CREATE TABLE IF NOT EXISTS org_settings (
     id INTEGER PRIMARY KEY CHECK(id = 1),

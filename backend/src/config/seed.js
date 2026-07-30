@@ -460,6 +460,30 @@ function seedData() {
     console.log('✅ Integrations seeded');
   }
 
+  // Employee surveys + responses
+  if (isEmpty('surveys')) {
+    const insS = db.prepare(`INSERT INTO surveys (title, description, audience, is_active, created_by) VALUES (?, ?, ?, ?, ?)`);
+    const insR = db.prepare(`INSERT INTO survey_responses (survey_id, employee_id, rating, comment) VALUES (?, ?, ?, ?)`);
+    const s1 = insS.run('استطلاع رضا الموظفين الربعي', 'قيّم مدى رضاك عن بيئة العمل والمزايا خلال الربع الحالي', 'الكل', 1, 5).lastInsertRowid;
+    const s2 = insS.run('تقييم برنامج العمل المرن', 'شاركنا رأيك في سياسة العمل عن بُعد والمرونة', 'الكل', 1, 5).lastInsertRowid;
+    insS.run('استطلاع الفعاليات السنوية', 'اقترح فعاليات وأنشطة للعام القادم', 'الكل', 0, 5);
+    insR.run(s1, 6, 4, 'بيئة عمل ممتازة بشكل عام');
+    insR.run(s1, 10, 5, 'راضٍ جداً عن المزايا');
+    insR.run(s1, 4, 3, 'تحتاج بعض الجوانب للتحسين');
+    insR.run(s2, 6, 5, 'المرونة رفعت إنتاجيتي');
+    console.log('✅ Surveys seeded');
+  }
+
+  // Document e-signature requests
+  if (isEmpty('signatures')) {
+    const ins = db.prepare(`INSERT INTO signatures (employee_id, title, doc_type, status, requested_by, signed_at) VALUES (?, ?, ?, ?, ?, ?)`);
+    ins.run(6, 'عقد العمل المحدّث 2026', 'عقد', 'بانتظار التوقيع', 5, null);
+    ins.run(6, 'سياسة استخدام الأجهزة', 'سياسة', 'موقّع', 5, addDaysStr(-3));
+    ins.run(10, 'إقرار السرية وحماية البيانات', 'إقرار', 'بانتظار التوقيع', 5, null);
+    ins.run(4, 'ملحق تعديل الراتب', 'ملحق', 'موقّع', 5, addDaysStr(-10));
+    console.log('✅ Signatures seeded');
+  }
+
   // Organization settings (defaults)
   if (isEmpty('org_settings')) {
     db.prepare('INSERT INTO org_settings (id) VALUES (1)').run();

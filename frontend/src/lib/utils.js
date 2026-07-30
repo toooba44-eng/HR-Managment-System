@@ -63,6 +63,8 @@ export const STATUS_BADGE = {
   مدفوعة: 'badge-success',
   'غير مدفوعة': 'badge-warning',
   متأخرة: 'badge-danger',
+  'بانتظار التوقيع': 'badge-warning',
+  'موقّع': 'badge-success',
   'مقدّم': 'badge-warning',
   معتمد: 'badge-success',
   غائب: 'badge-danger',
