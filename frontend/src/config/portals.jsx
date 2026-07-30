@@ -48,6 +48,8 @@ import HrSettings from '../pages/hr/Settings'
 import Onboarding from '../pages/hr/Onboarding'
 import Automation from '../pages/hr/Automation'
 import Integrations from '../pages/hr/Integrations'
+import Surveys from '../pages/employee/Surveys'
+import Signatures from '../pages/employee/Signatures'
 import ComingSoon from '../components/ui/ComingSoon'
 
 // Helper for scaffolded (not-yet-built) features
@@ -200,12 +202,12 @@ export const PORTALS = {
 
       { section: 'الطلبات والخدمات', to: '/ess/letters', label: 'الشهادات والخطابات', icon: FileText, element: <Requests typeOptions={['شهادة', 'خطاب']} title="الشهادات والخطابات" description="اطلب خطاب تعريف أو شهادة رسمية وتابع حالتها." /> },
       { section: 'الطلبات والخدمات', to: '/ess/data-update', label: 'تحديث البيانات', icon: UserCog, element: <Requests type="تحديث بيانات" title="طلب تحديث البيانات" description="اطلب تعديل بياناتك الشخصية لدى الموارد البشرية." /> },
-      { section: 'الطلبات والخدمات', to: '/ess/sign', label: 'توقيع المستندات', icon: FileSignature, element: cs('توقيع المستندات', 'توقيع المستندات إلكترونياً', FileSignature) },
+      { section: 'الطلبات والخدمات', to: '/ess/sign', label: 'توقيع المستندات', icon: FileSignature, element: <Signatures /> },
       { section: 'الطلبات والخدمات', to: '/ess/complaints', label: 'الشكاوى والاستفسارات', icon: MessageSquare, element: <Requests type="شكوى" title="الشكاوى والاستفسارات" description="قدّم شكوى أو استفساراً وتابع الرد عليه." /> },
 
       { section: 'التواصل والمعرفة', to: '/ess/announcements', label: 'الإعلانات', icon: Megaphone, element: <Announcements /> },
       { section: 'التواصل والمعرفة', to: '/ess/policies', label: 'السياسات', icon: ScrollText, element: <Policies /> },
-      { section: 'التواصل والمعرفة', to: '/ess/surveys', label: 'الاستطلاعات', icon: ListChecks, element: cs('استطلاعات الموظفين', 'المشاركة في استطلاعات الرأي', ListChecks) },
+      { section: 'التواصل والمعرفة', to: '/ess/surveys', label: 'الاستطلاعات', icon: ListChecks, element: <Surveys /> },
     ],
   },
 

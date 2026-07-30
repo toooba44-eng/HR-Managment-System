@@ -255,6 +255,25 @@ const realIntegrationsApi = {
   remove: (id) => api.delete(`/integrations/${id}`).then((r) => r.data),
 }
 
+// ---------- Surveys ----------
+const realSurveysApi = {
+  list: () => api.get('/surveys').then((r) => r.data),
+  results: (id) => api.get(`/surveys/${id}/results`).then((r) => r.data),
+  create: (data) => api.post('/surveys', data).then((r) => r.data),
+  update: (id, data) => api.put(`/surveys/${id}`, data).then((r) => r.data),
+  respond: (id, data) => api.post(`/surveys/${id}/respond`, data).then((r) => r.data),
+  remove: (id) => api.delete(`/surveys/${id}`).then((r) => r.data),
+}
+
+// ---------- Document e-signatures ----------
+const realSignaturesApi = {
+  list: (params) => api.get('/signatures', { params }).then((r) => r.data),
+  create: (data) => api.post('/signatures', data).then((r) => r.data),
+  sign: (id) => api.put(`/signatures/${id}/sign`).then((r) => r.data),
+  decline: (id) => api.put(`/signatures/${id}/decline`).then((r) => r.data),
+  remove: (id) => api.delete(`/signatures/${id}`).then((r) => r.data),
+}
+
 // ---------- Onboarding ----------
 const realOnboardingApi = {
   list: (params) => api.get('/onboarding', { params }).then((r) => r.data),
@@ -326,3 +345,5 @@ export const settingsApi = DEMO ? mock.mockSettingsApi : realSettingsApi
 export const onboardingApi = DEMO ? mock.mockOnboardingApi : realOnboardingApi
 export const automationApi = DEMO ? mock.mockAutomationApi : realAutomationApi
 export const integrationsApi = DEMO ? mock.mockIntegrationsApi : realIntegrationsApi
+export const surveysApi = DEMO ? mock.mockSurveysApi : realSurveysApi
+export const signaturesApi = DEMO ? mock.mockSignaturesApi : realSignaturesApi

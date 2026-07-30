@@ -1701,6 +1701,127 @@ export const mockIntegrationsApi = {
   },
 }
 
+let surveySeq = 1
+let surveyRespSeq = 1
+const surveys = [
+  { id: surveySeq++, title: 'استطلاع رضا الموظفين الربعي', description: 'قيّم مدى رضاك عن بيئة العمل والمزايا خلال الربع الحالي', audience: 'الكل', is_active: 1, created_by: 5 },
+  { id: surveySeq++, title: 'تقييم برنامج العمل المرن', description: 'شاركنا رأيك في سياسة العمل عن بُعد والمرونة', audience: 'الكل', is_active: 1, created_by: 5 },
+  { id: surveySeq++, title: 'استطلاع الفعاليات السنوية', description: 'اقترح فعاليات وأنشطة للعام القادم', audience: 'الكل', is_active: 0, created_by: 5 },
+]
+const surveyResponses = [
+  { id: surveyRespSeq++, survey_id: 1, employee_id: 6, rating: 4, comment: 'بيئة عمل ممتازة بشكل عام', created_at: nowIso() },
+  { id: surveyRespSeq++, survey_id: 1, employee_id: 10, rating: 5, comment: 'راضٍ جداً عن المزايا', created_at: nowIso() },
+  { id: surveyRespSeq++, survey_id: 1, employee_id: 4, rating: 3, comment: 'تحتاج بعض الجوانب للتحسين', created_at: nowIso() },
+  { id: surveyRespSeq++, survey_id: 2, employee_id: 6, rating: 5, comment: 'المرونة رفعت إنتاجيتي', created_at: nowIso() },
+]
+export const mockSurveysApi = {
+  async list() {
+    await delay()
+    const u = currentUser()
+    const isEmp = u && ['employee', 'candidate'].includes(u.role)
+    let rows = [...surveys]
+    if (isEmp) rows = rows.filter((s) => s.is_active)
+    const list = rows.sort((a, b) => (b.is_active - a.is_active) || (b.id - a.id)).map((s) => {
+      const rs = surveyResponses.filter((r) => r.survey_id === s.id)
+      return {
+        ...s,
+        created_by_name: empName(s.created_by),
+        responses_count: rs.length,
+        avg_rating: rs.length ? Math.round((rs.reduce((x, r) => x + r.rating, 0) / rs.length) * 10) / 10 : null,
+        responded: u ? (rs.some((r) => r.employee_id === u.employee_id) ? 1 : 0) : 0,
+      }
+    })
+    const summary = list.reduce((a, s) => { a.total += 1; if (s.is_active) a.active += 1; a.responses += s.responses_count; return a }, { total: 0, active: 0, responses: 0 })
+    return { surveys: list, summary }
+  },
+  async results(id) {
+    await delay()
+    const survey = surveys.find((s) => s.id === Number(id))
+    if (!survey) throw notFound()
+    const responses = surveyResponses.filter((r) => r.survey_id === Number(id))
+      .map((r) => ({ ...r, full_name: empName(r.employee_id), job_title: employees.find((e) => e.id === r.employee_id)?.job_title || null }))
+    const count = responses.length
+    const avg_rating = count ? Math.round((responses.reduce((x, r) => x + r.rating, 0) / count) * 100) / 100 : null
+    return { survey, responses, stats: { count, avg_rating } }
+  },
+  async create(data) {
+    await delay()
+    const s = { id: surveySeq++, title: data.title, description: data.description || null, audience: data.audience || 'الكل', is_active: 1, created_by: currentUser()?.employee_id || 5 }
+    surveys.unshift(s)
+    return { message: 'تم', survey: { id: s.id } }
+  },
+  async update(id, data) {
+    await delay()
+    const s = surveys.find((x) => x.id === Number(id))
+    if (s) { if (data.title !== undefined) s.title = data.title; if (data.description !== undefined) s.description = data.description; if (data.is_active !== undefined) s.is_active = data.is_active ? 1 : 0 }
+    return { message: 'تم التحديث' }
+  },
+  async respond(id, data) {
+    await delay()
+    const s = surveys.find((x) => x.id === Number(id))
+    if (!s) throw notFound()
+    if (!s.is_active) throw badReq('الاستطلاع مغلق')
+    const u = currentUser()
+    if (!u?.employee_id) throw badReq('لا يوجد موظف مرتبط بالحساب')
+    if (!data.rating || data.rating < 1 || data.rating > 5) throw badReq('التقييم (1-5) مطلوب')
+    if (surveyResponses.some((r) => r.survey_id === Number(id) && r.employee_id === u.employee_id)) throw badReq('لقد شاركت في هذا الاستطلاع مسبقاً')
+    surveyResponses.push({ id: surveyRespSeq++, survey_id: Number(id), employee_id: u.employee_id, rating: data.rating, comment: data.comment || null, created_at: nowIso() })
+    return { message: 'تم' }
+  },
+  async remove(id) {
+    await delay()
+    const i = surveys.findIndex((x) => x.id === Number(id))
+    if (i > -1) surveys.splice(i, 1)
+    return { message: 'تم الحذف' }
+  },
+}
+
+let sigSeq = 1
+const signatures = [
+  { id: sigSeq++, employee_id: 6, title: 'عقد العمل المحدّث 2026', doc_type: 'عقد', status: 'بانتظار التوقيع', requested_by: 5, signed_at: null, created_at: nowIso() },
+  { id: sigSeq++, employee_id: 6, title: 'سياسة استخدام الأجهزة', doc_type: 'سياسة', status: 'موقّع', requested_by: 5, signed_at: addDays(-3), created_at: nowIso() },
+  { id: sigSeq++, employee_id: 10, title: 'إقرار السرية وحماية البيانات', doc_type: 'إقرار', status: 'بانتظار التوقيع', requested_by: 5, signed_at: null, created_at: nowIso() },
+  { id: sigSeq++, employee_id: 4, title: 'ملحق تعديل الراتب', doc_type: 'ملحق', status: 'موقّع', requested_by: 5, signed_at: addDays(-10), created_at: nowIso() },
+]
+const sigStatusOrder = { 'بانتظار التوقيع': 1, 'موقّع': 2, مرفوض: 3 }
+
+export const mockSignaturesApi = {
+  async list({ status } = {}) {
+    await delay()
+    let rows = scopeByRole(signatures)
+    if (status) rows = rows.filter((s) => s.status === status)
+    const list = rows.sort((a, b) => (sigStatusOrder[a.status] - sigStatusOrder[b.status]) || (b.id - a.id))
+      .map((s) => ({ ...s, full_name: empName(s.employee_id), job_title: employees.find((e) => e.id === s.employee_id)?.job_title || null, requested_by_name: empName(s.requested_by), profile_picture: null }))
+    const summary = list.reduce((acc, r) => { acc.total += 1; if (r.status === 'بانتظار التوقيع') acc.pending += 1; if (r.status === 'موقّع') acc.signed += 1; return acc }, { total: 0, pending: 0, signed: 0 })
+    return { signatures: list, summary }
+  },
+  async create(data) {
+    await delay()
+    const s = { id: sigSeq++, employee_id: Number(data.employee_id), title: data.title, doc_type: data.doc_type || 'عقد', status: 'بانتظار التوقيع', requested_by: currentUser()?.employee_id || 5, signed_at: null, created_at: nowIso() }
+    signatures.unshift(s)
+    return { message: 'تم', signature: { id: s.id } }
+  },
+  async sign(id) { return this._set(id, 'موقّع') },
+  async decline(id) { return this._set(id, 'مرفوض') },
+  async _set(id, status) {
+    await delay()
+    const s = signatures.find((x) => x.id === Number(id))
+    if (!s) throw notFound()
+    const u = currentUser()
+    if (s.employee_id !== u?.employee_id) { const e = new Error('forbidden'); e.response = { status: 403, data: { error: 'غير مصرح' } }; throw e }
+    if (s.status !== 'بانتظار التوقيع') throw badReq('تمت المعالجة مسبقاً')
+    s.status = status
+    s.signed_at = status === 'موقّع' ? nowIso() : null
+    return { message: 'تم' }
+  },
+  async remove(id) {
+    await delay()
+    const i = signatures.findIndex((x) => x.id === Number(id))
+    if (i > -1) signatures.splice(i, 1)
+    return { message: 'تم الحذف' }
+  },
+}
+
 function notFound() {
   const e = new Error('Not found')
   e.response = { status: 404, data: { error: 'غير موجود' } }
