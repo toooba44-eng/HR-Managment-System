@@ -79,6 +79,7 @@ import CandidateContact from '../pages/candidate/Contact'
 import OrgChart from '../pages/OrgChart'
 import Pipeline from '../pages/hr/Pipeline'
 import AttendanceCorrections from '../pages/AttendanceCorrections'
+import LeaveCalendar from '../pages/LeaveCalendar'
 
 /**
  * Each portal maps to one or more roles and declares its own navigation.
@@ -145,6 +146,7 @@ export const PORTALS = {
       { section: 'الوقت والحضور', to: '/hr/shifts', label: 'الورديات والجداول', icon: CalendarRange, element: <Shifts /> },
       { section: 'الوقت والحضور', to: '/hr/timesheets', label: 'الجداول الزمنية Timesheets', icon: Timer, element: <Timesheets /> },
       { section: 'الوقت والحضور', to: '/leaves', label: 'الإجازات', icon: CalendarDays, element: <Leaves /> },
+      { section: 'الوقت والحضور', to: '/hr/leave-calendar', label: 'تقويم الإجازات', icon: CalendarRange, element: <LeaveCalendar /> },
 
       { section: 'الرواتب والتعويضات', to: '/hr/payroll', label: 'الرواتب', icon: Wallet, element: <Payroll /> },
       { section: 'الرواتب والتعويضات', to: '/hr/compensation', label: 'التعويضات والمزايا', icon: Gift, element: <Compensation /> },
@@ -186,6 +188,7 @@ export const PORTALS = {
       { section: 'إدارة الفريق', to: '/mgr/schedule', label: 'جداول الفريق', icon: Clock, element: <Shifts /> },
 
       { section: 'الموافقات', to: '/leaves', label: 'الموافقة على الإجازات', icon: CalendarDays, element: <Leaves /> },
+      { section: 'الموافقات', to: '/mgr/leave-calendar', label: 'تقويم إجازات الفريق', icon: CalendarRange, element: <LeaveCalendar /> },
       { section: 'الموافقات', to: '/mgr/requests', label: 'طلبات الفريق', icon: Inbox, element: <Requests title="طلبات الفريق" description="راجع واعتمد طلبات أعضاء فريقك." /> },
       { section: 'الموافقات', to: '/mgr/expenses', label: 'اعتماد المصروفات', icon: Receipt, element: <Expenses /> },
 

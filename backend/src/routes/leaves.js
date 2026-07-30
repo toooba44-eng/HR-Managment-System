@@ -6,6 +6,48 @@ const router = express.Router();
 
 router.use(authenticateToken);
 
+// Team leave calendar for a month (leaves overlapping the month)
+router.get('/calendar', (req, res, next) => {
+  try {
+    const month = /^\d{4}-\d{2}$/.test(req.query.month || '') ? req.query.month : new Date().toISOString().slice(0, 7);
+    const start = `${month}-01`;
+    const end = `${month}-31`;
+
+    let where = "WHERE l.status IN ('موافقة', 'معلقة') AND l.start_date <= ? AND l.end_date >= ?";
+    const params = [end, start];
+    if (['employee', 'candidate', 'department_head'].includes(req.user.role)) {
+      const dept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(req.user.employee_id);
+      if (dept) { where += ' AND e.department_id = ?'; params.push(dept.department_id); }
+    }
+
+    const rows = db.prepare(`
+      SELECT l.id, l.employee_id, l.type, l.start_date, l.end_date, l.days_count, l.status,
+             e.full_name, e.profile_picture, d.name as department_name, d.color as department_color
+      FROM leaves l
+      JOIN employees e ON l.employee_id = e.id
+      LEFT JOIN departments d ON e.department_id = d.id
+      ${where}
+      ORDER BY l.start_date
+    `).all(...params);
+
+    // Per-day concurrent count within the month
+    const [y, m] = month.split('-').map(Number);
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const perDay = Array.from({ length: daysInMonth }, (_, i) => {
+      const day = `${month}-${String(i + 1).padStart(2, '0')}`;
+      return { day: i + 1, count: rows.filter((r) => r.status === 'موافقة' && r.start_date <= day && r.end_date >= day).length };
+    });
+    const peak = perDay.reduce((mx, d) => Math.max(mx, d.count), 0);
+
+    res.json({
+      month, days_in_month: daysInMonth, leaves: rows, per_day: perDay,
+      summary: { people: new Set(rows.map((r) => r.employee_id)).size, total: rows.length, peak },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Get all leaves
 router.get('/', (req, res, next) => {
   try {
