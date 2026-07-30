@@ -220,6 +220,12 @@ const realCompanyApi = {
   removeBranch: (id) => api.delete(`/company/branches/${id}`).then((r) => r.data),
 }
 
+// ---------- Organization settings ----------
+const realSettingsApi = {
+  get: () => api.get('/settings').then((r) => r.data),
+  update: (data) => api.put('/settings', data).then((r) => r.data),
+}
+
 // ---------- Training & development ----------
 const realTrainingApi = {
   courses: () => api.get('/training/courses').then((r) => r.data),
@@ -274,3 +280,4 @@ export const timesheetsApi = DEMO ? mock.mockTimesheetsApi : realTimesheetsApi
 export const compensationApi = DEMO ? mock.mockCompensationApi : realCompensationApi
 export const successionApi = DEMO ? mock.mockSuccessionApi : realSuccessionApi
 export const companyApi = DEMO ? mock.mockCompanyApi : realCompanyApi
+export const settingsApi = DEMO ? mock.mockSettingsApi : realSettingsApi

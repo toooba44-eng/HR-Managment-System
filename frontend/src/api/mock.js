@@ -1291,6 +1291,46 @@ export const mockCompanyApi = {
   async removeBranch(id) { await delay(); const i = branches.findIndex((x) => x.id === Number(id)); if (i > -1) branches.splice(i, 1); return { message: 'تم الحذف' } },
 }
 
+const orgSettings = {
+  id: 1,
+  currency: 'ريال سعودي',
+  timezone: 'Asia/Riyadh',
+  language: 'العربية',
+  week_start: 'الأحد',
+  fiscal_year_start: 'يناير',
+  work_days_per_week: 5,
+  work_hours_per_day: 8,
+  probation_months: 3,
+  annual_leave_days: 30,
+  sick_leave_days: 30,
+  overtime_enabled: 1,
+  remote_work_enabled: 1,
+  two_factor_required: 0,
+  self_service_enabled: 1,
+}
+const settingsRoles = [
+  { role: 'super_admin', label: 'مدير المنصة', scope: 'كامل المنصة', access: ['إدارة المؤسسات', 'الفوترة', 'إعدادات النظام', 'الوصول الكامل'] },
+  { role: 'admin', label: 'مدير النظام', scope: 'المؤسسة بالكامل', access: ['إدارة الموظفين', 'الإعدادات', 'التقارير', 'الرواتب'] },
+  { role: 'hr_manager', label: 'مدير الموارد البشرية', scope: 'الموارد البشرية', access: ['إدارة الموظفين', 'التوظيف', 'الإجازات', 'المستندات'] },
+  { role: 'department_head', label: 'رئيس قسم', scope: 'القسم', access: ['اعتماد الطلبات', 'متابعة الفريق', 'التقييمات'] },
+  { role: 'employee', label: 'موظف', scope: 'ذاتي', access: ['الخدمة الذاتية', 'الطلبات', 'قسائم الراتب'] },
+  { role: 'candidate', label: 'مرشح', scope: 'التوظيف', access: ['التقديم على الوظائف', 'متابعة الطلب'] },
+]
+const boolFields = ['overtime_enabled', 'remote_work_enabled', 'two_factor_required', 'self_service_enabled']
+const intFields = ['work_days_per_week', 'work_hours_per_day', 'probation_months', 'annual_leave_days', 'sick_leave_days']
+export const mockSettingsApi = {
+  async get() { await delay(); return { settings: { ...orgSettings }, roles: settingsRoles } },
+  async update(data) {
+    await delay()
+    for (const [k, v] of Object.entries(data)) {
+      if (boolFields.includes(k)) orgSettings[k] = v ? 1 : 0
+      else if (intFields.includes(k)) orgSettings[k] = parseInt(v, 10) || 0
+      else if (k in orgSettings) orgSettings[k] = v
+    }
+    return { message: 'تم التحديث', settings: { ...orgSettings } }
+  },
+}
+
 function notFound() {
   const e = new Error('Not found')
   e.response = { status: 404, data: { error: 'غير موجود' } }

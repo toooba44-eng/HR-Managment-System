@@ -452,6 +452,26 @@ const migrations = [
     status TEXT DEFAULT 'نشط' CHECK(status IN ('نشط', 'مغلق')),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (manager_id) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
+  // Organization settings (single row)
+  `CREATE TABLE IF NOT EXISTS org_settings (
+    id INTEGER PRIMARY KEY CHECK(id = 1),
+    currency TEXT DEFAULT 'ريال سعودي',
+    timezone TEXT DEFAULT 'Asia/Riyadh',
+    language TEXT DEFAULT 'العربية',
+    week_start TEXT DEFAULT 'الأحد',
+    fiscal_year_start TEXT DEFAULT 'يناير',
+    work_days_per_week INTEGER DEFAULT 5,
+    work_hours_per_day INTEGER DEFAULT 8,
+    probation_months INTEGER DEFAULT 3,
+    annual_leave_days INTEGER DEFAULT 30,
+    sick_leave_days INTEGER DEFAULT 30,
+    overtime_enabled INTEGER DEFAULT 1,
+    remote_work_enabled INTEGER DEFAULT 1,
+    two_factor_required INTEGER DEFAULT 0,
+    self_service_enabled INTEGER DEFAULT 1,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`
 ];
 
