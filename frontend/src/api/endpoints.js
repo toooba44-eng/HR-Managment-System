@@ -294,11 +294,20 @@ const realPromotionsApi = {
   remove: (id) => api.delete(`/manager/promotions/${id}`).then((r) => r.data),
 }
 
-// ---------- Candidate profile ----------
+// ---------- Candidate profile & journey ----------
 const realCandidateApi = {
   getProfile: () => api.get('/candidate/profile').then((r) => r.data),
   updateProfile: (data) => api.put('/candidate/profile', data).then((r) => r.data),
   setTalentPool: (join) => api.put('/candidate/talent-pool', { join }).then((r) => r.data),
+  interviews: (params) => api.get('/candidate/interviews', { params }).then((r) => r.data),
+  documents: () => api.get('/candidate/documents').then((r) => r.data),
+  updateDocument: (id, data) => api.put(`/candidate/documents/${id}`, data).then((r) => r.data),
+  forms: () => api.get('/candidate/forms').then((r) => r.data),
+  submitForm: (id, data) => api.put(`/candidate/forms/${id}/submit`, data).then((r) => r.data),
+  offer: () => api.get('/candidate/offer').then((r) => r.data),
+  respondOffer: (id, status) => api.put(`/candidate/offer/${id}`, { status }).then((r) => r.data),
+  messages: () => api.get('/candidate/messages').then((r) => r.data),
+  sendMessage: (body) => api.post('/candidate/messages', { body }).then((r) => r.data),
 }
 
 // ---------- Onboarding ----------

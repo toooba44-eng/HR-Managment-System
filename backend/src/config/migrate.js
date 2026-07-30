@@ -554,6 +554,64 @@ const migrations = [
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`,
 
+  // Candidate journey: interviews, documents, forms, offers, messages
+  `CREATE TABLE IF NOT EXISTS candidate_interviews (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL,
+    job_title TEXT,
+    scheduled_at DATETIME,
+    mode TEXT DEFAULT 'حضوري' CHECK(mode IN ('حضوري', 'فيديو', 'هاتفي')),
+    stage TEXT DEFAULT 'مبدئية',
+    status TEXT DEFAULT 'مجدولة' CHECK(status IN ('مجدولة', 'مكتملة', 'ملغاة')),
+    location TEXT,
+    meeting_link TEXT,
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS candidate_documents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL,
+    title TEXT NOT NULL,
+    doc_type TEXT DEFAULT 'أخرى',
+    status TEXT DEFAULT 'مطلوب' CHECK(status IN ('مطلوب', 'مرفوع')),
+    file_name TEXT,
+    uploaded_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS candidate_forms (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT,
+    status TEXT DEFAULT 'مطلوب' CHECK(status IN ('مطلوب', 'مكتمل')),
+    response TEXT,
+    submitted_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS job_offers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL,
+    job_title TEXT NOT NULL,
+    department TEXT,
+    salary REAL,
+    start_date DATE,
+    details TEXT,
+    status TEXT DEFAULT 'معلّق' CHECK(status IN ('معلّق', 'مقبول', 'مرفوض')),
+    responded_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS candidate_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL,
+    sender TEXT DEFAULT 'candidate' CHECK(sender IN ('candidate', 'hr')),
+    body TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`,
+
   // Manager: hiring requests
   `CREATE TABLE IF NOT EXISTS hiring_requests (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
