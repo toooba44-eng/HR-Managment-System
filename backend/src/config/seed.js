@@ -460,6 +460,16 @@ function seedData() {
     console.log('✅ Integrations seeded');
   }
 
+  // Platform: subscription change requests
+  if (isEmpty('subscription_requests')) {
+    const ins = db.prepare(`INSERT INTO subscription_requests (company_id, type, requested_plan, reason, status) VALUES (?, ?, ?, ?, ?)`);
+    ins.run(2, 'ترقية', 'مؤسسية', 'نمو عدد الموظفين وحاجة لتكاملات API', 'معلق');
+    ins.run(3, 'ترقية', 'احترافية', 'الحاجة لوحدة الرواتب والتقارير', 'معلق');
+    ins.run(4, 'إلغاء', null, 'إعادة هيكلة داخلية', 'معلق');
+    ins.run(1, 'ترقية', 'مؤسسية', 'تجديد الباقة', 'موافق عليه');
+    console.log('✅ Subscription requests seeded');
+  }
+
   // Candidate professional profile
   if (isEmpty('candidate_profiles')) {
     db.prepare(`INSERT INTO candidate_profiles (email, full_name, headline, summary, skills, experience_years, education, phone, location, linkedin, portfolio, cv_file_name, in_talent_pool)
