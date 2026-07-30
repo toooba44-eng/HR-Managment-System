@@ -144,6 +144,16 @@ const realPlatformApi = {
   audit: (params) => api.get('/platform/audit', { params }).then((r) => r.data),
 }
 
+// ---------- Platform config (super admin) ----------
+const realSaConfigApi = {
+  support: (params) => api.get('/sa/support', { params }).then((r) => r.data),
+  createTicket: (data) => api.post('/sa/support', data).then((r) => r.data),
+  updateTicket: (id, data) => api.put(`/sa/support/${id}`, data).then((r) => r.data),
+  removeTicket: (id) => api.delete(`/sa/support/${id}`).then((r) => r.data),
+  settings: () => api.get('/sa/settings').then((r) => r.data),
+  updateSettings: (data) => api.put('/sa/settings', data).then((r) => r.data),
+}
+
 // ---------- Billing (super admin) ----------
 const realBillingApi = {
   list: (params) => api.get('/billing', { params }).then((r) => r.data),
@@ -383,6 +393,7 @@ export const applicationsApi = DEMO ? mock.mockApplicationsApi : realApplication
 export const companiesApi = DEMO ? mock.mockCompaniesApi : realCompaniesApi
 export const billingApi = DEMO ? mock.mockBillingApi : realBillingApi
 export const platformApi = DEMO ? mock.mockPlatformApi : realPlatformApi
+export const saConfigApi = DEMO ? mock.mockSaConfigApi : realSaConfigApi
 export const expensesApi = DEMO ? mock.mockExpensesApi : realExpensesApi
 export const assetsApi = DEMO ? mock.mockAssetsApi : realAssetsApi
 export const goalsApi = DEMO ? mock.mockGoalsApi : realGoalsApi

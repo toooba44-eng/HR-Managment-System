@@ -39,6 +39,8 @@ import SystemPerformance from '../pages/superadmin/Performance'
 import ApiMonitor from '../pages/superadmin/ApiMonitor'
 import Backups from '../pages/superadmin/Backups'
 import Audit from '../pages/superadmin/Audit'
+import Support from '../pages/superadmin/Support'
+import PlatformSettings from '../pages/superadmin/Settings'
 import Expenses from '../pages/hr/Expenses'
 import Assets from '../pages/hr/Assets'
 import Performance from '../pages/hr/Performance'
@@ -109,10 +111,10 @@ export const PORTALS = {
       { section: 'المراقبة والتشغيل', to: '/sa/backups', label: 'النسخ الاحتياطية', icon: Database, element: <Backups /> },
       { section: 'المراقبة والتشغيل', to: '/sa/audit', label: 'سجل العمليات', icon: ScrollText, element: <Audit /> },
 
-      { section: 'الدعم والتواصل', to: '/sa/support', label: 'الدعم الفني', icon: LifeBuoy, element: cs('إدارة الدعم الفني', 'تذاكر ودعم العملاء', LifeBuoy) },
+      { section: 'الدعم والتواصل', to: '/sa/support', label: 'الدعم الفني', icon: LifeBuoy, element: <Support /> },
       { section: 'الدعم والتواصل', to: '/sa/announcements', label: 'الإعلانات والتنبيهات', icon: Megaphone, element: <Announcements /> },
 
-      { section: 'إعدادات المنصة', to: '/sa/settings', label: 'إعدادات النظام العامة', icon: Settings, element: cs('إعدادات النظام العامة', 'الإعدادات العامة للمنصة', Settings) },
+      { section: 'إعدادات المنصة', to: '/sa/settings', label: 'إعدادات النظام العامة', icon: Settings, element: <PlatformSettings /> },
       { section: 'إعدادات المنصة', to: '/sa/localization', label: 'الدول والعملات واللغات', icon: Globe, element: cs('الدول والعملات واللغات', 'إدارة التعريب والعملات والدول', Globe) },
       { section: 'إعدادات المنصة', to: '/sa/templates', label: 'قوالب النظام', icon: FileText, element: cs('قوالب النظام', 'إدارة قوالب المستندات والرسائل', FileText) },
       { section: 'إعدادات المنصة', to: '/sa/ai', label: 'إعدادات الذكاء الاصطناعي', icon: Bot, element: cs('إعدادات الذكاء الاصطناعي', 'ضبط ميزات الذكاء الاصطناعي', Bot) },
