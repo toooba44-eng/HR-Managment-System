@@ -1822,6 +1822,104 @@ export const mockSignaturesApi = {
   },
 }
 
+const myDept = () => {
+  const u = currentUser()
+  return u ? employees.find((e) => e.id === u.employee_id)?.department_id : null
+}
+const isReviewer = () => ['admin', 'hr_manager', 'super_admin'].includes(currentUser()?.role)
+
+let hireSeq = 1
+const hiringRequests = [
+  { id: hireSeq++, requested_by: 2, department_id: 1, job_title: 'مطوّر واجهات أمامية', headcount: 2, employment_type: 'دوام كامل', urgency: 'عاجل', justification: 'توسّع فريق المنتج ومشاريع جديدة', status: 'معلق', reviewed_by: null, created_at: nowIso() },
+  { id: hireSeq++, requested_by: 4, department_id: 4, job_title: 'أخصائي مبيعات', headcount: 1, employment_type: 'دوام كامل', urgency: 'عادي', justification: 'تغطية منطقة جديدة', status: 'موافق عليه', reviewed_by: 5, created_at: nowIso() },
+  { id: hireSeq++, requested_by: 2, department_id: 1, job_title: 'مهندس اختبار جودة', headcount: 1, employment_type: 'عقد مؤقت', urgency: 'عادي', justification: 'دعم دورة إصدار كبيرة', status: 'مرفوض', reviewed_by: 5, created_at: nowIso() },
+]
+const hireStatusOrder = { معلق: 1, 'موافق عليه': 2, مرفوض: 3 }
+export const mockHiringApi = {
+  async list({ status } = {}) {
+    await delay()
+    let rows = [...hiringRequests]
+    if (!isReviewer()) { const me = currentUser()?.employee_id; const dep = myDept(); rows = rows.filter((h) => h.requested_by === me || h.department_id === dep) }
+    if (status) rows = rows.filter((h) => h.status === status)
+    const list = rows.sort((a, b) => hireStatusOrder[a.status] - hireStatusOrder[b.status] || b.id - a.id)
+      .map((h) => ({ ...h, department_name: deptName(h.department_id), requested_by_name: empName(h.requested_by), reviewed_by_name: empName(h.reviewed_by) }))
+    const summary = list.reduce((s, r) => { s.total += 1; if (r.status === 'معلق') s.pending += 1; if (r.status === 'موافق عليه') s.approved += r.headcount; return s }, { total: 0, pending: 0, approved: 0 })
+    return { hiring: list, summary }
+  },
+  async create(data) {
+    await delay()
+    const h = { id: hireSeq++, requested_by: currentUser()?.employee_id || 2, department_id: data.department_id ? Number(data.department_id) : myDept(), job_title: data.job_title, headcount: Number(data.headcount) || 1, employment_type: data.employment_type || 'دوام كامل', urgency: data.urgency || 'عادي', justification: data.justification || null, status: 'معلق', reviewed_by: null, created_at: nowIso() }
+    hiringRequests.unshift(h)
+    return { message: 'تم', hiring: { id: h.id } }
+  },
+  async setStatus(id, status) { await delay(); const h = hiringRequests.find((x) => x.id === Number(id)); if (!h) throw notFound(); h.status = status; h.reviewed_by = currentUser()?.employee_id || 5; return { message: 'تم' } },
+  async remove(id) { await delay(); const i = hiringRequests.findIndex((x) => x.id === Number(id)); if (i > -1) hiringRequests.splice(i, 1); return { message: 'تم الحذف' } },
+}
+
+let ivSeq = 1
+const interviews = [
+  { id: ivSeq++, candidate_name: 'سلطان الحربي', job_title: 'مطوّر واجهات أمامية', interviewer_id: 2, scheduled_at: addDays(2), mode: 'فيديو', stage: 'فنية', status: 'مجدولة', rating: null, notes: null, created_by: 2 },
+  { id: ivSeq++, candidate_name: 'منى العتيبي', job_title: 'أخصائي مبيعات', interviewer_id: 4, scheduled_at: addDays(1), mode: 'حضوري', stage: 'مبدئية', status: 'مجدولة', rating: null, notes: null, created_by: 4 },
+  { id: ivSeq++, candidate_name: 'طارق القحطاني', job_title: 'مطوّر واجهات أمامية', interviewer_id: 2, scheduled_at: addDays(-3), mode: 'فيديو', stage: 'نهائية', status: 'مكتملة', rating: 4, notes: 'مرشّح قوي، يُنصح بالتعيين', created_by: 2 },
+]
+const ivStatusOrder = { مجدولة: 1, مكتملة: 2, ملغاة: 3 }
+export const mockInterviewsApi = {
+  async list({ status } = {}) {
+    await delay()
+    let rows = [...interviews]
+    if (!isReviewer()) { const me = currentUser()?.employee_id; rows = rows.filter((i) => i.interviewer_id === me || i.created_by === me) }
+    if (status) rows = rows.filter((i) => i.status === status)
+    const list = rows.sort((a, b) => ivStatusOrder[a.status] - ivStatusOrder[b.status] || (b.scheduled_at || '').localeCompare(a.scheduled_at || ''))
+      .map((i) => ({ ...i, interviewer_name: empName(i.interviewer_id) }))
+    const summary = list.reduce((s, r) => { s.total += 1; if (r.status === 'مجدولة') s.scheduled += 1; if (r.status === 'مكتملة') s.completed += 1; return s }, { total: 0, scheduled: 0, completed: 0 })
+    return { interviews: list, summary }
+  },
+  async create(data) {
+    await delay()
+    const iv = { id: ivSeq++, candidate_name: data.candidate_name, job_title: data.job_title || null, interviewer_id: data.interviewer_id ? Number(data.interviewer_id) : currentUser()?.employee_id || 2, scheduled_at: data.scheduled_at || null, mode: data.mode || 'حضوري', stage: data.stage || 'مبدئية', status: 'مجدولة', rating: null, notes: null, created_by: currentUser()?.employee_id || 2 }
+    interviews.unshift(iv)
+    return { message: 'تم', interview: { id: iv.id } }
+  },
+  async update(id, data) {
+    await delay()
+    const iv = interviews.find((x) => x.id === Number(id))
+    if (!iv) throw notFound()
+    for (const k of ['candidate_name', 'job_title', 'interviewer_id', 'scheduled_at', 'mode', 'stage', 'status', 'rating', 'notes']) {
+      if (data[k] !== undefined) iv[k] = data[k]
+    }
+    return { message: 'تم التحديث' }
+  },
+  async remove(id) { await delay(); const i = interviews.findIndex((x) => x.id === Number(id)); if (i > -1) interviews.splice(i, 1); return { message: 'تم الحذف' } },
+}
+
+let promoSeq = 1
+const promotions = [
+  { id: promoSeq++, employee_id: 6, type: 'ترقية', current_title: 'مطوّر برمجيات', new_title: 'مطوّر برمجيات أول', new_department_id: null, effective_date: addDays(20), justification: 'أداء متميز خلال العام', status: 'معلق', requested_by: 2, reviewed_by: null, created_at: nowIso() },
+  { id: promoSeq++, employee_id: 10, type: 'نقل', current_title: 'مطوّر برمجيات', new_title: 'مطوّر برمجيات', new_department_id: 1, effective_date: addDays(15), justification: 'إعادة توزيع الكوادر حسب الحاجة', status: 'موافق عليه', requested_by: 4, reviewed_by: 5, created_at: nowIso() },
+]
+const promoStatusOrder = { معلق: 1, 'موافق عليه': 2, مرفوض: 3 }
+export const mockPromotionsApi = {
+  async list({ status } = {}) {
+    await delay()
+    let rows = [...promotions]
+    if (!isReviewer()) { const me = currentUser()?.employee_id; const dep = myDept(); rows = rows.filter((p) => p.requested_by === me || employees.find((e) => e.id === p.employee_id)?.department_id === dep) }
+    if (status) rows = rows.filter((p) => p.status === status)
+    const list = rows.sort((a, b) => promoStatusOrder[a.status] - promoStatusOrder[b.status] || b.id - a.id)
+      .map((p) => ({ ...p, full_name: empName(p.employee_id), job_title: employees.find((e) => e.id === p.employee_id)?.job_title || null, department_id: employees.find((e) => e.id === p.employee_id)?.department_id, new_department_name: deptName(p.new_department_id), requested_by_name: empName(p.requested_by), reviewed_by_name: empName(p.reviewed_by), profile_picture: null }))
+    const summary = list.reduce((s, r) => { s.total += 1; if (r.status === 'معلق') s.pending += 1; if (r.type === 'ترقية') s.promotions += 1; else s.transfers += 1; return s }, { total: 0, pending: 0, promotions: 0, transfers: 0 })
+    return { promotions: list, summary }
+  },
+  async create(data) {
+    await delay()
+    const emp = employees.find((e) => e.id === Number(data.employee_id))
+    const p = { id: promoSeq++, employee_id: Number(data.employee_id), type: data.type || 'ترقية', current_title: data.current_title || emp?.job_title || null, new_title: data.new_title || null, new_department_id: data.new_department_id ? Number(data.new_department_id) : null, effective_date: data.effective_date || null, justification: data.justification || null, status: 'معلق', requested_by: currentUser()?.employee_id || 2, reviewed_by: null, created_at: nowIso() }
+    promotions.unshift(p)
+    return { message: 'تم', promotion: { id: p.id } }
+  },
+  async setStatus(id, status) { await delay(); const p = promotions.find((x) => x.id === Number(id)); if (!p) throw notFound(); p.status = status; p.reviewed_by = currentUser()?.employee_id || 5; return { message: 'تم' } },
+  async remove(id) { await delay(); const i = promotions.findIndex((x) => x.id === Number(id)); if (i > -1) promotions.splice(i, 1); return { message: 'تم الحذف' } },
+}
+
 function notFound() {
   const e = new Error('Not found')
   e.response = { status: 404, data: { error: 'غير موجود' } }

@@ -460,6 +460,32 @@ function seedData() {
     console.log('✅ Integrations seeded');
   }
 
+  // Manager: hiring requests
+  if (isEmpty('hiring_requests')) {
+    const ins = db.prepare(`INSERT INTO hiring_requests (requested_by, department_id, job_title, headcount, employment_type, urgency, justification, status, reviewed_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    ins.run(2, 1, 'مطوّر واجهات أمامية', 2, 'دوام كامل', 'عاجل', 'توسّع فريق المنتج ومشاريع جديدة', 'معلق', null);
+    ins.run(4, 4, 'أخصائي مبيعات', 1, 'دوام كامل', 'عادي', 'تغطية منطقة جديدة', 'موافق عليه', 5);
+    ins.run(2, 1, 'مهندس اختبار جودة', 1, 'عقد مؤقت', 'عادي', 'دعم دورة إصدار كبيرة', 'مرفوض', 5);
+    console.log('✅ Hiring requests seeded');
+  }
+
+  // Manager: interviews
+  if (isEmpty('interviews')) {
+    const ins = db.prepare(`INSERT INTO interviews (candidate_name, job_title, interviewer_id, scheduled_at, mode, stage, status, rating, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    ins.run('سلطان الحربي', 'مطوّر واجهات أمامية', 2, addDaysStr(2), 'فيديو', 'فنية', 'مجدولة', null, null, 2);
+    ins.run('منى العتيبي', 'أخصائي مبيعات', 4, addDaysStr(1), 'حضوري', 'مبدئية', 'مجدولة', null, null, 4);
+    ins.run('طارق القحطاني', 'مطوّر واجهات أمامية', 2, addDaysStr(-3), 'فيديو', 'نهائية', 'مكتملة', 4, 'مرشّح قوي، يُنصح بالتعيين', 2);
+    console.log('✅ Interviews seeded');
+  }
+
+  // Manager: promotions & transfers
+  if (isEmpty('promotions')) {
+    const ins = db.prepare(`INSERT INTO promotions (employee_id, type, current_title, new_title, new_department_id, effective_date, justification, status, requested_by, reviewed_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    ins.run(6, 'ترقية', 'مطوّر برمجيات', 'مطوّر برمجيات أول', null, addDaysStr(20), 'أداء متميز خلال العام', 'معلق', 2, null);
+    ins.run(10, 'نقل', 'مطوّر برمجيات', 'مطوّر برمجيات', 1, addDaysStr(15), 'إعادة توزيع الكوادر حسب الحاجة', 'موافق عليه', 4, 5);
+    console.log('✅ Promotions seeded');
+  }
+
   // Employee surveys + responses
   if (isEmpty('surveys')) {
     const insS = db.prepare(`INSERT INTO surveys (title, description, audience, is_active, created_by) VALUES (?, ?, ?, ?, ?)`);

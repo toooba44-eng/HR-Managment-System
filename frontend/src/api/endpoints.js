@@ -274,6 +274,26 @@ const realSignaturesApi = {
   remove: (id) => api.delete(`/signatures/${id}`).then((r) => r.data),
 }
 
+// ---------- Manager: hiring / interviews / promotions ----------
+const realHiringApi = {
+  list: (params) => api.get('/manager/hiring', { params }).then((r) => r.data),
+  create: (data) => api.post('/manager/hiring', data).then((r) => r.data),
+  setStatus: (id, status) => api.put(`/manager/hiring/${id}/status`, { status }).then((r) => r.data),
+  remove: (id) => api.delete(`/manager/hiring/${id}`).then((r) => r.data),
+}
+const realInterviewsApi = {
+  list: (params) => api.get('/manager/interviews', { params }).then((r) => r.data),
+  create: (data) => api.post('/manager/interviews', data).then((r) => r.data),
+  update: (id, data) => api.put(`/manager/interviews/${id}`, data).then((r) => r.data),
+  remove: (id) => api.delete(`/manager/interviews/${id}`).then((r) => r.data),
+}
+const realPromotionsApi = {
+  list: (params) => api.get('/manager/promotions', { params }).then((r) => r.data),
+  create: (data) => api.post('/manager/promotions', data).then((r) => r.data),
+  setStatus: (id, status) => api.put(`/manager/promotions/${id}/status`, { status }).then((r) => r.data),
+  remove: (id) => api.delete(`/manager/promotions/${id}`).then((r) => r.data),
+}
+
 // ---------- Onboarding ----------
 const realOnboardingApi = {
   list: (params) => api.get('/onboarding', { params }).then((r) => r.data),
@@ -347,3 +367,6 @@ export const automationApi = DEMO ? mock.mockAutomationApi : realAutomationApi
 export const integrationsApi = DEMO ? mock.mockIntegrationsApi : realIntegrationsApi
 export const surveysApi = DEMO ? mock.mockSurveysApi : realSurveysApi
 export const signaturesApi = DEMO ? mock.mockSignaturesApi : realSignaturesApi
+export const hiringApi = DEMO ? mock.mockHiringApi : realHiringApi
+export const interviewsApi = DEMO ? mock.mockInterviewsApi : realInterviewsApi
+export const promotionsApi = DEMO ? mock.mockPromotionsApi : realPromotionsApi

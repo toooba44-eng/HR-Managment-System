@@ -50,6 +50,9 @@ import Automation from '../pages/hr/Automation'
 import Integrations from '../pages/hr/Integrations'
 import Surveys from '../pages/employee/Surveys'
 import Signatures from '../pages/employee/Signatures'
+import Hiring from '../pages/manager/Hiring'
+import Interviews from '../pages/manager/Interviews'
+import Promotions from '../pages/manager/Promotions'
 import ComingSoon from '../components/ui/ComingSoon'
 
 // Helper for scaffolded (not-yet-built) features
@@ -167,9 +170,9 @@ export const PORTALS = {
       { section: 'الأداء والمهام', to: '/mgr/tasks', label: 'المهام والأهداف', icon: ClipboardList, element: <Tasks title="مهام الفريق" description="أسند المهام لأعضاء فريقك وتابع تقدّمها." /> },
       { section: 'الأداء والمهام', to: '/mgr/training', label: 'التدريب والتطوير', icon: GraduationCap, element: <Training /> },
 
-      { section: 'التوظيف والتطوير الوظيفي', to: '/mgr/hiring', label: 'طلب موظفين', icon: PlusCircle, element: cs('طلب موظفين جدد', 'رفع طلبات توظيف جديدة', PlusCircle) },
-      { section: 'التوظيف والتطوير الوظيفي', to: '/mgr/interviews', label: 'المقابلات', icon: Video, element: cs('إدارة المقابلات', 'جدولة وإدارة المقابلات', Video) },
-      { section: 'التوظيف والتطوير الوظيفي', to: '/mgr/promotions', label: 'الترقية والنقل', icon: ArrowUpDown, element: cs('إجراءات الترقية والنقل', 'إجراءات ترقية ونقل الموظفين', ArrowUpDown) },
+      { section: 'التوظيف والتطوير الوظيفي', to: '/mgr/hiring', label: 'طلب موظفين', icon: PlusCircle, element: <Hiring /> },
+      { section: 'التوظيف والتطوير الوظيفي', to: '/mgr/interviews', label: 'المقابلات', icon: Video, element: <Interviews /> },
+      { section: 'التوظيف والتطوير الوظيفي', to: '/mgr/promotions', label: 'الترقية والنقل', icon: ArrowUpDown, element: <Promotions /> },
 
       { section: 'حسابي', to: '/profile', label: 'ملفي الشخصي', icon: UserCircle, element: <Profile /> },
     ],

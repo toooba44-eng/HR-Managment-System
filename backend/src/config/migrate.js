@@ -534,6 +534,62 @@ const migrations = [
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`,
 
+  // Manager: hiring requests
+  `CREATE TABLE IF NOT EXISTS hiring_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    requested_by INTEGER,
+    department_id INTEGER,
+    job_title TEXT NOT NULL,
+    headcount INTEGER DEFAULT 1,
+    employment_type TEXT DEFAULT 'دوام كامل' CHECK(employment_type IN ('دوام كامل', 'دوام جزئي', 'عقد مؤقت', 'تدريب')),
+    urgency TEXT DEFAULT 'عادي' CHECK(urgency IN ('عادي', 'عاجل')),
+    justification TEXT,
+    status TEXT DEFAULT 'معلق' CHECK(status IN ('معلق', 'موافق عليه', 'مرفوض')),
+    reviewed_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (requested_by) REFERENCES employees(id) ON DELETE SET NULL,
+    FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL,
+    FOREIGN KEY (reviewed_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
+  // Manager: interviews
+  `CREATE TABLE IF NOT EXISTS interviews (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    candidate_name TEXT NOT NULL,
+    job_title TEXT,
+    interviewer_id INTEGER,
+    scheduled_at DATETIME,
+    mode TEXT DEFAULT 'حضوري' CHECK(mode IN ('حضوري', 'فيديو', 'هاتفي')),
+    stage TEXT DEFAULT 'مبدئية' CHECK(stage IN ('مبدئية', 'فنية', 'نهائية')),
+    status TEXT DEFAULT 'مجدولة' CHECK(status IN ('مجدولة', 'مكتملة', 'ملغاة')),
+    rating INTEGER,
+    notes TEXT,
+    created_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (interviewer_id) REFERENCES employees(id) ON DELETE SET NULL,
+    FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
+  // Manager: promotions & transfers
+  `CREATE TABLE IF NOT EXISTS promotions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    type TEXT DEFAULT 'ترقية' CHECK(type IN ('ترقية', 'نقل')),
+    current_title TEXT,
+    new_title TEXT,
+    new_department_id INTEGER,
+    effective_date DATE,
+    justification TEXT,
+    status TEXT DEFAULT 'معلق' CHECK(status IN ('معلق', 'موافق عليه', 'مرفوض')),
+    requested_by INTEGER,
+    reviewed_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+    FOREIGN KEY (new_department_id) REFERENCES departments(id) ON DELETE SET NULL,
+    FOREIGN KEY (requested_by) REFERENCES employees(id) ON DELETE SET NULL,
+    FOREIGN KEY (reviewed_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
   // Employee surveys + responses
   `CREATE TABLE IF NOT EXISTS surveys (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
