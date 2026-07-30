@@ -534,6 +534,27 @@ const migrations = [
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`,
 
+  // Platform: backups
+  `CREATE TABLE IF NOT EXISTS backups (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    type TEXT DEFAULT 'يدوي' CHECK(type IN ('يدوي', 'تلقائي')),
+    size_mb REAL DEFAULT 0,
+    status TEXT DEFAULT 'مكتمل' CHECK(status IN ('مكتمل', 'قيد التنفيذ', 'فشل')),
+    note TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`,
+
+  // Platform: audit log
+  `CREATE TABLE IF NOT EXISTS audit_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    actor TEXT,
+    action TEXT NOT NULL,
+    entity TEXT,
+    severity TEXT DEFAULT 'معلومة' CHECK(severity IN ('معلومة', 'تحذير', 'حرج')),
+    details TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`,
+
   // Platform: subscription change requests
   `CREATE TABLE IF NOT EXISTS subscription_requests (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

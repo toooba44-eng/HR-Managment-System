@@ -460,6 +460,28 @@ function seedData() {
     console.log('✅ Integrations seeded');
   }
 
+  // Platform: backups
+  if (isEmpty('backups')) {
+    const ins = db.prepare(`INSERT INTO backups (type, size_mb, status, note, created_at) VALUES (?, ?, ?, ?, ?)`);
+    ins.run('تلقائي', 182.4, 'مكتمل', 'نسخة يومية تلقائية', addDaysStr(0));
+    ins.run('تلقائي', 179.1, 'مكتمل', 'نسخة يومية تلقائية', addDaysStr(-1));
+    ins.run('يدوي', 176.8, 'مكتمل', 'قبل تحديث النظام', addDaysStr(-2));
+    ins.run('تلقائي', 175.0, 'مكتمل', 'نسخة يومية تلقائية', addDaysStr(-3));
+    console.log('✅ Backups seeded');
+  }
+
+  // Platform: audit log
+  if (isEmpty('audit_logs')) {
+    const ins = db.prepare(`INSERT INTO audit_logs (actor, action, entity, severity, details, created_at) VALUES (?, ?, ?, ?, ?, ?)`);
+    ins.run('superadmin@quant.com', 'تسجيل دخول', 'auth', 'معلومة', 'دخول ناجح لبوابة إدارة المنصة', addDaysStr(0));
+    ins.run('superadmin@quant.com', 'اعتماد طلب اشتراك', 'subscription', 'معلومة', 'ترقية باقة مجموعة الأفق', addDaysStr(0));
+    ins.run('noura.hr@quant.com', 'تعديل بيانات موظف', 'employee', 'معلومة', 'تحديث بيانات موظف #6', addDaysStr(-1));
+    ins.run('نظام', 'محاولة دخول فاشلة', 'auth', 'تحذير', '3 محاولات دخول فاشلة متتالية', addDaysStr(-1));
+    ins.run('superadmin@quant.com', 'استعادة نسخة احتياطية', 'backup', 'تحذير', 'استعادة نسخة #3', addDaysStr(-2));
+    ins.run('نظام', 'فشل تكامل خارجي', 'integration', 'حرج', 'انقطاع الاتصال مع Active Directory', addDaysStr(-2));
+    console.log('✅ Audit logs seeded');
+  }
+
   // Platform: subscription change requests
   if (isEmpty('subscription_requests')) {
     const ins = db.prepare(`INSERT INTO subscription_requests (company_id, type, requested_plan, reason, status) VALUES (?, ?, ?, ?, ?)`);

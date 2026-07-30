@@ -34,6 +34,11 @@ import SubscriptionRequests from '../pages/superadmin/Requests'
 import Modules from '../pages/superadmin/Modules'
 import Limits from '../pages/superadmin/Limits'
 import Impersonate from '../pages/superadmin/Impersonate'
+import Usage from '../pages/superadmin/Usage'
+import SystemPerformance from '../pages/superadmin/Performance'
+import ApiMonitor from '../pages/superadmin/ApiMonitor'
+import Backups from '../pages/superadmin/Backups'
+import Audit from '../pages/superadmin/Audit'
 import Expenses from '../pages/hr/Expenses'
 import Assets from '../pages/hr/Assets'
 import Performance from '../pages/hr/Performance'
@@ -98,11 +103,11 @@ export const PORTALS = {
       { section: 'التحكم والحدود', to: '/sa/limits', label: 'حدود المستخدمين والتخزين', icon: HardDrive, element: <Limits /> },
       { section: 'التحكم والحدود', to: '/sa/impersonate', label: 'الدخول بالنيابة', icon: UserCog, element: <Impersonate /> },
 
-      { section: 'المراقبة والتشغيل', to: '/sa/usage', label: 'مراقبة الاستخدام', icon: Activity, element: cs('مراقبة استخدام النظام', 'متابعة استخدام المؤسسات للنظام', Activity) },
-      { section: 'المراقبة والتشغيل', to: '/sa/performance', label: 'أداء النظام', icon: Gauge, element: cs('مراقبة أداء النظام', 'مؤشرات أداء وصحة المنصة', Gauge) },
-      { section: 'المراقبة والتشغيل', to: '/sa/api', label: 'مراقبة تكاملات API', icon: Plug, element: cs('مراقبة تكاملات API', 'متابعة التكاملات الخارجية', Plug) },
-      { section: 'المراقبة والتشغيل', to: '/sa/backups', label: 'النسخ الاحتياطية', icon: Database, element: cs('إدارة النسخ الاحتياطية', 'جدولة واستعادة النسخ الاحتياطية', Database) },
-      { section: 'المراقبة والتشغيل', to: '/sa/audit', label: 'سجل العمليات', icon: ScrollText, element: cs('سجل العمليات', 'سجل تدقيق كامل لعمليات النظام', ScrollText) },
+      { section: 'المراقبة والتشغيل', to: '/sa/usage', label: 'مراقبة الاستخدام', icon: Activity, element: <Usage /> },
+      { section: 'المراقبة والتشغيل', to: '/sa/performance', label: 'أداء النظام', icon: Gauge, element: <SystemPerformance /> },
+      { section: 'المراقبة والتشغيل', to: '/sa/api', label: 'مراقبة تكاملات API', icon: Plug, element: <ApiMonitor /> },
+      { section: 'المراقبة والتشغيل', to: '/sa/backups', label: 'النسخ الاحتياطية', icon: Database, element: <Backups /> },
+      { section: 'المراقبة والتشغيل', to: '/sa/audit', label: 'سجل العمليات', icon: ScrollText, element: <Audit /> },
 
       { section: 'الدعم والتواصل', to: '/sa/support', label: 'الدعم الفني', icon: LifeBuoy, element: cs('إدارة الدعم الفني', 'تذاكر ودعم العملاء', LifeBuoy) },
       { section: 'الدعم والتواصل', to: '/sa/announcements', label: 'الإعلانات والتنبيهات', icon: Megaphone, element: <Announcements /> },
