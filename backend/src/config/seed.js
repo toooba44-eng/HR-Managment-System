@@ -476,6 +476,38 @@ function seedData() {
     console.log('✅ Platform settings seeded');
   }
 
+  // Platform: localization
+  if (isEmpty('platform_locales')) {
+    const ins = db.prepare(`INSERT INTO platform_locales (type, name, code, is_default, enabled) VALUES (?, ?, ?, ?, ?)`);
+    ins.run('دولة', 'السعودية', 'SA', 1, 1);
+    ins.run('دولة', 'الإمارات', 'AE', 0, 1);
+    ins.run('دولة', 'الكويت', 'KW', 0, 1);
+    ins.run('دولة', 'مصر', 'EG', 0, 0);
+    ins.run('عملة', 'ريال سعودي', 'SAR', 1, 1);
+    ins.run('عملة', 'درهم إماراتي', 'AED', 0, 1);
+    ins.run('عملة', 'دولار أمريكي', 'USD', 0, 1);
+    ins.run('لغة', 'العربية', 'ar', 1, 1);
+    ins.run('لغة', 'English', 'en', 0, 1);
+    console.log('✅ Locales seeded');
+  }
+
+  // Platform: system templates
+  if (isEmpty('system_templates')) {
+    const ins = db.prepare(`INSERT INTO system_templates (name, type, subject, body, enabled) VALUES (?, ?, ?, ?, ?)`);
+    ins.run('ترحيب بموظف جديد', 'بريد', 'مرحباً بك في {{company}}', 'عزيزي {{name}}، يسعدنا انضمامك إلى فريق {{company}}.', 1);
+    ins.run('اعتماد طلب إجازة', 'إشعار', 'تم اعتماد إجازتك', 'تمت الموافقة على طلب إجازتك من {{start}} إلى {{end}}.', 1);
+    ins.run('تذكير بالمقابلة', 'رسالة نصية', null, 'تذكير: لديك مقابلة يوم {{date}} الساعة {{time}}.', 1);
+    ins.run('عقد عمل', 'مستند', 'عقد عمل - {{name}}', 'هذا العقد مبرم بين {{company}} و {{name}} بوظيفة {{title}}.', 1);
+    ins.run('إشعار انتهاء مستند', 'إشعار', 'مستند على وشك الانتهاء', 'ينتهي المستند {{document}} بتاريخ {{expiry}}.', 0);
+    console.log('✅ System templates seeded');
+  }
+
+  // Platform: AI settings (defaults)
+  if (isEmpty('ai_settings')) {
+    db.prepare('INSERT INTO ai_settings (id) VALUES (1)').run();
+    console.log('✅ AI settings seeded');
+  }
+
   // Platform: backups
   if (isEmpty('backups')) {
     const ins = db.prepare(`INSERT INTO backups (type, size_mb, status, note, created_at) VALUES (?, ?, ?, ?, ?)`);

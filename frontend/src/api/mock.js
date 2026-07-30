@@ -1106,7 +1106,90 @@ export const mockSaConfigApi = {
     }
     return { message: 'تم التحديث', settings: { ...platformSettings } }
   },
+  async locales() {
+    await delay()
+    const rows = [...platformLocales].sort((a, b) => a.type.localeCompare(b.type) || b.is_default - a.is_default || a.name.localeCompare(b.name))
+    const grouped = { دولة: [], عملة: [], لغة: [] }
+    for (const r of rows) grouped[r.type].push(r)
+    return { locales: rows, grouped }
+  },
+  async createLocale(data) {
+    await delay()
+    if (!['دولة', 'عملة', 'لغة'].includes(data.type)) throw badReq('نوع غير صالح')
+    if (!data.name) throw badReq('الاسم مطلوب')
+    const l = { id: localeSeq++, type: data.type, name: data.name, code: data.code || null, is_default: 0, enabled: 1 }
+    platformLocales.push(l)
+    return { message: 'تم', locale: { id: l.id } }
+  },
+  async updateLocale(id, data) {
+    await delay()
+    const l = platformLocales.find((x) => x.id === Number(id))
+    if (!l) throw notFound()
+    if (data.is_default) platformLocales.filter((x) => x.type === l.type).forEach((x) => { x.is_default = 0 })
+    if (data.name !== undefined) l.name = data.name
+    if (data.code !== undefined) l.code = data.code
+    if (data.is_default !== undefined) l.is_default = data.is_default ? 1 : 0
+    if (data.enabled !== undefined) l.enabled = data.enabled ? 1 : 0
+    return { message: 'تم' }
+  },
+  async removeLocale(id) { await delay(); const i = platformLocales.findIndex((x) => x.id === Number(id)); if (i > -1) platformLocales.splice(i, 1); return { message: 'تم الحذف' } },
+  async templates({ type } = {}) {
+    await delay()
+    let rows = [...systemTemplates]
+    if (type) rows = rows.filter((t) => t.type === type)
+    return { templates: rows.sort((a, b) => a.type.localeCompare(b.type) || a.name.localeCompare(b.name)) }
+  },
+  async createTemplate(data) {
+    await delay()
+    if (!data.name) throw badReq('الاسم مطلوب')
+    const t = { id: templateSeq++, name: data.name, type: data.type || 'بريد', subject: data.subject || null, body: data.body || null, enabled: 1 }
+    systemTemplates.push(t)
+    return { message: 'تم', template: { id: t.id } }
+  },
+  async updateTemplate(id, data) {
+    await delay()
+    const t = systemTemplates.find((x) => x.id === Number(id))
+    if (!t) throw notFound()
+    for (const k of ['name', 'type', 'subject', 'body']) if (data[k] !== undefined) t[k] = data[k]
+    if (data.enabled !== undefined) t.enabled = data.enabled ? 1 : 0
+    return { message: 'تم' }
+  },
+  async removeTemplate(id) { await delay(); const i = systemTemplates.findIndex((x) => x.id === Number(id)); if (i > -1) systemTemplates.splice(i, 1); return { message: 'تم الحذف' } },
+  async ai() { await delay(); return { ai: { ...aiSettings } } },
+  async updateAi(data) {
+    await delay()
+    for (const [k, v] of Object.entries(data)) {
+      if (aiBool.includes(k)) aiSettings[k] = v ? 1 : 0
+      else if (aiInt.includes(k)) aiSettings[k] = parseInt(v, 10) || 0
+      else if (k in aiSettings) aiSettings[k] = v
+    }
+    return { message: 'تم التحديث', ai: { ...aiSettings } }
+  },
 }
+
+let localeSeq = 1
+const platformLocales = [
+  { id: localeSeq++, type: 'دولة', name: 'السعودية', code: 'SA', is_default: 1, enabled: 1 },
+  { id: localeSeq++, type: 'دولة', name: 'الإمارات', code: 'AE', is_default: 0, enabled: 1 },
+  { id: localeSeq++, type: 'دولة', name: 'الكويت', code: 'KW', is_default: 0, enabled: 1 },
+  { id: localeSeq++, type: 'دولة', name: 'مصر', code: 'EG', is_default: 0, enabled: 0 },
+  { id: localeSeq++, type: 'عملة', name: 'ريال سعودي', code: 'SAR', is_default: 1, enabled: 1 },
+  { id: localeSeq++, type: 'عملة', name: 'درهم إماراتي', code: 'AED', is_default: 0, enabled: 1 },
+  { id: localeSeq++, type: 'عملة', name: 'دولار أمريكي', code: 'USD', is_default: 0, enabled: 1 },
+  { id: localeSeq++, type: 'لغة', name: 'العربية', code: 'ar', is_default: 1, enabled: 1 },
+  { id: localeSeq++, type: 'لغة', name: 'English', code: 'en', is_default: 0, enabled: 1 },
+]
+let templateSeq = 1
+const systemTemplates = [
+  { id: templateSeq++, name: 'ترحيب بموظف جديد', type: 'بريد', subject: 'مرحباً بك في {{company}}', body: 'عزيزي {{name}}، يسعدنا انضمامك إلى فريق {{company}}.', enabled: 1 },
+  { id: templateSeq++, name: 'اعتماد طلب إجازة', type: 'إشعار', subject: 'تم اعتماد إجازتك', body: 'تمت الموافقة على طلب إجازتك من {{start}} إلى {{end}}.', enabled: 1 },
+  { id: templateSeq++, name: 'تذكير بالمقابلة', type: 'رسالة نصية', subject: null, body: 'تذكير: لديك مقابلة يوم {{date}} الساعة {{time}}.', enabled: 1 },
+  { id: templateSeq++, name: 'عقد عمل', type: 'مستند', subject: 'عقد عمل - {{name}}', body: 'هذا العقد مبرم بين {{company}} و {{name}} بوظيفة {{title}}.', enabled: 1 },
+  { id: templateSeq++, name: 'إشعار انتهاء مستند', type: 'إشعار', subject: 'مستند على وشك الانتهاء', body: 'ينتهي المستند {{document}} بتاريخ {{expiry}}.', enabled: 0 },
+]
+const aiSettings = { id: 1, enabled: 1, provider: 'Claude', model: 'claude-sonnet', resume_screening: 1, chatbot: 1, insights: 1, auto_summaries: 0, monthly_token_limit: 1000000 }
+const aiBool = ['enabled', 'resume_screening', 'chatbot', 'insights', 'auto_summaries']
+const aiInt = ['monthly_token_limit']
 
 let auditSeq = 1
 const auditLogs = [

@@ -548,6 +548,42 @@ const migrations = [
     FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE SET NULL
   )`,
 
+  // Platform: localization (countries / currencies / languages)
+  `CREATE TABLE IF NOT EXISTS platform_locales (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    type TEXT NOT NULL CHECK(type IN ('دولة', 'عملة', 'لغة')),
+    name TEXT NOT NULL,
+    code TEXT,
+    is_default INTEGER DEFAULT 0,
+    enabled INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`,
+
+  // Platform: system templates
+  `CREATE TABLE IF NOT EXISTS system_templates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    type TEXT DEFAULT 'بريد' CHECK(type IN ('بريد', 'رسالة نصية', 'مستند', 'إشعار')),
+    subject TEXT,
+    body TEXT,
+    enabled INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`,
+
+  // Platform: AI settings (single row)
+  `CREATE TABLE IF NOT EXISTS ai_settings (
+    id INTEGER PRIMARY KEY CHECK(id = 1),
+    enabled INTEGER DEFAULT 1,
+    provider TEXT DEFAULT 'Claude',
+    model TEXT DEFAULT 'claude-sonnet',
+    resume_screening INTEGER DEFAULT 1,
+    chatbot INTEGER DEFAULT 1,
+    insights INTEGER DEFAULT 1,
+    auto_summaries INTEGER DEFAULT 0,
+    monthly_token_limit INTEGER DEFAULT 1000000,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`,
+
   // Platform: system-wide settings (single row)
   `CREATE TABLE IF NOT EXISTS platform_settings (
     id INTEGER PRIMARY KEY CHECK(id = 1),
