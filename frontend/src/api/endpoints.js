@@ -226,6 +226,18 @@ const realSettingsApi = {
   update: (data) => api.put('/settings', data).then((r) => r.data),
 }
 
+// ---------- Onboarding ----------
+const realOnboardingApi = {
+  list: (params) => api.get('/onboarding', { params }).then((r) => r.data),
+  get: (id) => api.get(`/onboarding/${id}`).then((r) => r.data),
+  create: (data) => api.post('/onboarding', data).then((r) => r.data),
+  update: (id, data) => api.put(`/onboarding/${id}`, data).then((r) => r.data),
+  remove: (id) => api.delete(`/onboarding/${id}`).then((r) => r.data),
+  addTask: (id, data) => api.post(`/onboarding/${id}/tasks`, data).then((r) => r.data),
+  updateTask: (taskId, data) => api.put(`/onboarding/tasks/${taskId}`, data).then((r) => r.data),
+  removeTask: (taskId) => api.delete(`/onboarding/tasks/${taskId}`).then((r) => r.data),
+}
+
 // ---------- Training & development ----------
 const realTrainingApi = {
   courses: () => api.get('/training/courses').then((r) => r.data),
@@ -281,3 +293,4 @@ export const compensationApi = DEMO ? mock.mockCompensationApi : realCompensatio
 export const successionApi = DEMO ? mock.mockSuccessionApi : realSuccessionApi
 export const companyApi = DEMO ? mock.mockCompanyApi : realCompanyApi
 export const settingsApi = DEMO ? mock.mockSettingsApi : realSettingsApi
+export const onboardingApi = DEMO ? mock.mockOnboardingApi : realOnboardingApi

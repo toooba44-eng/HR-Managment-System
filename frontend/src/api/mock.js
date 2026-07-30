@@ -1331,6 +1331,158 @@ export const mockSettingsApi = {
   },
 }
 
+let obSeq = 1
+let obTaskSeq = 1
+const onboarding = [
+  {
+    id: obSeq++, employee_id: 6, start_date: addDays(-10), buddy_id: 2, status: 'قيد التنفيذ', notes: 'موظف جديد في فريق التطوير', created_by: 5,
+    tasks: [
+      { id: obTaskSeq++, title: 'استكمال العقد والمستندات الرسمية', category: 'مستندات', owner: 'الموارد البشرية', due_date: addDays(-10), is_done: 1 },
+      { id: obTaskSeq++, title: 'فتح حساب البريد الإلكتروني والأنظمة', category: 'تجهيزات', owner: 'تقنية المعلومات', due_date: addDays(-9), is_done: 1 },
+      { id: obTaskSeq++, title: 'تجهيز جهاز الحاسب ومكان العمل', category: 'تجهيزات', owner: 'تقنية المعلومات', due_date: addDays(-9), is_done: 1 },
+      { id: obTaskSeq++, title: 'جلسة تعريفية بالمؤسسة والسياسات', category: 'تعريف', owner: 'الموارد البشرية', due_date: addDays(-8), is_done: 0 },
+      { id: obTaskSeq++, title: 'التعريف بالفريق والمدير المباشر', category: 'تعريف', owner: 'المدير', due_date: addDays(-8), is_done: 0 },
+      { id: obTaskSeq++, title: 'التدريب على المهام الأساسية للوظيفة', category: 'تدريب', owner: 'المدير', due_date: addDays(-5), is_done: 0 },
+    ],
+  },
+  {
+    id: obSeq++, employee_id: 10, start_date: addDays(-3), buddy_id: 4, status: 'قيد التنفيذ', notes: 'موظف جديد في فريق المبيعات', created_by: 5,
+    tasks: [
+      { id: obTaskSeq++, title: 'استكمال العقد والمستندات الرسمية', category: 'مستندات', owner: 'الموارد البشرية', due_date: addDays(-3), is_done: 1 },
+      { id: obTaskSeq++, title: 'فتح حساب البريد الإلكتروني والأنظمة', category: 'تجهيزات', owner: 'تقنية المعلومات', due_date: addDays(-2), is_done: 0 },
+      { id: obTaskSeq++, title: 'جلسة تعريفية بالمؤسسة والسياسات', category: 'تعريف', owner: 'الموارد البشرية', due_date: addDays(-1), is_done: 0 },
+      { id: obTaskSeq++, title: 'التدريب على نظام إدارة العملاء', category: 'تدريب', owner: 'المدير', due_date: addDays(1), is_done: 0 },
+    ],
+  },
+  {
+    id: obSeq++, employee_id: 7, start_date: addDays(-40), buddy_id: 5, status: 'مكتمل', notes: 'اكتملت التهيئة بنجاح', created_by: 5,
+    tasks: [
+      { id: obTaskSeq++, title: 'استكمال العقد والمستندات الرسمية', category: 'مستندات', owner: 'الموارد البشرية', due_date: addDays(-40), is_done: 1 },
+      { id: obTaskSeq++, title: 'فتح حساب البريد الإلكتروني والأنظمة', category: 'تجهيزات', owner: 'تقنية المعلومات', due_date: addDays(-39), is_done: 1 },
+      { id: obTaskSeq++, title: 'جلسة تعريفية بالمؤسسة والسياسات', category: 'تعريف', owner: 'الموارد البشرية', due_date: addDays(-38), is_done: 1 },
+    ],
+  },
+]
+
+const OB_DEFAULT_TASKS = [
+  { title: 'استكمال العقد والمستندات الرسمية', category: 'مستندات', owner: 'الموارد البشرية' },
+  { title: 'فتح حساب البريد الإلكتروني والأنظمة', category: 'تجهيزات', owner: 'تقنية المعلومات' },
+  { title: 'تجهيز جهاز الحاسب ومكان العمل', category: 'تجهيزات', owner: 'تقنية المعلومات' },
+  { title: 'جلسة تعريفية بالمؤسسة والسياسات', category: 'تعريف', owner: 'الموارد البشرية' },
+  { title: 'التعريف بالفريق والمدير المباشر', category: 'تعريف', owner: 'المدير' },
+  { title: 'التدريب على المهام الأساسية للوظيفة', category: 'تدريب', owner: 'المدير' },
+]
+
+function obProgress(p) {
+  const total = p.tasks.length
+  const done = p.tasks.filter((t) => t.is_done).length
+  return {
+    id: p.id,
+    employee_id: p.employee_id,
+    start_date: p.start_date,
+    buddy_id: p.buddy_id,
+    status: p.status,
+    notes: p.notes,
+    created_by: p.created_by,
+    tasks_total: total,
+    tasks_done: done,
+    progress: total ? Math.round((done / total) * 100) : 0,
+    full_name: empName(p.employee_id),
+    job_title: employees.find((e) => e.id === p.employee_id)?.job_title || null,
+    department_name: deptName(employees.find((e) => e.id === p.employee_id)?.department_id),
+    buddy_name: empName(p.buddy_id),
+    profile_picture: null,
+  }
+}
+const obStatusOrder = { متأخر: 1, 'قيد التنفيذ': 2, مكتمل: 3, ملغى: 4 }
+function findTask(taskId) {
+  for (const p of onboarding) {
+    const t = p.tasks.find((x) => x.id === Number(taskId))
+    if (t) return { plan: p, task: t }
+  }
+  return {}
+}
+
+export const mockOnboardingApi = {
+  async list({ status } = {}) {
+    await delay()
+    let rows = scopeByRole(onboarding)
+    if (status) rows = rows.filter((p) => p.status === status)
+    const plans = rows
+      .slice()
+      .sort((a, b) => (obStatusOrder[a.status] - obStatusOrder[b.status]) || (b.start_date || '').localeCompare(a.start_date || ''))
+      .map(obProgress)
+    const summary = plans.reduce((s, p) => {
+      s.total += 1
+      if (p.status === 'قيد التنفيذ') s.active += 1
+      if (p.status === 'مكتمل') s.completed += 1
+      if (p.status === 'متأخر') s.overdue += 1
+      return s
+    }, { total: 0, active: 0, completed: 0, overdue: 0 })
+    return { onboarding: plans, summary }
+  },
+  async get(id) {
+    await delay()
+    const p = onboarding.find((x) => x.id === Number(id))
+    if (!p) throw notFound()
+    return { ...obProgress(p), tasks: p.tasks.slice() }
+  },
+  async create(data) {
+    await delay()
+    const list = Array.isArray(data.tasks) && data.tasks.length ? data.tasks : OB_DEFAULT_TASKS
+    const p = {
+      id: obSeq++, employee_id: Number(data.employee_id), start_date: data.start_date || null,
+      buddy_id: data.buddy_id ? Number(data.buddy_id) : null, status: 'قيد التنفيذ', notes: data.notes || null,
+      created_by: currentUser()?.employee_id || 5,
+      tasks: list.map((t) => ({ id: obTaskSeq++, title: t.title, category: t.category || 'أخرى', owner: t.owner || 'الموارد البشرية', due_date: t.due_date || data.start_date || null, is_done: 0 })),
+    }
+    onboarding.unshift(p)
+    return { message: 'تم', onboarding: { id: p.id } }
+  },
+  async update(id, data) {
+    await delay()
+    const p = onboarding.find((x) => x.id === Number(id))
+    if (p) { if (data.start_date !== undefined) p.start_date = data.start_date; if (data.buddy_id !== undefined) p.buddy_id = data.buddy_id ? Number(data.buddy_id) : null; if (data.status !== undefined) p.status = data.status; if (data.notes !== undefined) p.notes = data.notes }
+    return { message: 'تم التحديث' }
+  },
+  async remove(id) {
+    await delay()
+    const i = onboarding.findIndex((x) => x.id === Number(id))
+    if (i > -1) onboarding.splice(i, 1)
+    return { message: 'تم الحذف' }
+  },
+  async addTask(id, data) {
+    await delay()
+    const p = onboarding.find((x) => x.id === Number(id))
+    if (!p) throw notFound()
+    const t = { id: obTaskSeq++, title: data.title, category: data.category || 'أخرى', owner: data.owner || 'الموارد البشرية', due_date: data.due_date || null, is_done: 0 }
+    p.tasks.push(t)
+    return { message: 'تم', task: { id: t.id } }
+  },
+  async updateTask(taskId, data) {
+    await delay()
+    const { plan, task } = findTask(taskId)
+    if (!task) throw notFound()
+    if (data.title !== undefined) task.title = data.title
+    if (data.category !== undefined) task.category = data.category
+    if (data.owner !== undefined) task.owner = data.owner
+    if (data.due_date !== undefined) task.due_date = data.due_date
+    if (data.is_done !== undefined) task.is_done = data.is_done ? 1 : 0
+    if (plan && plan.status !== 'ملغى') {
+      const allDone = plan.tasks.length > 0 && plan.tasks.every((t) => t.is_done)
+      if (allDone) plan.status = 'مكتمل'
+      else if (plan.status === 'مكتمل') plan.status = 'قيد التنفيذ'
+    }
+    return { message: 'تم' }
+  },
+  async removeTask(taskId) {
+    await delay()
+    const { plan } = findTask(taskId)
+    if (plan) plan.tasks = plan.tasks.filter((t) => t.id !== Number(taskId))
+    return { message: 'تم الحذف' }
+  },
+}
+
 function notFound() {
   const e = new Error('Not found')
   e.response = { status: 404, data: { error: 'غير موجود' } }

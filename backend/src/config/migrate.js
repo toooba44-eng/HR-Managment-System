@@ -454,6 +454,33 @@ const migrations = [
     FOREIGN KEY (manager_id) REFERENCES employees(id) ON DELETE SET NULL
   )`,
 
+  // Onboarding plans + checklist tasks
+  `CREATE TABLE IF NOT EXISTS onboarding (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    start_date DATE,
+    buddy_id INTEGER,
+    status TEXT DEFAULT 'قيد التنفيذ' CHECK(status IN ('قيد التنفيذ', 'مكتمل', 'متأخر', 'ملغى')),
+    notes TEXT,
+    created_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+    FOREIGN KEY (buddy_id) REFERENCES employees(id) ON DELETE SET NULL,
+    FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS onboarding_tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    onboarding_id INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    category TEXT DEFAULT 'أخرى' CHECK(category IN ('مستندات', 'تجهيزات', 'تدريب', 'تعريف', 'أخرى')),
+    owner TEXT DEFAULT 'الموارد البشرية',
+    due_date DATE,
+    is_done INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (onboarding_id) REFERENCES onboarding(id) ON DELETE CASCADE
+  )`,
+
   // Organization settings (single row)
   `CREATE TABLE IF NOT EXISTS org_settings (
     id INTEGER PRIMARY KEY CHECK(id = 1),

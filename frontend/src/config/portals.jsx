@@ -44,6 +44,7 @@ import Talent from '../pages/hr/Talent'
 import Documents from '../pages/hr/Documents'
 import Company from '../pages/hr/Company'
 import HrSettings from '../pages/hr/Settings'
+import Onboarding from '../pages/hr/Onboarding'
 import ComingSoon from '../components/ui/ComingSoon'
 
 // Helper for scaffolded (not-yet-built) features
@@ -107,7 +108,7 @@ export const PORTALS = {
       { section: 'المؤسسة', to: '/employees', label: 'الموظفون', icon: Users, element: <Employees /> },
 
       { section: 'التوظيف والتعيين', to: '/hr/recruitment', label: 'التوظيف', icon: Briefcase, element: <Recruitment /> },
-      { section: 'التوظيف والتعيين', to: '/hr/onboarding', label: 'التهيئة Onboarding', icon: UserPlus, element: cs('التهيئة (Onboarding)', 'خطط ومهام تهيئة الموظفين الجدد', UserPlus) },
+      { section: 'التوظيف والتعيين', to: '/hr/onboarding', label: 'التهيئة Onboarding', icon: UserPlus, element: <Onboarding /> },
 
       { section: 'الوقت والحضور', to: '/attendance', label: 'الحضور والدوام', icon: CalendarCheck, element: <Attendance /> },
       { section: 'الوقت والحضور', to: '/hr/shifts', label: 'الورديات والجداول', icon: CalendarRange, element: <Shifts /> },
