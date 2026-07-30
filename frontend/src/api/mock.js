@@ -1483,6 +1483,110 @@ export const mockOnboardingApi = {
   },
 }
 
+let wfSeq = 1
+let wfStepSeq = 1
+const workflows = [
+  {
+    id: wfSeq++, name: 'اعتماد طلبات الإجازة', trigger_event: 'طلب إجازة', description: 'مسار اعتماد الإجازات على مرحلتين', is_active: 1, runs_count: 128, created_by: 5,
+    steps: [
+      { id: wfStepSeq++, name: 'موافقة المدير المباشر', action_type: 'موافقة', assignee: 'المدير المباشر', step_order: 1 },
+      { id: wfStepSeq++, name: 'موافقة الموارد البشرية', action_type: 'موافقة', assignee: 'الموارد البشرية', step_order: 2 },
+      { id: wfStepSeq++, name: 'إشعار الموظف بالنتيجة', action_type: 'إشعار', assignee: 'الموظف', step_order: 3 },
+    ],
+  },
+  {
+    id: wfSeq++, name: 'اعتماد المصروفات', trigger_event: 'طلب مصروف', description: 'اعتماد المصروفات والسلف المالية', is_active: 1, runs_count: 64, created_by: 5,
+    steps: [
+      { id: wfStepSeq++, name: 'موافقة المدير المباشر', action_type: 'موافقة', assignee: 'المدير المباشر', step_order: 1 },
+      { id: wfStepSeq++, name: 'موافقة المالية', action_type: 'موافقة', assignee: 'الإدارة المالية', step_order: 2 },
+    ],
+  },
+  {
+    id: wfSeq++, name: 'تهيئة الموظف الجديد', trigger_event: 'تعيين موظف', description: 'أتمتة مهام تهيئة الموظفين الجدد', is_active: 1, runs_count: 12, created_by: 5,
+    steps: [
+      { id: wfStepSeq++, name: 'إسناد مهام التهيئة', action_type: 'إسناد مهمة', assignee: 'الموارد البشرية', step_order: 1 },
+      { id: wfStepSeq++, name: 'تجهيز الحسابات والأجهزة', action_type: 'إسناد مهمة', assignee: 'تقنية المعلومات', step_order: 2 },
+      { id: wfStepSeq++, name: 'إشعار المدير المباشر', action_type: 'إشعار', assignee: 'المدير المباشر', step_order: 3 },
+    ],
+  },
+  {
+    id: wfSeq++, name: 'إجراءات إنهاء الخدمة', trigger_event: 'إنهاء خدمة', description: 'مسار إنهاء الخدمة والمخالصة', is_active: 0, runs_count: 5, created_by: 5,
+    steps: [
+      { id: wfStepSeq++, name: 'استرجاع العهد والأجهزة', action_type: 'إسناد مهمة', assignee: 'تقنية المعلومات', step_order: 1 },
+      { id: wfStepSeq++, name: 'المخالصة المالية', action_type: 'موافقة', assignee: 'الإدارة المالية', step_order: 2 },
+      { id: wfStepSeq++, name: 'تحديث حالة الموظف', action_type: 'تحديث حالة', assignee: 'الموارد البشرية', step_order: 3 },
+    ],
+  },
+]
+
+function wfSummaryShape(w) {
+  return {
+    id: w.id, name: w.name, trigger_event: w.trigger_event, description: w.description,
+    is_active: w.is_active, runs_count: w.runs_count, created_by: w.created_by,
+    created_by_name: empName(w.created_by), steps_count: w.steps.length,
+  }
+}
+
+export const mockAutomationApi = {
+  async list() {
+    await delay()
+    const list = [...workflows].sort((a, b) => (b.is_active - a.is_active) || (b.id - a.id)).map(wfSummaryShape)
+    const summary = list.reduce((s, w) => { s.total += 1; if (w.is_active) s.active += 1; s.totalRuns += w.runs_count; return s }, { total: 0, active: 0, totalRuns: 0 })
+    return { workflows: list, summary }
+  },
+  async get(id) {
+    await delay()
+    const w = workflows.find((x) => x.id === Number(id))
+    if (!w) throw notFound()
+    return { ...wfSummaryShape(w), steps: w.steps.slice().sort((a, b) => a.step_order - b.step_order) }
+  },
+  async create(data) {
+    await delay()
+    const steps = Array.isArray(data.steps) ? data.steps : []
+    const w = {
+      id: wfSeq++, name: data.name, trigger_event: data.trigger_event || 'طلب إجازة', description: data.description || null,
+      is_active: 1, runs_count: 0, created_by: currentUser()?.employee_id || 5,
+      steps: steps.map((st, i) => ({ id: wfStepSeq++, name: st.name, action_type: st.action_type || 'موافقة', assignee: st.assignee || 'المدير المباشر', step_order: st.step_order || i + 1 })),
+    }
+    workflows.unshift(w)
+    return { message: 'تم', workflow: { id: w.id } }
+  },
+  async update(id, data) {
+    await delay()
+    const w = workflows.find((x) => x.id === Number(id))
+    if (w) { if (data.name !== undefined) w.name = data.name; if (data.trigger_event !== undefined) w.trigger_event = data.trigger_event; if (data.description !== undefined) w.description = data.description; if (data.is_active !== undefined) w.is_active = data.is_active ? 1 : 0 }
+    return { message: 'تم التحديث' }
+  },
+  async run(id) {
+    await delay()
+    const w = workflows.find((x) => x.id === Number(id))
+    if (!w) throw notFound()
+    if (!w.is_active) throw badReq('المسار غير مفعّل')
+    w.runs_count += 1
+    return { message: 'تم التنفيذ', runs_count: w.runs_count }
+  },
+  async remove(id) {
+    await delay()
+    const i = workflows.findIndex((x) => x.id === Number(id))
+    if (i > -1) workflows.splice(i, 1)
+    return { message: 'تم الحذف' }
+  },
+  async addStep(id, data) {
+    await delay()
+    const w = workflows.find((x) => x.id === Number(id))
+    if (!w) throw notFound()
+    const order = (w.steps.reduce((m, s) => Math.max(m, s.step_order), 0)) + 1
+    const st = { id: wfStepSeq++, name: data.name, action_type: data.action_type || 'موافقة', assignee: data.assignee || 'المدير المباشر', step_order: order }
+    w.steps.push(st)
+    return { message: 'تم', step: { id: st.id } }
+  },
+  async removeStep(stepId) {
+    await delay()
+    for (const w of workflows) w.steps = w.steps.filter((s) => s.id !== Number(stepId))
+    return { message: 'تم الحذف' }
+  },
+}
+
 function notFound() {
   const e = new Error('Not found')
   e.response = { status: 404, data: { error: 'غير موجود' } }

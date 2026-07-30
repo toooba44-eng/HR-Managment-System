@@ -398,6 +398,36 @@ function seedData() {
     console.log('✅ Branches seeded');
   }
 
+  // Automation workflows + steps
+  if (isEmpty('workflows')) {
+    const insWf = db.prepare(`INSERT INTO workflows (name, trigger_event, description, is_active, runs_count, created_by) VALUES (?, ?, ?, ?, ?, ?)`);
+    const insStep = db.prepare(`INSERT INTO workflow_steps (workflow_id, name, action_type, assignee, step_order) VALUES (?, ?, ?, ?, ?)`);
+    const wf = (name, trigger, desc, active, runs, steps) => {
+      const id = insWf.run(name, trigger, desc, active, runs, 5).lastInsertRowid;
+      steps.forEach((s, i) => insStep.run(id, s[0], s[1], s[2], i + 1));
+    };
+    wf('اعتماد طلبات الإجازة', 'طلب إجازة', 'مسار اعتماد الإجازات على مرحلتين', 1, 128, [
+      ['موافقة المدير المباشر', 'موافقة', 'المدير المباشر'],
+      ['موافقة الموارد البشرية', 'موافقة', 'الموارد البشرية'],
+      ['إشعار الموظف بالنتيجة', 'إشعار', 'الموظف'],
+    ]);
+    wf('اعتماد المصروفات', 'طلب مصروف', 'اعتماد المصروفات والسلف المالية', 1, 64, [
+      ['موافقة المدير المباشر', 'موافقة', 'المدير المباشر'],
+      ['موافقة المالية', 'موافقة', 'الإدارة المالية'],
+    ]);
+    wf('تهيئة الموظف الجديد', 'تعيين موظف', 'أتمتة مهام تهيئة الموظفين الجدد', 1, 12, [
+      ['إسناد مهام التهيئة', 'إسناد مهمة', 'الموارد البشرية'],
+      ['تجهيز الحسابات والأجهزة', 'إسناد مهمة', 'تقنية المعلومات'],
+      ['إشعار المدير المباشر', 'إشعار', 'المدير المباشر'],
+    ]);
+    wf('إجراءات إنهاء الخدمة', 'إنهاء خدمة', 'مسار إنهاء الخدمة والمخالصة', 0, 5, [
+      ['استرجاع العهد والأجهزة', 'إسناد مهمة', 'تقنية المعلومات'],
+      ['المخالصة المالية', 'موافقة', 'الإدارة المالية'],
+      ['تحديث حالة الموظف', 'تحديث حالة', 'الموارد البشرية'],
+    ]);
+    console.log('✅ Workflows seeded');
+  }
+
   // Organization settings (defaults)
   if (isEmpty('org_settings')) {
     db.prepare('INSERT INTO org_settings (id) VALUES (1)').run();

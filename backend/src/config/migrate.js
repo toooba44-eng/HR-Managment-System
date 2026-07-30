@@ -481,6 +481,30 @@ const migrations = [
     FOREIGN KEY (onboarding_id) REFERENCES onboarding(id) ON DELETE CASCADE
   )`,
 
+  // Automation workflows + steps
+  `CREATE TABLE IF NOT EXISTS workflows (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    trigger_event TEXT NOT NULL DEFAULT 'طلب إجازة' CHECK(trigger_event IN ('طلب إجازة', 'طلب مصروف', 'تعيين موظف', 'إنهاء خدمة', 'طلب مستند', 'تقييم أداء', 'طلب عام')),
+    description TEXT,
+    is_active INTEGER DEFAULT 1,
+    runs_count INTEGER DEFAULT 0,
+    created_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS workflow_steps (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    workflow_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    action_type TEXT DEFAULT 'موافقة' CHECK(action_type IN ('موافقة', 'إشعار', 'إسناد مهمة', 'تحديث حالة')),
+    assignee TEXT DEFAULT 'المدير المباشر',
+    step_order INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (workflow_id) REFERENCES workflows(id) ON DELETE CASCADE
+  )`,
+
   // Organization settings (single row)
   `CREATE TABLE IF NOT EXISTS org_settings (
     id INTEGER PRIMARY KEY CHECK(id = 1),
