@@ -334,6 +334,81 @@ export const mockDashboardApi = {
       .filter((l) => l.status === 'موافقة' && l.start_date >= today())
       .map((l) => ({ ...l, full_name: empName(l.employee_id), profile_picture: null, department_name: deptName(employees.find((e) => e.id === l.employee_id)?.department_id) }))
   },
+  async hrOverview() {
+    await delay()
+    const day = today()
+    const now = new Date()
+    const active = employees.filter((e) => e.status === 'نشط')
+    const daysSince = (d) => (d ? Math.floor((now - new Date(d)) / 86400000) : 99999)
+    const total = employees.length
+    const leavers = employees.filter((e) => ['مستقيل', 'مفصول'].includes(e.status)).length
+    const groupBy = (arr, fn) => {
+      const m = {}
+      for (const x of arr) { const k = fn(x); if (k == null) continue; m[k] = (m[k] || 0) + 1 }
+      return m
+    }
+    const toArr = (obj, extra = {}) => Object.entries(obj).map(([name, count]) => ({ name, count, ...(extra[name] || {}) }))
+    const femaleMS = ['عزباء', 'متزوجة', 'مطلقة', 'أرملة']
+    const ageBucket = (dob) => {
+      if (!dob) return null
+      const a = now.getFullYear() - new Date(dob).getFullYear()
+      return a < 30 ? 'أقل من 30' : a < 40 ? '30-39' : a < 50 ? '40-49' : '50+'
+    }
+    const todayRecs = attendance.filter((a) => a.date === day)
+    const attSum = (s) => todayRecs.filter((a) => a.status === s).length
+    const curMonth = String(now.getMonth() + 1).padStart(2, '0')
+
+    const pendingLeaves = leaves.filter((l) => l.status === 'معلقة').length
+    const pendingRequests = (typeof requests !== 'undefined' ? requests : []).filter((r) => r.status === 'معلق').length
+    const pendingExpenses = (typeof expenses !== 'undefined' ? expenses : []).filter((x) => x.status === 'معلقة').length
+    const expiringDocs = (typeof documents !== 'undefined' ? documents : []).filter((d) => d.expiry_date && daysSince(d.expiry_date) <= 0 && daysSince(d.expiry_date) >= -30).length
+    const openJobs = (typeof jobs !== 'undefined' ? jobs : []).filter((j) => j.status === 'مفتوحة').length
+    const todayInterviews = (typeof interviews !== 'undefined' ? interviews : []).filter((i) => String(i.scheduled_at || '').slice(0, 10) === day && i.status === 'مجدولة').length
+    const overdueReviews = (typeof goals !== 'undefined' ? goals : []).filter((g) => g.target_date && g.target_date < day && g.status !== 'مكتملة').length
+
+    const trend = []
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      trend.push({ month: ym, hired: employees.filter((e) => String(e.hire_date || '').slice(0, 7) === ym).length, resigned: 0 })
+    }
+
+    const deptColors = {}
+    departments.forEach((d) => { deptColors[d.name] = { color: d.color } })
+    const pendingApprovals = pendingLeaves + pendingRequests + pendingExpenses
+    const alerts = []
+    if (expiringDocs > 0) alerts.push({ severity: 'تحذير', text: `${expiringDocs} مستند/هوية قارب على الانتهاء` })
+    if (pendingApprovals > 0) alerts.push({ severity: 'معلومة', text: `${pendingApprovals} طلب بانتظار الموافقة` })
+    if (overdueReviews > 0) alerts.push({ severity: 'تحذير', text: `${overdueReviews} تقييم أداء متأخر` })
+    if (attSum('غائب') > 0) alerts.push({ severity: 'معلومة', text: `${attSum('غائب')} موظف غائب اليوم` })
+
+    return {
+      workforce: {
+        total, active: active.length,
+        onLeave: employees.filter((e) => e.status === 'إجازة').length,
+        leavers,
+        newHires30: employees.filter((e) => daysSince(e.hire_date) <= 30).length,
+        newHires90: employees.filter((e) => daysSince(e.hire_date) <= 90).length,
+        probation: active.filter((e) => daysSince(e.hire_date) <= 90).length,
+        turnover: total ? Math.round((leavers / total) * 1000) / 10 : 0,
+      },
+      attendanceToday: { present: attSum('حاضر'), late: attSum('تأخر'), absent: attSum('غائب'), remote: attSum('عمل عن بعد'), onLeave: employees.filter((e) => e.status === 'إجازة').length },
+      actions: { pendingApprovals, pendingLeaves, pendingRequests, pendingExpenses, expiringContracts: 0, expiringDocs, openJobs, todayInterviews, overdueReviews },
+      celebrations: {
+        birthdays: active.filter((e) => String(e.date_of_birth || '').slice(5, 7) === curMonth).map((e) => ({ full_name: e.full_name, profile_picture: null, date_of_birth: e.date_of_birth })),
+        anniversaries: active.filter((e) => String(e.hire_date || '').slice(5, 7) === curMonth && daysSince(e.hire_date) > 330).map((e) => ({ full_name: e.full_name, profile_picture: null, hire_date: e.hire_date, years: now.getFullYear() - new Date(e.hire_date).getFullYear() })),
+      },
+      distributions: {
+        byDepartment: departments.map((d) => ({ name: d.name, color: d.color, count: active.filter((e) => e.department_id === d.id).length })).filter((x) => x.count > 0),
+        byNationality: toArr(groupBy(active, (e) => e.nationality)),
+        byGender: toArr(groupBy(active, (e) => (femaleMS.includes(e.marital_status) ? 'أنثى' : 'ذكر'))),
+        byAge: toArr(groupBy(active, (e) => ageBucket(e.date_of_birth))),
+        byType: toArr(groupBy(active, (e) => e.employment_type)),
+      },
+      trend,
+      alerts,
+    }
+  },
 }
 
 export const mockEmployeesApi = {
