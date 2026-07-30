@@ -126,6 +126,16 @@ const realCompaniesApi = {
   remove: (id) => api.delete(`/companies/${id}`).then((r) => r.data),
 }
 
+// ---------- Platform control (super admin) ----------
+const realPlatformApi = {
+  requests: () => api.get('/platform/requests').then((r) => r.data),
+  setRequestStatus: (id, status) => api.put(`/platform/requests/${id}/status`, { status }).then((r) => r.data),
+  removeRequest: (id) => api.delete(`/platform/requests/${id}`).then((r) => r.data),
+  modules: (companyId) => api.get('/platform/modules', { params: { company_id: companyId } }).then((r) => r.data),
+  setModule: (company_id, module_key, enabled) => api.put('/platform/modules', { company_id, module_key, enabled }).then((r) => r.data),
+  setLimits: (companyId, data) => api.put(`/platform/limits/${companyId}`, data).then((r) => r.data),
+}
+
 // ---------- Billing (super admin) ----------
 const realBillingApi = {
   list: (params) => api.get('/billing', { params }).then((r) => r.data),
@@ -364,6 +374,7 @@ export const jobsApi = DEMO ? mock.mockJobsApi : realJobsApi
 export const applicationsApi = DEMO ? mock.mockApplicationsApi : realApplicationsApi
 export const companiesApi = DEMO ? mock.mockCompaniesApi : realCompaniesApi
 export const billingApi = DEMO ? mock.mockBillingApi : realBillingApi
+export const platformApi = DEMO ? mock.mockPlatformApi : realPlatformApi
 export const expensesApi = DEMO ? mock.mockExpensesApi : realExpensesApi
 export const assetsApi = DEMO ? mock.mockAssetsApi : realAssetsApi
 export const goalsApi = DEMO ? mock.mockGoalsApi : realGoalsApi

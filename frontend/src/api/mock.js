@@ -930,6 +930,69 @@ export const mockBillingApi = {
   },
 }
 
+let subReqSeq = 1
+const subscriptionRequests = [
+  { id: subReqSeq++, company_id: 2, type: 'ترقية', requested_plan: 'مؤسسية', reason: 'نمو عدد الموظفين وحاجة لتكاملات API', status: 'معلق', created_at: nowIso() },
+  { id: subReqSeq++, company_id: 3, type: 'ترقية', requested_plan: 'احترافية', reason: 'الحاجة لوحدة الرواتب والتقارير', status: 'معلق', created_at: nowIso() },
+  { id: subReqSeq++, company_id: 4, type: 'إلغاء', requested_plan: null, reason: 'إعادة هيكلة داخلية', status: 'معلق', created_at: nowIso() },
+  { id: subReqSeq++, company_id: 1, type: 'ترقية', requested_plan: 'مؤسسية', reason: 'تجديد الباقة', status: 'موافق عليه', created_at: nowIso() },
+]
+const PLATFORM_MODULES = [
+  { key: 'recruitment', label: 'التوظيف والتعيين' },
+  { key: 'attendance', label: 'الحضور والانصراف' },
+  { key: 'payroll', label: 'الرواتب والتعويضات' },
+  { key: 'performance', label: 'الأداء والتطوير' },
+  { key: 'training', label: 'التدريب' },
+  { key: 'documents', label: 'المستندات' },
+  { key: 'automation', label: 'الأتمتة وسير العمل' },
+  { key: 'integrations', label: 'التكاملات' },
+]
+const companyModuleState = {} // { [companyId]: { [key]: 0|1 } }
+const reqStatusOrder = { معلق: 1, 'موافق عليه': 2, مرفوض: 3 }
+const compName = (id) => companies.find((c) => c.id === Number(id))?.name || null
+
+export const mockPlatformApi = {
+  async requests() {
+    await delay()
+    const list = [...subscriptionRequests]
+      .sort((a, b) => reqStatusOrder[a.status] - reqStatusOrder[b.status] || b.id - a.id)
+      .map((r) => ({ ...r, company_name: compName(r.company_id), current_plan: companies.find((c) => c.id === r.company_id)?.plan || null }))
+    const summary = list.reduce((s, r) => { s.total += 1; if (r.status === 'معلق') s.pending += 1; if (r.type === 'إلغاء') s.cancellations += 1; return s }, { total: 0, pending: 0, cancellations: 0 })
+    return { requests: list, summary }
+  },
+  async setRequestStatus(id, status) {
+    await delay()
+    const r = subscriptionRequests.find((x) => x.id === Number(id))
+    if (!r) throw notFound()
+    r.status = status
+    if (status === 'موافق عليه') {
+      const c = companies.find((x) => x.id === r.company_id)
+      if (c) { if (r.type === 'إلغاء') c.status = 'معلّقة'; else if (r.requested_plan) c.plan = r.requested_plan }
+    }
+    return { message: 'تم' }
+  },
+  async removeRequest(id) { await delay(); const i = subscriptionRequests.findIndex((x) => x.id === Number(id)); if (i > -1) subscriptionRequests.splice(i, 1); return { message: 'تم الحذف' } },
+  async modules(companyId) {
+    await delay()
+    const state = companyModuleState[companyId] || {}
+    return { modules: PLATFORM_MODULES.map((m) => ({ ...m, enabled: state[m.key] !== undefined ? state[m.key] : 1 })) }
+  },
+  async setModule(company_id, module_key, enabled) {
+    await delay()
+    companyModuleState[company_id] = companyModuleState[company_id] || {}
+    companyModuleState[company_id][module_key] = enabled ? 1 : 0
+    return { message: 'تم' }
+  },
+  async setLimits(companyId, data) {
+    await delay()
+    const c = companies.find((x) => x.id === Number(companyId))
+    if (!c) throw notFound()
+    if (data.users_limit != null) c.users_limit = parseInt(data.users_limit, 10)
+    if (data.storage_limit_gb != null) c.storage_limit_gb = parseInt(data.storage_limit_gb, 10)
+    return { message: 'تم' }
+  },
+}
+
 export const mockExpensesApi = {
   async list({ type = '', status = '' } = {}) {
     await delay()

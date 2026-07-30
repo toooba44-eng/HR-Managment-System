@@ -534,6 +534,28 @@ const migrations = [
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`,
 
+  // Platform: subscription change requests
+  `CREATE TABLE IF NOT EXISTS subscription_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    company_id INTEGER NOT NULL,
+    type TEXT DEFAULT 'ترقية' CHECK(type IN ('ترقية', 'تخفيض', 'إلغاء')),
+    requested_plan TEXT,
+    reason TEXT,
+    status TEXT DEFAULT 'معلق' CHECK(status IN ('معلق', 'موافق عليه', 'مرفوض')),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+  )`,
+
+  // Platform: per-company module toggles
+  `CREATE TABLE IF NOT EXISTS company_modules (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    company_id INTEGER NOT NULL,
+    module_key TEXT NOT NULL,
+    enabled INTEGER DEFAULT 1,
+    UNIQUE(company_id, module_key),
+    FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+  )`,
+
   // Candidate professional profile (keyed by account email)
   `CREATE TABLE IF NOT EXISTS candidate_profiles (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
