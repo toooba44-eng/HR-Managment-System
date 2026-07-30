@@ -473,6 +473,43 @@ function seedData() {
     console.log('✅ Candidate profile seeded');
   }
 
+  // Candidate journey: interviews, documents, forms, offer, messages
+  const CAND = 'candidate@quant.com';
+  if (isEmpty('candidate_interviews')) {
+    const ins = db.prepare(`INSERT INTO candidate_interviews (email, job_title, scheduled_at, mode, stage, status, location, meeting_link, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    ins.run(CAND, 'مطوّر واجهات أمامية', addDaysStr(2), 'فيديو', 'فنية', 'مجدولة', null, 'https://meet.quant-hr.com/iv-2201', 'يرجى الحضور قبل الموعد بـ 10 دقائق');
+    ins.run(CAND, 'مطوّر واجهات أمامية', addDaysStr(5), 'حضوري', 'نهائية', 'مجدولة', 'المقر الرئيسي - الرياض', null, 'مقابلة مع مدير التقنية');
+    ins.run(CAND, 'مطوّر واجهات أمامية', addDaysStr(-4), 'هاتفي', 'مبدئية', 'مكتملة', null, null, 'مقابلة فرز أولية');
+    console.log('✅ Candidate interviews seeded');
+  }
+  if (isEmpty('candidate_documents')) {
+    const ins = db.prepare(`INSERT INTO candidate_documents (email, title, doc_type, status, file_name, uploaded_at) VALUES (?, ?, ?, ?, ?, ?)`);
+    ins.run(CAND, 'صورة الهوية الوطنية', 'هوية', 'مرفوع', 'id.pdf', addDaysStr(-2));
+    ins.run(CAND, 'الشهادة الجامعية', 'شهادة', 'مطلوب', null, null);
+    ins.run(CAND, 'شهادات الخبرة', 'شهادة', 'مطلوب', null, null);
+    ins.run(CAND, 'صورة شخصية', 'صورة', 'مرفوع', 'photo.jpg', addDaysStr(-2));
+    console.log('✅ Candidate documents seeded');
+  }
+  if (isEmpty('candidate_forms')) {
+    const ins = db.prepare(`INSERT INTO candidate_forms (email, title, description, status, submitted_at) VALUES (?, ?, ?, ?, ?)`);
+    ins.run(CAND, 'نموذج البيانات الشخصية', 'استكمال البيانات الشخصية والوظيفية', 'مكتمل', addDaysStr(-3));
+    ins.run(CAND, 'إقرار خلو السوابق', 'إقرار بعدم وجود سوابق جنائية', 'مطلوب', null);
+    ins.run(CAND, 'نموذج المعلومات البنكية', 'بيانات الحساب البنكي لصرف الراتب', 'مطلوب', null);
+    console.log('✅ Candidate forms seeded');
+  }
+  if (isEmpty('job_offers')) {
+    db.prepare(`INSERT INTO job_offers (email, job_title, department, salary, start_date, details, status) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+      .run(CAND, 'مطوّر واجهات أمامية', 'التقنية', 14000, addDaysStr(30), 'عقد دوام كامل، فترة تجربة 3 أشهر، تأمين طبي شامل، 30 يوم إجازة سنوية.', 'معلّق');
+    console.log('✅ Job offer seeded');
+  }
+  if (isEmpty('candidate_messages')) {
+    const ins = db.prepare(`INSERT INTO candidate_messages (email, sender, body) VALUES (?, ?, ?)`);
+    ins.run(CAND, 'hr', 'مرحباً بك! نشكر اهتمامك بالانضمام إلينا. هل لديك أي استفسار؟');
+    ins.run(CAND, 'candidate', 'شكراً لكم، متى موعد المقابلة الفنية؟');
+    ins.run(CAND, 'hr', 'المقابلة الفنية مجدولة خلال يومين عبر الفيديو، ستصلك التفاصيل.');
+    console.log('✅ Candidate messages seeded');
+  }
+
   // Manager: hiring requests
   if (isEmpty('hiring_requests')) {
     const ins = db.prepare(`INSERT INTO hiring_requests (requested_by, department_id, job_title, headcount, employment_type, urgency, justification, status, reviewed_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);

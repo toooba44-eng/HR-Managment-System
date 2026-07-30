@@ -1947,7 +1947,91 @@ export const mockCandidateApi = {
     return { message: 'تم التحديث', profile: { ...candidateProfile } }
   },
   async setTalentPool(join) { await delay(); candidateProfile.in_talent_pool = join ? 1 : 0; return { message: join ? 'تم الانضمام' : 'تم الإلغاء', in_talent_pool: candidateProfile.in_talent_pool } },
+
+  async interviews({ mode } = {}) {
+    await delay()
+    let rows = candInterviews.slice()
+    if (mode) rows = rows.filter((i) => i.mode === mode)
+    const order = { مجدولة: 1, مكتملة: 2, ملغاة: 3 }
+    return { interviews: rows.sort((a, b) => order[a.status] - order[b.status] || (a.scheduled_at || '').localeCompare(b.scheduled_at || '')) }
+  },
+  async documents() {
+    await delay()
+    const rows = [...candDocuments].sort((a, b) => a.status.localeCompare(b.status) || a.id - b.id)
+    const summary = rows.reduce((s, r) => { s.total += 1; if (r.status === 'مرفوع') s.uploaded += 1; return s }, { total: 0, uploaded: 0 })
+    return { documents: rows, summary }
+  },
+  async updateDocument(id, data) {
+    await delay()
+    const doc = candDocuments.find((x) => x.id === Number(id))
+    if (!doc) throw notFound()
+    const upload = data.status !== 'مطلوب'
+    doc.status = upload ? 'مرفوع' : 'مطلوب'
+    doc.file_name = upload ? (data.file_name || `${doc.title}.pdf`) : null
+    doc.uploaded_at = upload ? nowIso() : null
+    return { message: 'تم' }
+  },
+  async forms() {
+    await delay()
+    const rows = [...candForms].sort((a, b) => a.status.localeCompare(b.status) || a.id - b.id)
+    const summary = rows.reduce((s, r) => { s.total += 1; if (r.status === 'مكتمل') s.completed += 1; return s }, { total: 0, completed: 0 })
+    return { forms: rows, summary }
+  },
+  async submitForm(id, data) {
+    await delay()
+    const form = candForms.find((x) => x.id === Number(id))
+    if (!form) throw notFound()
+    form.status = 'مكتمل'
+    form.response = data?.response || null
+    form.submitted_at = nowIso()
+    return { message: 'تم' }
+  },
+  async offer() { await delay(); return { offer: candOffer.id ? { ...candOffer } : null } },
+  async respondOffer(id, status) {
+    await delay()
+    if (candOffer.id !== Number(id)) throw notFound()
+    if (!['مقبول', 'مرفوض'].includes(status)) throw badReq('حالة غير صالحة')
+    if (candOffer.status !== 'معلّق') throw badReq('تمت الاستجابة مسبقاً')
+    candOffer.status = status
+    candOffer.responded_at = nowIso()
+    return { message: 'تم' }
+  },
+  async messages() { await delay(); return { messages: candMessages.slice() } },
+  async sendMessage(body) {
+    await delay()
+    if (!body) throw badReq('نص الرسالة مطلوب')
+    const m = { id: candMsgSeq++, email: candidateProfile.email, sender: 'candidate', body, created_at: nowIso() }
+    candMessages.push(m)
+    return { message: 'تم', id: m.id }
+  },
 }
+
+let candIvSeq = 1
+const candInterviews = [
+  { id: candIvSeq++, email: candidateProfile.email, job_title: 'مطوّر واجهات أمامية', scheduled_at: addDays(2), mode: 'فيديو', stage: 'فنية', status: 'مجدولة', location: null, meeting_link: 'https://meet.quant-hr.com/iv-2201', notes: 'يرجى الحضور قبل الموعد بـ 10 دقائق' },
+  { id: candIvSeq++, email: candidateProfile.email, job_title: 'مطوّر واجهات أمامية', scheduled_at: addDays(5), mode: 'حضوري', stage: 'نهائية', status: 'مجدولة', location: 'المقر الرئيسي - الرياض', meeting_link: null, notes: 'مقابلة مع مدير التقنية' },
+  { id: candIvSeq++, email: candidateProfile.email, job_title: 'مطوّر واجهات أمامية', scheduled_at: addDays(-4), mode: 'هاتفي', stage: 'مبدئية', status: 'مكتملة', location: null, meeting_link: null, notes: 'مقابلة فرز أولية' },
+]
+let candDocSeq = 1
+const candDocuments = [
+  { id: candDocSeq++, email: candidateProfile.email, title: 'صورة الهوية الوطنية', doc_type: 'هوية', status: 'مرفوع', file_name: 'id.pdf', uploaded_at: addDays(-2) },
+  { id: candDocSeq++, email: candidateProfile.email, title: 'الشهادة الجامعية', doc_type: 'شهادة', status: 'مطلوب', file_name: null, uploaded_at: null },
+  { id: candDocSeq++, email: candidateProfile.email, title: 'شهادات الخبرة', doc_type: 'شهادة', status: 'مطلوب', file_name: null, uploaded_at: null },
+  { id: candDocSeq++, email: candidateProfile.email, title: 'صورة شخصية', doc_type: 'صورة', status: 'مرفوع', file_name: 'photo.jpg', uploaded_at: addDays(-2) },
+]
+let candFormSeq = 1
+const candForms = [
+  { id: candFormSeq++, email: candidateProfile.email, title: 'نموذج البيانات الشخصية', description: 'استكمال البيانات الشخصية والوظيفية', status: 'مكتمل', response: null, submitted_at: addDays(-3) },
+  { id: candFormSeq++, email: candidateProfile.email, title: 'إقرار خلو السوابق', description: 'إقرار بعدم وجود سوابق جنائية', status: 'مطلوب', response: null, submitted_at: null },
+  { id: candFormSeq++, email: candidateProfile.email, title: 'نموذج المعلومات البنكية', description: 'بيانات الحساب البنكي لصرف الراتب', status: 'مطلوب', response: null, submitted_at: null },
+]
+const candOffer = { id: 1, email: candidateProfile.email, job_title: 'مطوّر واجهات أمامية', department: 'التقنية', salary: 14000, start_date: addDays(30), details: 'عقد دوام كامل، فترة تجربة 3 أشهر، تأمين طبي شامل، 30 يوم إجازة سنوية.', status: 'معلّق', responded_at: null }
+let candMsgSeq = 1
+const candMessages = [
+  { id: candMsgSeq++, email: candidateProfile.email, sender: 'hr', body: 'مرحباً بك! نشكر اهتمامك بالانضمام إلينا. هل لديك أي استفسار؟', created_at: addDays(-3) },
+  { id: candMsgSeq++, email: candidateProfile.email, sender: 'candidate', body: 'شكراً لكم، متى موعد المقابلة الفنية؟', created_at: addDays(-3) },
+  { id: candMsgSeq++, email: candidateProfile.email, sender: 'hr', body: 'المقابلة الفنية مجدولة خلال يومين عبر الفيديو، ستصلك التفاصيل.', created_at: addDays(-2) },
+]
 
 function notFound() {
   const e = new Error('Not found')

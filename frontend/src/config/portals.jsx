@@ -56,6 +56,12 @@ import Promotions from '../pages/manager/Promotions'
 import CandidateProfile from '../pages/candidate/Profile'
 import CandidateCV from '../pages/candidate/CV'
 import CandidateTalentPool from '../pages/candidate/TalentPool'
+import CandidateInterview from '../pages/candidate/Interview'
+import CandidateVideo from '../pages/candidate/Video'
+import CandidateForms from '../pages/candidate/Forms'
+import CandidateDocuments from '../pages/candidate/Documents'
+import CandidateOffer from '../pages/candidate/Offer'
+import CandidateContact from '../pages/candidate/Contact'
 import ComingSoon from '../components/ui/ComingSoon'
 
 // Helper for scaffolded (not-yet-built) features
@@ -230,12 +236,12 @@ export const PORTALS = {
       { to: '/cand/cv', label: 'السيرة الذاتية', icon: FileText, element: <CandidateCV /> },
       { to: '/cand/jobs', label: 'تصفح الوظائف', icon: Search, element: <Jobs /> },
       { to: '/cand/applications', label: 'طلباتي', icon: ListChecks, element: <Applications /> },
-      { to: '/cand/interview', label: 'المقابلات', icon: CalendarDays, element: cs('حجز موعد المقابلة', 'حجز ومتابعة مواعيد المقابلات', CalendarDays) },
-      { to: '/cand/video', label: 'مقابلة فيديو', icon: Video, element: cs('مقابلة الفيديو', 'إجراء مقابلة عبر الفيديو', Video) },
-      { to: '/cand/forms', label: 'نماذج ما قبل التوظيف', icon: FileSignature, element: cs('نماذج ما قبل التوظيف', 'تعبئة نماذج التوظيف', FileSignature) },
-      { to: '/cand/documents', label: 'المستندات', icon: FileText, element: cs('المستندات المطلوبة', 'رفع المستندات المطلوبة', FileText) },
-      { to: '/cand/offer', label: 'عرض العمل', icon: Send, element: cs('توقيع عرض العمل', 'استلام وتوقيع عرض العمل', Send) },
-      { to: '/cand/contact', label: 'التواصل', icon: MessageSquare, element: cs('التواصل مع التوظيف', 'التواصل مع مسؤول التوظيف', MessageSquare) },
+      { to: '/cand/interview', label: 'المقابلات', icon: CalendarDays, element: <CandidateInterview /> },
+      { to: '/cand/video', label: 'مقابلة فيديو', icon: Video, element: <CandidateVideo /> },
+      { to: '/cand/forms', label: 'نماذج ما قبل التوظيف', icon: FileSignature, element: <CandidateForms /> },
+      { to: '/cand/documents', label: 'المستندات', icon: FileText, element: <CandidateDocuments /> },
+      { to: '/cand/offer', label: 'عرض العمل', icon: Send, element: <CandidateOffer /> },
+      { to: '/cand/contact', label: 'التواصل', icon: MessageSquare, element: <CandidateContact /> },
       { to: '/cand/talent-pool', label: 'قاعدة المواهب', icon: Star, element: <CandidateTalentPool /> },
     ],
   },
