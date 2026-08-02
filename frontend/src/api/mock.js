@@ -173,6 +173,15 @@ const assets = [
   { id: assetSeq++, name: 'طابعة HP LaserJet', category: 'أجهزة مكتبية', serial_number: 'HP-LJ-0007', assigned_to: null, status: 'صيانة', assigned_date: null, notes: 'قيد الصيانة الدورية.' },
 ]
 
+let assetHistorySeq = 1
+const assetHistory = [
+  { id: assetHistorySeq++, asset_id: 1, employee_id: 6, action: 'تخصيص', condition: null, notes: 'تسليم عند الالتحاق بفريق التطوير.', performed_by: 5, created_at: addDays(-120) },
+  { id: assetHistorySeq++, asset_id: 3, employee_id: 4, action: 'تخصيص', condition: null, notes: 'تسليم لمندوب المبيعات.', performed_by: 5, created_at: addDays(-60) },
+  { id: assetHistorySeq++, asset_id: 5, employee_id: null, action: 'صيانة', condition: null, notes: 'انحشار ورق متكرر — أُرسلت للصيانة الدورية.', performed_by: 5, created_at: addDays(-3) },
+]
+const ASSET_HISTORY_ACTIONS = ['تخصيص', 'إرجاع', 'صيانة', 'إتلاف']
+const ASSET_CONDITIONS = ['ممتازة', 'جيدة', 'متوسطة', 'تالفة']
+
 let goalSeq = 1
 const goals = [
   { id: goalSeq++, employee_id: 6, title: 'إطلاق الوحدة الجديدة', description: 'إنهاء وإطلاق وحدة التقارير قبل نهاية الربع.', weight: 40, progress: 60, target_date: addDays(30), status: 'قيد التنفيذ', created_by: 2 },
@@ -1595,7 +1604,7 @@ export const mockAssetsApi = {
     }
     if (status) rows = rows.filter((a) => a.status === status)
     if (category) rows = rows.filter((a) => a.category === category)
-    const list = rows.map((a) => ({ ...a, assigned_to_name: empName(a.assigned_to) }))
+    const list = rows.map((a) => ({ ...a, assigned_to_name: empName(a.assigned_to), history_count: assetHistory.filter((h) => h.asset_id === a.id).length }))
     const summary = {
       total: list.length,
       assigned: list.filter((a) => a.status === 'مُخصّص').length,
@@ -1613,12 +1622,28 @@ export const mockAssetsApi = {
   async update(id, data) {
     await delay()
     const a = assets.find((x) => x.id === Number(id))
-    if (a) {
-      Object.assign(a, data)
-      if (data.assigned_to !== undefined) {
-        if (data.assigned_to) { a.status = 'مُخصّص'; a.assigned_date = a.assigned_date || addDays(0) }
-        else { if (a.status === 'مُخصّص') a.status = 'متاح'; a.assigned_date = null }
-      }
+    if (!a) return { message: 'تم التحديث' }
+    if (data.return_condition !== undefined && data.return_condition !== null && !ASSET_CONDITIONS.includes(data.return_condition)) {
+      throw badReq('حالة غير صالحة')
+    }
+    const prevAssigned = a.assigned_to
+    const prevStatus = a.status
+    const u = currentUser()
+    Object.assign(a, data)
+    if (data.assigned_to !== undefined) {
+      if (data.assigned_to) { a.status = 'مُخصّص'; a.assigned_date = a.assigned_date || addDays(0) }
+      else { if (prevStatus === 'مُخصّص') a.status = 'متاح'; a.assigned_date = null }
+    }
+    if (data.assigned_to !== undefined && a.assigned_to && a.assigned_to !== prevAssigned) {
+      assetHistory.unshift({ id: assetHistorySeq++, asset_id: a.id, employee_id: a.assigned_to, action: 'تخصيص', condition: null, notes: data.history_notes || null, performed_by: u?.employee_id || 5, created_at: nowIso() })
+    } else if (data.assigned_to !== undefined && !a.assigned_to && prevAssigned) {
+      assetHistory.unshift({ id: assetHistorySeq++, asset_id: a.id, employee_id: prevAssigned, action: 'إرجاع', condition: data.return_condition || null, notes: data.history_notes || null, performed_by: u?.employee_id || 5, created_at: nowIso() })
+    }
+    if (data.status === 'صيانة' && prevStatus !== 'صيانة') {
+      assetHistory.unshift({ id: assetHistorySeq++, asset_id: a.id, employee_id: prevAssigned, action: 'صيانة', condition: null, notes: data.history_notes || null, performed_by: u?.employee_id || 5, created_at: nowIso() })
+    }
+    if (data.status === 'مُتلف' && prevStatus !== 'مُتلف') {
+      assetHistory.unshift({ id: assetHistorySeq++, asset_id: a.id, employee_id: prevAssigned, action: 'إتلاف', condition: data.return_condition || 'تالفة', notes: data.history_notes || null, performed_by: u?.employee_id || 5, created_at: nowIso() })
     }
     return { message: 'تم التحديث' }
   },
@@ -1627,6 +1652,28 @@ export const mockAssetsApi = {
     const i = assets.findIndex((x) => x.id === Number(id))
     if (i > -1) assets.splice(i, 1)
     return { message: 'تم الحذف' }
+  },
+  async history(id) {
+    await delay()
+    const asset = assets.find((x) => x.id === Number(id))
+    if (!asset) throw notFound()
+    const u = currentUser()
+    if (u && !['admin', 'hr_manager', 'super_admin'].includes(u.role)) {
+      const wasInvolved = assetHistory.some((h) => h.asset_id === Number(id) && h.employee_id === u.employee_id)
+      if (asset.assigned_to !== u.employee_id && !wasInvolved) { const e = new Error('bad'); e.response = { status: 403, data: { error: 'غير مسموح' } }; throw e }
+    }
+    return assetHistory.filter((h) => h.asset_id === Number(id))
+      .map((h) => ({ ...h, employee_name: empName(h.employee_id), performed_by_name: empName(h.performed_by) }))
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+  },
+  async addHistory(id, data) {
+    await delay()
+    const asset = assets.find((x) => x.id === Number(id))
+    if (!asset) throw notFound()
+    if (!ASSET_HISTORY_ACTIONS.includes(data.action)) throw badReq('إجراء غير صالح')
+    if (data.condition && !ASSET_CONDITIONS.includes(data.condition)) throw badReq('حالة غير صالحة')
+    assetHistory.unshift({ id: assetHistorySeq++, asset_id: Number(id), employee_id: asset.assigned_to, action: data.action, condition: data.condition || null, notes: data.notes || null, performed_by: currentUser()?.employee_id || 5, created_at: nowIso() })
+    return { message: 'تم' }
   },
 }
 

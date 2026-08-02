@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { Package, Plus, Pencil, Trash2, UserCheck, UserX } from 'lucide-react'
+import { Package, Plus, Pencil, Trash2, UserCheck, UserX, History, Wrench } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { assetsApi, employeesApi } from '../../api/endpoints'
 import { useAuthStore } from '../../store/authStore'
@@ -10,9 +10,11 @@ import Modal from '../../components/ui/Modal'
 import Badge from '../../components/ui/Badge'
 import StatCard from '../../components/ui/StatCard'
 import { Field, Input, Textarea, Select, Button } from '../../components/ui/Form'
-import { formatDate } from '../../lib/utils'
+import { formatDate, formatDateTime } from '../../lib/utils'
 
 const MANAGE = ['admin', 'hr_manager', 'super_admin']
+const CONDITIONS = ['ممتازة', 'جيدة', 'متوسطة', 'تالفة']
+const ACTION_TONE = { تخصيص: 'bg-blue-50 text-blue-600', إرجاع: 'bg-slate-100 text-slate-600', صيانة: 'bg-amber-50 text-amber-600', إتلاف: 'bg-rose-50 text-rose-600' }
 
 function AssetForm({ open, onClose, editing }) {
   const qc = useQueryClient()
@@ -44,9 +46,11 @@ function AssignModal({ asset, onClose }) {
   const qc = useQueryClient()
   const { data: emps } = useQuery('employees-for-assets', () => employeesApi.list({ limit: 100 }))
   const [empId, setEmpId] = useState('')
-  const mutation = useMutation((assigned_to) => assetsApi.update(asset.id, { assigned_to }), {
+  const [returnCondition, setReturnCondition] = useState('جيدة')
+  const [historyNotes, setHistoryNotes] = useState('')
+  const mutation = useMutation((body) => assetsApi.update(asset.id, body), {
     onSuccess: () => { toast.success('تم تحديث التخصيص'); qc.invalidateQueries('assets'); onClose() },
-    onError: () => toast.error('فشل التخصيص'),
+    onError: (e) => toast.error(e.response?.data?.error || 'فشل التخصيص'),
   })
   const employees = emps?.employees || []
   return (
@@ -58,14 +62,93 @@ function AssignModal({ asset, onClose }) {
             {employees.map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}
           </Select>
         </Field>
+        {asset.assigned_to_name && (
+          <Field label="حالة الأصل عند الإرجاع">
+            <Select value={returnCondition} onChange={(e) => setReturnCondition(e.target.value)}>
+              {CONDITIONS.map((c) => <option key={c}>{c}</option>)}
+            </Select>
+          </Field>
+        )}
+        <Field label="ملاحظات"><Input value={historyNotes} onChange={(e) => setHistoryNotes(e.target.value)} /></Field>
         <div className="flex justify-between gap-3 pt-2">
-          <Button type="button" variant="secondary" onClick={() => mutation.mutate(null)} className="text-rose-500 border-rose-200">
+          <Button type="button" variant="secondary" onClick={() => mutation.mutate({ assigned_to: null, return_condition: returnCondition, history_notes: historyNotes })} className="text-rose-500 border-rose-200">
             <UserX className="w-4 h-4" /> إلغاء التخصيص
           </Button>
-          <Button onClick={() => empId && mutation.mutate(Number(empId))} loading={mutation.isLoading}>
+          <Button onClick={() => empId && mutation.mutate({ assigned_to: Number(empId), history_notes: historyNotes })} loading={mutation.isLoading}>
             <UserCheck className="w-4 h-4" /> تخصيص
           </Button>
         </div>
+      </div>
+    </Modal>
+  )
+}
+
+function AddHistoryForm({ assetId, onClose }) {
+  const qc = useQueryClient()
+  const [form, setForm] = useState({ action: 'صيانة', condition: '', notes: '' })
+  const m = useMutation(() => assetsApi.addHistory(assetId, { ...form, condition: form.condition || null }), {
+    onSuccess: () => { toast.success('تمت الإضافة'); qc.invalidateQueries(['asset-history', assetId]); qc.invalidateQueries('assets'); onClose() },
+    onError: (e) => toast.error(e.response?.data?.error || 'فشلت العملية'),
+  })
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); m.mutate() }} className="space-y-3 rounded-xl border border-dashed border-slate-200 p-3">
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="الإجراء">
+          <Select value={form.action} onChange={(e) => setForm((f) => ({ ...f, action: e.target.value }))}>
+            <option value="صيانة">صيانة</option>
+            <option value="إتلاف">إتلاف</option>
+          </Select>
+        </Field>
+        <Field label="الحالة (اختياري)">
+          <Select value={form.condition} onChange={(e) => setForm((f) => ({ ...f, condition: e.target.value }))}>
+            <option value="">— بدون —</option>
+            {CONDITIONS.map((c) => <option key={c}>{c}</option>)}
+          </Select>
+        </Field>
+      </div>
+      <Field label="ملاحظات"><Textarea value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={2} /></Field>
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="secondary" onClick={onClose}>إلغاء</Button>
+        <Button type="submit" loading={m.isLoading}>إضافة</Button>
+      </div>
+    </form>
+  )
+}
+
+function HistoryModal({ asset, canManage, onClose }) {
+  const [adding, setAdding] = useState(false)
+  const { data = [], isLoading } = useQuery(['asset-history', asset.id], () => assetsApi.history(asset.id))
+  return (
+    <Modal open onClose={onClose} title={`سجل العهدة والصيانة — ${asset.name}`}>
+      <div className="space-y-4">
+        {isLoading ? <Spinner /> : data.length === 0 ? (
+          <p className="text-sm text-slate-400 text-center py-4">لا يوجد سجل بعد.</p>
+        ) : (
+          <div className="space-y-2">
+            {data.map((h) => (
+              <div key={h.id} className="flex items-start gap-3 rounded-xl border border-slate-100 p-3">
+                <span className={`badge ${ACTION_TONE[h.action] || 'bg-slate-100 text-slate-600'} shrink-0`}>{h.action}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-slate-700">
+                    {h.employee_name ? h.employee_name : 'بدون موظف'}{h.condition ? ` · الحالة: ${h.condition}` : ''}
+                  </p>
+                  {h.notes && <p className="text-xs text-slate-500 mt-0.5">{h.notes}</p>}
+                  <p className="text-[11px] text-slate-400 mt-1">{formatDateTime(h.created_at)}{h.performed_by_name ? ` · بواسطة ${h.performed_by_name}` : ''}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {canManage && (
+          adding ? (
+            <AddHistoryForm assetId={asset.id} onClose={() => setAdding(false)} />
+          ) : (
+            <button onClick={() => setAdding(true)} className="w-full text-sm py-2 rounded-xl border border-dashed border-slate-200 text-slate-500 hover:bg-slate-50 flex items-center justify-center gap-1.5">
+              <Wrench className="w-4 h-4" /> إضافة حدث صيانة/إتلاف
+            </button>
+          )
+        )}
       </div>
     </Modal>
   )
@@ -78,6 +161,7 @@ export default function Assets() {
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState(null)
   const [assigning, setAssigning] = useState(null)
+  const [viewingHistory, setViewingHistory] = useState(null)
 
   const { data, isLoading } = useQuery('assets', () => assetsApi.list())
   const removeMutation = useMutation((id) => assetsApi.remove(id), {
@@ -118,13 +202,19 @@ export default function Assets() {
                     <p className="text-xs text-slate-400 mt-0.5">{a.category}{a.serial_number ? ` · ${a.serial_number}` : ''}</p>
                   </div>
                 </div>
-                {canManage && (
-                  <div className="flex gap-1 shrink-0">
-                    <button onClick={() => setAssigning(a)} className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-primary-600" title="تخصيص"><UserCheck className="w-4 h-4" /></button>
-                    <button onClick={() => { setEditing(a); setShowForm(true) }} className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-primary-600"><Pencil className="w-4 h-4" /></button>
-                    <button onClick={() => window.confirm('حذف الأصل؟') && removeMutation.mutate(a.id)} className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-rose-500"><Trash2 className="w-4 h-4" /></button>
-                  </div>
-                )}
+                <div className="flex gap-1 shrink-0">
+                  <button onClick={() => setViewingHistory(a)} className="relative w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-primary-600" title="السجل">
+                    <History className="w-4 h-4" />
+                    {a.history_count > 0 && <span className="absolute -top-1 -left-1 w-4 h-4 rounded-full bg-primary-500 text-white text-[9px] flex items-center justify-center">{a.history_count}</span>}
+                  </button>
+                  {canManage && (
+                    <>
+                      <button onClick={() => setAssigning(a)} className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-primary-600" title="تخصيص"><UserCheck className="w-4 h-4" /></button>
+                      <button onClick={() => { setEditing(a); setShowForm(true) }} className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-primary-600"><Pencil className="w-4 h-4" /></button>
+                      <button onClick={() => window.confirm('حذف الأصل؟') && removeMutation.mutate(a.id)} className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-rose-500"><Trash2 className="w-4 h-4" /></button>
+                    </>
+                  )}
+                </div>
               </div>
               <div className="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-500 flex items-center justify-between">
                 <span>{a.assigned_to_name ? `بعهدة: ${a.assigned_to_name}` : 'غير مخصّص'}</span>
@@ -137,6 +227,7 @@ export default function Assets() {
 
       {showForm && <AssetForm open={showForm} onClose={() => setShowForm(false)} editing={editing} />}
       {assigning && <AssignModal asset={assigning} onClose={() => setAssigning(null)} />}
+      {viewingHistory && <HistoryModal asset={viewingHistory} canManage={canManage} onClose={() => setViewingHistory(null)} />}
     </div>
   )
 }
