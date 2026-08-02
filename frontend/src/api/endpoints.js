@@ -290,6 +290,14 @@ const realCompensationApi = {
   history: (id) => api.get(`/compensation/${id}/history`).then((r) => r.data),
 }
 
+// ---------- Raise requests (approval-gated path to a salary increase) ----------
+const realCompensationRequestsApi = {
+  list: (params) => api.get('/compensation-requests', { params }).then((r) => r.data),
+  create: (data) => api.post('/compensation-requests', data).then((r) => r.data),
+  setStatus: (id, status) => api.put(`/compensation-requests/${id}/status`, { status }).then((r) => r.data),
+  remove: (id) => api.delete(`/compensation-requests/${id}`).then((r) => r.data),
+}
+
 // ---------- Talent 9-box grid ----------
 const realTalentGridApi = {
   get: () => api.get('/talent-grid').then((r) => r.data),
@@ -507,6 +515,7 @@ export const incidentsApi = DEMO ? mock.mockIncidentsApi : realIncidentsApi
 export const shiftsApi = DEMO ? mock.mockShiftsApi : realShiftsApi
 export const timesheetsApi = DEMO ? mock.mockTimesheetsApi : realTimesheetsApi
 export const compensationApi = DEMO ? mock.mockCompensationApi : realCompensationApi
+export const compensationRequestsApi = DEMO ? mock.mockCompensationRequestsApi : realCompensationRequestsApi
 export const successionApi = DEMO ? mock.mockSuccessionApi : realSuccessionApi
 export const talentGridApi = DEMO ? mock.mockTalentGridApi : realTalentGridApi
 export const skillsApi = DEMO ? mock.mockSkillsApi : realSkillsApi

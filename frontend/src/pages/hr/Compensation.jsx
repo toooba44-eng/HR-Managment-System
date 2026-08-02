@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { Gift, Plus, Trash2, Pencil, Wallet, Users, ShieldCheck, TrendingUp, History, ArrowUp, ArrowDown } from 'lucide-react'
+import { Gift, Plus, Trash2, Pencil, Wallet, Users, ShieldCheck, TrendingUp, History, ArrowUp, ArrowDown, Send } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { compensationApi, employeesApi } from '../../api/endpoints'
+import { compensationApi, compensationRequestsApi, employeesApi } from '../../api/endpoints'
 import { useAuthStore } from '../../store/authStore'
 import Spinner from '../../components/ui/Spinner'
 import EmptyState from '../../components/ui/EmptyState'
@@ -105,6 +105,40 @@ function HistoryModal({ pkg, onClose }) {
   )
 }
 
+function RaiseRequestModal({ open, onClose }) {
+  const qc = useQueryClient()
+  const { data: emps } = useQuery('employees-all', () => employeesApi.list({ limit: 100 }), { enabled: open })
+  const [form, setForm] = useState({ employee_id: '', requested_base_salary: '', reason: '' })
+  const m = useMutation(
+    () => compensationRequestsApi.create({ ...form, employee_id: Number(form.employee_id), requested_base_salary: Number(form.requested_base_salary) }),
+    {
+      onSuccess: () => { toast.success('تم إرسال الطلب لاعتماد الموارد البشرية'); qc.invalidateQueries('compensation-requests'); onClose() },
+      onError: (e) => toast.error(e.response?.data?.error || 'فشل إرسال الطلب'),
+    }
+  )
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
+  return (
+    <Modal open={open} onClose={onClose} title="طلب زيادة راتب">
+      <form onSubmit={(e) => { e.preventDefault(); m.mutate() }} className="space-y-4">
+        <Field label="الموظف" required>
+          <Select value={form.employee_id} onChange={set('employee_id')} required>
+            <option value="">اختر</option>
+            {(emps?.employees || []).map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}
+          </Select>
+        </Field>
+        <Field label="الراتب الأساسي الجديد" required>
+          <Input type="number" min="0" value={form.requested_base_salary} onChange={set('requested_base_salary')} required />
+        </Field>
+        <Field label="سبب الزيادة"><Textarea value={form.reason} onChange={set('reason')} rows={2} placeholder="أداء متميز، ترقية، تعديل السوق..." /></Field>
+        <div className="flex justify-end gap-3 pt-2">
+          <Button type="button" variant="secondary" onClick={onClose}>إلغاء</Button>
+          <Button type="submit" loading={m.isLoading}><Send className="w-4 h-4" /> إرسال للاعتماد</Button>
+        </div>
+      </form>
+    </Modal>
+  )
+}
+
 export default function Compensation() {
   const qc = useQueryClient()
   const { user } = useAuthStore()
@@ -112,6 +146,7 @@ export default function Compensation() {
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState(null)
   const [viewingHistory, setViewingHistory] = useState(null)
+  const [showRaiseRequest, setShowRaiseRequest] = useState(false)
   const { data, isLoading } = useQuery('compensation', () => compensationApi.list())
   const del = useMutation((id) => compensationApi.remove(id), {
     onSuccess: () => { toast.success('تم الحذف'); qc.invalidateQueries('compensation') },
@@ -136,7 +171,12 @@ export default function Compensation() {
         </div>
       )}
 
-      {canManage && <div className="flex justify-end"><Button onClick={openNew}><Plus className="w-5 h-5" /> حزمة تعويضات</Button></div>}
+      {canManage && (
+        <div className="flex justify-end gap-3">
+          <Button variant="secondary" onClick={() => setShowRaiseRequest(true)}><Send className="w-5 h-5" /> طلب زيادة راتب</Button>
+          <Button onClick={openNew}><Plus className="w-5 h-5" /> حزمة تعويضات</Button>
+        </div>
+      )}
 
       {items.length === 0 ? (
         <div className="card"><EmptyState icon={Gift} title="لا توجد حزم تعويضات" /></div>
@@ -191,6 +231,7 @@ export default function Compensation() {
       )}
       {showForm && <Form open={showForm} onClose={() => setShowForm(false)} editing={editing} />}
       {viewingHistory && <HistoryModal pkg={viewingHistory} onClose={() => setViewingHistory(null)} />}
+      {showRaiseRequest && <RaiseRequestModal open={showRaiseRequest} onClose={() => setShowRaiseRequest(false)} />}
     </div>
   )
 }

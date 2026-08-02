@@ -615,6 +615,29 @@ const migrations = [
     FOREIGN KEY (changed_by) REFERENCES employees(id) ON DELETE SET NULL
   )`,
 
+  // Raise requests — an approval-gated path to a salary increase, distinct
+  // from compensation.js's direct edit: a department head requests one for
+  // review rather than changing the package themselves. Approving it writes
+  // through to the compensation package (and compensation_history, via the
+  // same route logic that already logs real changes there).
+  `CREATE TABLE IF NOT EXISTS compensation_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    compensation_id INTEGER,
+    current_base_salary REAL NOT NULL DEFAULT 0,
+    requested_base_salary REAL NOT NULL,
+    reason TEXT,
+    status TEXT DEFAULT 'معلق' CHECK(status IN ('معلق', 'معتمد', 'مرفوض')),
+    requested_by INTEGER,
+    reviewed_by INTEGER,
+    reviewed_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+    FOREIGN KEY (compensation_id) REFERENCES compensation(id) ON DELETE SET NULL,
+    FOREIGN KEY (requested_by) REFERENCES employees(id) ON DELETE SET NULL,
+    FOREIGN KEY (reviewed_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
   // Payroll runs: a monthly batch that snapshots each active employee's pay
   // figures at creation time, then moves through a review/approval/payment
   // lifecycle. Snapshotting keeps historical runs stable even if an
