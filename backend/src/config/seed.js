@@ -368,6 +368,13 @@ function seedData() {
     }
   }
 
+  // Asset purchase requests
+  if (isEmpty('asset_requests')) {
+    db.prepare(`INSERT INTO asset_requests (employee_id, category, item_name, justification, estimated_cost, requested_by) VALUES (?, ?, ?, ?, ?, ?)`)
+      .run(10, 'أجهزة حاسب', 'لابتوب بمواصفات أعلى', 'الجهاز الحالي بطيء عند تشغيل بيئة التطوير.', 6500, 2);
+    console.log('✅ Asset requests seeded');
+  }
+
   // Performance goals
   if (isEmpty('goals')) {
     const insertGoal = db.prepare(`INSERT INTO goals (employee_id, title, description, weight, progress, target_date, status, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
