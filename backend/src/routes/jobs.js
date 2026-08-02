@@ -53,8 +53,17 @@ router.put('/:id', requireRole(...MANAGE), (req, res, next) => {
   }
 });
 
+// Deletion cascades to every application (and their scorecards) against
+// this job, so a job that already has candidates is protected — close it
+// instead of erasing the recruiting history.
 router.delete('/:id', requireRole(...MANAGE), (req, res, next) => {
   try {
+    const job = db.prepare('SELECT id FROM jobs WHERE id = ?').get(req.params.id);
+    if (!job) return res.status(404).json({ error: 'Not found' });
+    const applicants = db.prepare('SELECT COUNT(*) as c FROM applications WHERE job_id = ?').get(req.params.id).c;
+    if (applicants > 0) {
+      return res.status(400).json({ error: 'لا يمكن حذف وظيفة يوجد لها متقدمون — أغلق الوظيفة بدلاً من ذلك' });
+    }
     db.prepare('DELETE FROM jobs WHERE id = ?').run(req.params.id);
     res.json({ message: 'Job deleted' });
   } catch (err) {

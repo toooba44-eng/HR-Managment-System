@@ -1179,7 +1179,9 @@ export const mockJobsApi = {
   async remove(id) {
     await delay()
     const i = jobs.findIndex((x) => x.id === Number(id))
-    if (i > -1) jobs.splice(i, 1)
+    if (i === -1) throw notFound()
+    if (applications.some((a) => a.job_id === Number(id))) throw badReq('لا يمكن حذف وظيفة يوجد لها متقدمون — أغلق الوظيفة بدلاً من ذلك')
+    jobs.splice(i, 1)
     return { message: 'تم الحذف' }
   },
 }
