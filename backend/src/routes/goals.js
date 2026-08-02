@@ -35,11 +35,15 @@ router.get('/', (req, res, next) => {
         g.created_at DESC
     `).all(...params);
 
+    // avgProgress is weighted by each goal's importance (the "weight" field),
+    // not a flat average — a 100%-complete goal worth 10% of the total
+    // shouldn't count the same as one worth 50%.
+    const totalWeight = rows.reduce((s, g) => s + (g.weight || 100), 0);
     const summary = {
       total: rows.length,
       completed: rows.filter((g) => g.status === 'مكتملة').length,
       inProgress: rows.filter((g) => g.status === 'قيد التنفيذ').length,
-      avgProgress: rows.length ? Math.round(rows.reduce((s, g) => s + (g.progress || 0), 0) / rows.length) : 0,
+      avgProgress: totalWeight ? Math.round(rows.reduce((s, g) => s + (g.progress || 0) * (g.weight || 100), 0) / totalWeight) : 0,
     };
     res.json({ goals: rows, summary });
   } catch (err) {
