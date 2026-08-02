@@ -555,6 +555,7 @@ const migrations = [
     project TEXT NOT NULL,
     task TEXT,
     hours REAL NOT NULL DEFAULT 0,
+    billable INTEGER DEFAULT 1,
     status TEXT DEFAULT 'مسودة' CHECK(status IN ('مسودة', 'مقدّم', 'معتمد', 'مرفوض')),
     approved_by INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -1140,6 +1141,7 @@ function runMigrations() {
     `ALTER TABLE signatures ADD COLUMN countersigned_at DATETIME`,
     `ALTER TABLE grievances ADD COLUMN assigned_to INTEGER REFERENCES employees(id)`,
     `ALTER TABLE surveys ADD COLUMN anonymous INTEGER DEFAULT 0`,
+    `ALTER TABLE timesheets ADD COLUMN billable INTEGER DEFAULT 1`,
   ];
   for (const stmt of columnAdditions) {
     try {
