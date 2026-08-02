@@ -314,6 +314,10 @@ const compensation = [
   { id: compSeq++, employee_id: 10, grade: 'الدرجة الرابعة', base_salary: 9000, housing_allowance: 2500, transport_allowance: 800, other_allowances: 0, bonus: 0, insurance_class: 'الفئة ج', effective_date: addDays(-30), status: 'نشط', notes: null, created_by: 5 },
 ]
 
+let compReqSeq = 1
+const compensationRequests = [
+  { id: compReqSeq++, employee_id: 10, compensation_id: 6, current_base_salary: 9000, requested_base_salary: 10500, reason: 'أداء متميز وزيادة نطاق المسؤوليات خلال الربع الأخير.', status: 'معلق', requested_by: 2, reviewed_by: null, reviewed_at: null, created_at: nowIso() },
+]
 let compHistSeq = 1
 const compensationHistory = [
   { id: compHistSeq++, compensation_id: 5, employee_id: 6, old_total: 15000, new_total: 16500, old_base_salary: 10500, new_base_salary: 12000, reason: 'ترقية سنوية بعد تقييم الأداء.', changed_by: 5, created_at: addDays(-45) },
@@ -2357,6 +2361,73 @@ export const mockCompensationApi = {
     return compensationHistory.filter((h) => h.compensation_id === Number(id))
       .map((h) => ({ ...h, changed_by_name: empName(h.changed_by) }))
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+  },
+}
+
+export const mockCompensationRequestsApi = {
+  async list({ status } = {}) {
+    await delay()
+    let rows = scopeByRole(compensationRequests)
+    if (status) rows = rows.filter((r) => r.status === status)
+    const list = [...rows]
+      .sort((a, b) => (a.status === 'معلق' ? -1 : 1) - (b.status === 'معلق' ? -1 : 1) || b.id - a.id)
+      .map((r) => ({
+        ...r,
+        full_name: empName(r.employee_id),
+        job_title: employees.find((e) => e.id === r.employee_id)?.job_title,
+        profile_picture: null,
+        department_id: employees.find((e) => e.id === r.employee_id)?.department_id,
+        requested_by_name: empName(r.requested_by),
+        reviewed_by_name: empName(r.reviewed_by),
+      }))
+    const summary = { total: list.length, pending: list.filter((r) => r.status === 'معلق').length }
+    return { requests: list, summary }
+  },
+  async create(data) {
+    await delay()
+    const empId = Number(data.employee_id)
+    const amount = Number(data.requested_base_salary)
+    if (!empId) throw badReq('الموظف مطلوب')
+    if (!Number.isFinite(amount) || amount <= 0) throw badReq('الراتب المطلوب غير صالح')
+    const pkg = compensation.find((c) => c.employee_id === empId && c.status === 'نشط')
+    if (pkg && amount <= pkg.base_salary) throw badReq('الراتب المطلوب يجب أن يكون أعلى من الراتب الأساسي الحالي')
+    const r = {
+      id: compReqSeq++, employee_id: empId, compensation_id: pkg ? pkg.id : null,
+      current_base_salary: pkg ? pkg.base_salary : 0, requested_base_salary: amount,
+      reason: data.reason || null, status: 'معلق', requested_by: currentUser()?.employee_id || 5,
+      reviewed_by: null, reviewed_at: null, created_at: nowIso(),
+    }
+    compensationRequests.unshift(r)
+    return { message: 'تم', request: { id: r.id } }
+  },
+  async setStatus(id, status) {
+    await delay()
+    const r = compensationRequests.find((x) => x.id === Number(id))
+    if (!r) throw notFound()
+    r.status = status
+    r.reviewed_by = currentUser()?.employee_id || 5
+    r.reviewed_at = nowIso()
+    if (status === 'معتمد') {
+      const pkg = r.compensation_id ? compensation.find((c) => c.id === r.compensation_id) : null
+      if (pkg) {
+        const oldTotal = compTotal(pkg)
+        const oldBase = pkg.base_salary
+        pkg.base_salary = r.requested_base_salary
+        const newTotal = compTotal(pkg)
+        if (newTotal !== oldTotal) {
+          compensationHistory.unshift({ id: compHistSeq++, compensation_id: pkg.id, employee_id: r.employee_id, old_total: oldTotal, new_total: newTotal, old_base_salary: oldBase, new_base_salary: r.requested_base_salary, reason: r.reason, changed_by: currentUser()?.employee_id || 5, created_at: nowIso() })
+        }
+      } else {
+        compensation.unshift({ id: compSeq++, employee_id: r.employee_id, grade: 'الدرجة الأولى', base_salary: r.requested_base_salary, housing_allowance: 0, transport_allowance: 0, other_allowances: 0, bonus: 0, insurance_class: 'الفئة أ', status: 'نشط', notes: r.reason, created_by: currentUser()?.employee_id || 5 })
+      }
+    }
+    return { message: 'تم' }
+  },
+  async remove(id) {
+    await delay()
+    const i = compensationRequests.findIndex((x) => x.id === Number(id))
+    if (i > -1) compensationRequests.splice(i, 1)
+    return { message: 'تم الحذف' }
   },
 }
 

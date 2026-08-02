@@ -494,13 +494,19 @@ function seedData() {
     ins.run(3, 'الدرجة الأولى', 21000, 5000, 1500, 800, 1500, 'الفئة أ', addDaysStr(-90), 'نشط', 5);
     ins.run(5, 'الدرجة الثانية', 18000, 4000, 1200, 500, 1000, 'الفئة ب', addDaysStr(-60), 'نشط', 5);
     const comp6 = ins.run(6, 'الدرجة الثالثة', 12000, 3000, 1000, 0, 500, 'الفئة ب', addDaysStr(-45), 'نشط', 5).lastInsertRowid;
-    ins.run(10, 'الدرجة الرابعة', 9000, 2500, 800, 0, 0, 'الفئة ج', addDaysStr(-30), 'نشط', 5);
+    const comp10 = ins.run(10, 'الدرجة الرابعة', 9000, 2500, 800, 0, 0, 'الفئة ج', addDaysStr(-30), 'نشط', 5).lastInsertRowid;
     console.log('✅ Compensation seeded');
 
     if (isEmpty('compensation_history')) {
       db.prepare(`INSERT INTO compensation_history (compensation_id, employee_id, old_total, new_total, old_base_salary, new_base_salary, reason, changed_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
         .run(comp6, 6, 15000, 16500, 10500, 12000, 'ترقية سنوية بعد تقييم الأداء.', 5, addDaysStr(-45));
       console.log('✅ Compensation history seeded');
+    }
+
+    if (isEmpty('compensation_requests')) {
+      db.prepare(`INSERT INTO compensation_requests (employee_id, compensation_id, current_base_salary, requested_base_salary, reason, requested_by) VALUES (?, ?, ?, ?, ?, ?)`)
+        .run(10, comp10, 9000, 10500, 'أداء متميز وزيادة نطاق المسؤوليات خلال الربع الأخير.', 2);
+      console.log('✅ Compensation requests seeded');
     }
   }
 
