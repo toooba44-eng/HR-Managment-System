@@ -403,6 +403,8 @@ const realTrainingApi = {
   enroll: (courseId) => api.post(`/training/courses/${courseId}/enroll`).then((r) => r.data),
   enrollments: () => api.get('/training/enrollments').then((r) => r.data),
   setProgress: (enrollmentId, progress) => api.put(`/training/enrollments/${enrollmentId}`, { progress }).then((r) => r.data),
+  certificates: () => api.get('/training/certificates').then((r) => r.data),
+  verifyCertificate: (code) => api.get(`/training/certificates/verify/${code}`).then((r) => r.data),
 }
 
 // ---------- Documents ----------
