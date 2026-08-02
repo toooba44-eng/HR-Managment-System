@@ -307,6 +307,12 @@ const realHelpdeskApi = {
   remove: (id) => api.delete(`/helpdesk/${id}`).then((r) => r.data),
 }
 
+// ---------- Workforce planning ----------
+const realWorkforceApi = {
+  list: (year) => api.get('/workforce', { params: year ? { year } : {} }).then((r) => r.data),
+  setPlan: (departmentId, data) => api.put(`/workforce/${departmentId}`, data).then((r) => r.data),
+}
+
 // ---------- Talent & succession ----------
 const realSuccessionApi = {
   list: (params) => api.get('/succession', { params }).then((r) => r.data),
@@ -472,6 +478,7 @@ export const reportsApi = DEMO ? mock.mockReportsApi : realReportsApi
 export const offboardingApi = DEMO ? mock.mockOffboardingApi : realOffboardingApi
 export const assistantApi = DEMO ? mock.mockAssistantApi : realAssistantApi
 export const helpdeskApi = DEMO ? mock.mockHelpdeskApi : realHelpdeskApi
+export const workforceApi = DEMO ? mock.mockWorkforceApi : realWorkforceApi
 export const grievancesApi = DEMO ? mock.mockGrievancesApi : realGrievancesApi
 export const incidentsApi = DEMO ? mock.mockIncidentsApi : realIncidentsApi
 export const shiftsApi = DEMO ? mock.mockShiftsApi : realShiftsApi

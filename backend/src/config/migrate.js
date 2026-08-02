@@ -28,6 +28,23 @@ const migrations = [
     FOREIGN KEY (parent_department_id) REFERENCES departments(id) ON DELETE SET NULL
   )`,
 
+  // Workforce planning: budgeted headcount per department per year, compared
+  // against actual headcount and open reqs to surface hiring gaps/surplus.
+  `CREATE TABLE IF NOT EXISTS workforce_plans (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    department_id INTEGER NOT NULL,
+    year INTEGER NOT NULL,
+    planned_headcount INTEGER NOT NULL DEFAULT 0,
+    budget REAL DEFAULT 0,
+    notes TEXT,
+    created_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(department_id, year),
+    FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
   // Employees table
   `CREATE TABLE IF NOT EXISTS employees (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
