@@ -44,7 +44,9 @@ router.get('/', (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// Upsert a review for an employee
+// Upsert a review for an employee — logs a history snapshot whenever the
+// 9-box placement (performance x potential) actually moves, so shifts
+// across review cycles stay auditable.
 router.put('/:employeeId', (req, res, next) => {
   try {
     const { performance, potential, notes } = req.body;
@@ -53,13 +55,39 @@ router.put('/:employeeId', (req, res, next) => {
     }
     const emp = db.prepare('SELECT id FROM employees WHERE id = ?').get(req.params.employeeId);
     if (!emp) return res.status(404).json({ error: 'Employee not found' });
+
+    const existing = db.prepare('SELECT performance, potential FROM talent_reviews WHERE employee_id = ?').get(req.params.employeeId);
+    const moved = !existing || existing.performance !== performance || existing.potential !== potential;
+
     db.prepare(`
       INSERT INTO talent_reviews (employee_id, performance, potential, notes, created_by)
       VALUES (?, ?, ?, ?, ?)
       ON CONFLICT(employee_id) DO UPDATE SET performance = excluded.performance,
         potential = excluded.potential, notes = excluded.notes, updated_at = CURRENT_TIMESTAMP
     `).run(req.params.employeeId, performance, potential, notes || null, req.user.employee_id || null);
+
+    if (moved) {
+      db.prepare(`
+        INSERT INTO talent_review_history (employee_id, performance, potential, notes, changed_by)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(req.params.employeeId, performance, potential, notes || null, req.user.employee_id || null);
+    }
+
     res.json({ message: 'Saved' });
+  } catch (err) { next(err); }
+});
+
+// Placement history for one employee (most recent first)
+router.get('/:employeeId/history', (req, res, next) => {
+  try {
+    const rows = db.prepare(`
+      SELECT h.*, e.full_name as changed_by_name
+      FROM talent_review_history h
+      LEFT JOIN employees e ON h.changed_by = e.id
+      WHERE h.employee_id = ?
+      ORDER BY h.created_at DESC
+    `).all(req.params.employeeId);
+    res.json(rows.map((r) => ({ ...r, box: BOXES[`${r.performance}-${r.potential}`] })));
   } catch (err) { next(err); }
 });
 

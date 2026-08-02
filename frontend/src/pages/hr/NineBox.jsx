@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { Grid3x3, Star, AlertTriangle, Users, CheckCircle2 } from 'lucide-react'
+import { Grid3x3, Star, AlertTriangle, Users, CheckCircle2, History } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { talentGridApi } from '../../api/endpoints'
 import Spinner from '../../components/ui/Spinner'
@@ -8,6 +8,7 @@ import Modal from '../../components/ui/Modal'
 import Avatar from '../../components/ui/Avatar'
 import StatCard from '../../components/ui/StatCard'
 import { Field, Input, Button } from '../../components/ui/Form'
+import { formatDate } from '../../lib/utils'
 
 const LEVELS = [{ v: 1, label: 'منخفض' }, { v: 2, label: 'متوسط' }, { v: 3, label: 'عالٍ' }]
 // tone by quadrant: high both = green, low both = rose, mixed = amber/blue
@@ -20,7 +21,30 @@ const cellTone = (perf, pot) => {
   return 'bg-slate-50 border-slate-200'
 }
 
-function ReviewModal({ emp, onClose }) {
+function HistoryModal({ emp, onClose }) {
+  const { data = [], isLoading } = useQuery(['talent-grid-history', emp.id], () => talentGridApi.history(emp.id))
+  return (
+    <Modal open onClose={onClose} title={`سجل تقييم — ${emp.full_name}`}>
+      {isLoading ? <Spinner /> : data.length === 0 ? (
+        <p className="text-sm text-slate-400 text-center py-4">لا يوجد سجل تنقّل بعد.</p>
+      ) : (
+        <div className="space-y-2">
+          {data.map((h) => (
+            <div key={h.id} className="rounded-xl border border-slate-100 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-bold text-slate-800 text-sm">{h.box}</span>
+                <span className="text-[11px] text-slate-400">{h.changed_by_name || 'مستخدم'} · {formatDate(h.created_at)}</span>
+              </div>
+              {h.notes && <p className="text-xs text-slate-500 mt-1.5">{h.notes}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+    </Modal>
+  )
+}
+
+function ReviewModal({ emp, onClose, onShowHistory }) {
   const qc = useQueryClient()
   const [perf, setPerf] = useState(emp.performance || 2)
   const [pot, setPot] = useState(emp.potential || 2)
@@ -48,6 +72,9 @@ function ReviewModal({ emp, onClose }) {
         <Row label="الأداء" value={perf} onChange={setPerf} />
         <Row label="الإمكانات" value={pot} onChange={setPot} />
         <Field label="ملاحظات"><Input value={notes} onChange={(e) => setNotes(e.target.value)} /></Field>
+        <button type="button" onClick={onShowHistory} className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-primary-600">
+          <History className="w-3.5 h-3.5" /> سجل التقييم
+        </button>
         <div className="flex justify-between gap-3 pt-2">
           {emp.performance ? <Button variant="secondary" onClick={() => clear.mutate()} className="text-rose-500">إزالة</Button> : <span />}
           <div className="flex gap-3">
@@ -63,6 +90,7 @@ function ReviewModal({ emp, onClose }) {
 export default function NineBox() {
   const { data, isLoading } = useQuery('talent-grid', () => talentGridApi.get())
   const [editing, setEditing] = useState(null)
+  const [viewingHistory, setViewingHistory] = useState(null)
 
   if (isLoading) return <Spinner fullscreen />
   const emps = data?.employees || []
@@ -126,7 +154,8 @@ export default function NineBox() {
         </div>
       </div>
 
-      {editing && <ReviewModal emp={editing} onClose={() => setEditing(null)} />}
+      {editing && <ReviewModal emp={editing} onClose={() => setEditing(null)} onShowHistory={() => setViewingHistory(editing)} />}
+      {viewingHistory && <HistoryModal emp={viewingHistory} onClose={() => setViewingHistory(null)} />}
     </div>
   )
 }

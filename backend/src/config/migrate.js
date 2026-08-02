@@ -668,6 +668,21 @@ const migrations = [
     FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
   )`,
 
+  // Talent review history — a snapshot logged every time an employee's
+  // 9-box placement actually changes, so movement across review cycles
+  // stays auditable even though talent_reviews only keeps their current cell.
+  `CREATE TABLE IF NOT EXISTS talent_review_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    performance INTEGER NOT NULL,
+    potential INTEGER NOT NULL,
+    notes TEXT,
+    changed_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+    FOREIGN KEY (changed_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
   // Skills / competency matrix: one proficiency rating (1-5) per (employee, skill)
   `CREATE TABLE IF NOT EXISTS employee_skills (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
