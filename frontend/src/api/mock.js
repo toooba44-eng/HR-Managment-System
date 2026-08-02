@@ -292,9 +292,10 @@ const shiftSwapRequests = [
 
 let tsSeq = 1
 const timesheets = [
-  { id: tsSeq++, employee_id: 6, date: addDays(-1), project: 'منصة الموارد البشرية', task: 'تطوير وحدة التقارير', hours: 6, status: 'معتمد', approved_by: 2, created_at: nowIso() },
-  { id: tsSeq++, employee_id: 6, date: addDays(0), project: 'منصة الموارد البشرية', task: 'إصلاح أخطاء', hours: 3, status: 'مقدّم', approved_by: null, created_at: nowIso() },
-  { id: tsSeq++, employee_id: 10, date: addDays(0), project: 'تطبيق الجوال', task: 'تصميم الواجهات', hours: 5, status: 'مسودة', approved_by: null, created_at: nowIso() },
+  { id: tsSeq++, employee_id: 6, date: addDays(-1), project: 'منصة الموارد البشرية', task: 'تطوير وحدة التقارير', hours: 6, billable: 1, status: 'معتمد', approved_by: 2, created_at: nowIso() },
+  { id: tsSeq++, employee_id: 6, date: addDays(0), project: 'منصة الموارد البشرية', task: 'إصلاح أخطاء', hours: 3, billable: 1, status: 'مقدّم', approved_by: null, created_at: nowIso() },
+  { id: tsSeq++, employee_id: 10, date: addDays(0), project: 'تطبيق الجوال', task: 'تصميم الواجهات', hours: 5, billable: 1, status: 'مسودة', approved_by: null, created_at: nowIso() },
+  { id: tsSeq++, employee_id: 6, date: addDays(-2), project: 'داخلي', task: 'اجتماع الفريق الأسبوعي', hours: 1, billable: 0, status: 'معتمد', approved_by: 2, created_at: nowIso() },
 ]
 
 let compSeq = 1
@@ -2196,11 +2197,26 @@ export const mockTimesheetsApi = {
     const so = { 'مقدّم': 1, مسودة: 2, معتمد: 3, مرفوض: 4 }
     const list = [...rows].sort((a, b) => (so[a.status] - so[b.status]) || b.date.localeCompare(a.date))
       .map((t) => ({ ...t, full_name: empName(t.employee_id), job_title: employees.find((e) => e.id === t.employee_id)?.job_title, profile_picture: null, approved_by_name: empName(t.approved_by) }))
-    const summary = list.reduce((s, r) => { s.totalHours += r.hours; if (r.status === 'معتمد') s.approvedHours += r.hours; if (r.status === 'مقدّم') s.pending += 1; return s }, { totalHours: 0, approvedHours: 0, pending: 0, count: list.length })
+    const summary = list.reduce((s, r) => {
+      s.totalHours += r.hours
+      if (r.billable) s.billableHours += r.hours; else s.nonBillableHours += r.hours
+      if (r.status === 'معتمد') s.approvedHours += r.hours
+      if (r.status === 'مقدّم') s.pending += 1
+      return s
+    }, { totalHours: 0, billableHours: 0, nonBillableHours: 0, approvedHours: 0, pending: 0, count: list.length })
     return { timesheets: list, summary }
   },
-  async create(data) { await delay(); const t = { id: tsSeq++, employee_id: currentUser()?.employee_id, status: 'مسودة', approved_by: null, created_at: nowIso(), ...data }; timesheets.unshift(t); return { message: 'تم', timesheet: t } },
+  async create(data) { await delay(); const t = { id: tsSeq++, employee_id: currentUser()?.employee_id, billable: data.billable === false || data.billable === 0 ? 0 : 1, status: 'مسودة', approved_by: null, created_at: nowIso(), ...data }; timesheets.unshift(t); return { message: 'تم', timesheet: t } },
   async submit(id) { await delay(); const t = timesheets.find((x) => x.id === Number(id)); if (t) t.status = 'مقدّم'; return { message: 'تم' } },
+  async submitRange(from, to) {
+    await delay()
+    const u = currentUser()
+    let count = 0
+    for (const t of timesheets) {
+      if (t.employee_id === u?.employee_id && t.status === 'مسودة' && t.date >= from && t.date <= to) { t.status = 'مقدّم'; count += 1 }
+    }
+    return { message: 'تم', count }
+  },
   async review(id, status) { await delay(); const t = timesheets.find((x) => x.id === Number(id)); if (t) { t.status = status; t.approved_by = currentUser()?.employee_id || 5 } return { message: 'تم' } },
   async remove(id) { await delay(); const i = timesheets.findIndex((x) => x.id === Number(id)); if (i > -1) timesheets.splice(i, 1); return { message: 'تم الحذف' } },
 }

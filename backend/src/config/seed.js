@@ -474,10 +474,11 @@ function seedData() {
 
   // Timesheets
   if (isEmpty('timesheets')) {
-    const ins = db.prepare(`INSERT INTO timesheets (employee_id, date, project, task, hours, status, approved_by) VALUES (?, ?, ?, ?, ?, ?, ?)`);
-    ins.run(6, addDaysStr(-1), 'منصة الموارد البشرية', 'تطوير وحدة التقارير', 6, 'معتمد', 2);
-    ins.run(6, addDaysStr(0), 'منصة الموارد البشرية', 'إصلاح أخطاء', 3, 'مقدّم', null);
-    ins.run(10, addDaysStr(0), 'تطبيق الجوال', 'تصميم الواجهات', 5, 'مسودة', null);
+    const ins = db.prepare(`INSERT INTO timesheets (employee_id, date, project, task, hours, billable, status, approved_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+    ins.run(6, addDaysStr(-1), 'منصة الموارد البشرية', 'تطوير وحدة التقارير', 6, 1, 'معتمد', 2);
+    ins.run(6, addDaysStr(0), 'منصة الموارد البشرية', 'إصلاح أخطاء', 3, 1, 'مقدّم', null);
+    ins.run(10, addDaysStr(0), 'تطبيق الجوال', 'تصميم الواجهات', 5, 1, 'مسودة', null);
+    ins.run(6, addDaysStr(-2), 'داخلي', 'اجتماع الفريق الأسبوعي', 1, 0, 'معتمد', 2);
     console.log('✅ Timesheets seeded');
   }
 

@@ -272,6 +272,7 @@ const realTimesheetsApi = {
   list: (params) => api.get('/timesheets', { params }).then((r) => r.data),
   create: (data) => api.post('/timesheets', data).then((r) => r.data),
   submit: (id) => api.put(`/timesheets/${id}/submit`).then((r) => r.data),
+  submitRange: (from, to) => api.put('/timesheets/submit-range', { from, to }).then((r) => r.data),
   review: (id, status) => api.put(`/timesheets/${id}/review`, { status }).then((r) => r.data),
   remove: (id) => api.delete(`/timesheets/${id}`).then((r) => r.data),
 }

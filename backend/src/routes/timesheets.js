@@ -36,10 +36,12 @@ router.get('/', (req, res, next) => {
 
     const summary = rows.reduce((s, r) => {
       s.totalHours += r.hours;
+      if (r.billable) s.billableHours += r.hours;
+      else s.nonBillableHours += r.hours;
       if (r.status === 'معتمد') s.approvedHours += r.hours;
       if (r.status === 'مقدّم') s.pending += 1;
       return s;
-    }, { totalHours: 0, approvedHours: 0, pending: 0, count: rows.length });
+    }, { totalHours: 0, billableHours: 0, nonBillableHours: 0, approvedHours: 0, pending: 0, count: rows.length });
 
     res.json({ timesheets: rows, summary });
   } catch (err) { next(err); }
@@ -48,12 +50,12 @@ router.get('/', (req, res, next) => {
 // Log time (for self)
 router.post('/', (req, res, next) => {
   try {
-    const { date, project, task, hours } = req.body;
+    const { date, project, task, hours, billable } = req.body;
     const employee_id = req.user.employee_id;
     if (!employee_id) return res.status(400).json({ error: 'No employee associated with this account' });
     if (!date || !project || !hours) return res.status(400).json({ error: 'Date, project and hours are required' });
-    const r = db.prepare(`INSERT INTO timesheets (employee_id, date, project, task, hours) VALUES (?, ?, ?, ?, ?)`)
-      .run(employee_id, date, project, task || null, hours);
+    const r = db.prepare(`INSERT INTO timesheets (employee_id, date, project, task, hours, billable) VALUES (?, ?, ?, ?, ?, ?)`)
+      .run(employee_id, date, project, task || null, hours, billable === false || billable === 0 ? 0 : 1);
     res.status(201).json({ message: 'Logged', timesheet: { id: r.lastInsertRowid } });
   } catch (err) { next(err); }
 });
@@ -66,6 +68,22 @@ router.put('/:id/submit', (req, res, next) => {
     if (t.employee_id !== req.user.employee_id) return res.status(403).json({ error: 'Access denied' });
     db.prepare("UPDATE timesheets SET status = 'مقدّم' WHERE id = ?").run(req.params.id);
     res.json({ message: 'Submitted' });
+  } catch (err) { next(err); }
+});
+
+// Submit every draft entry the employee has within a date range in one go
+// (a "submit my week" action instead of one-by-one).
+router.put('/submit-range', (req, res, next) => {
+  try {
+    const employee_id = req.user.employee_id;
+    if (!employee_id) return res.status(400).json({ error: 'No employee associated with this account' });
+    const { from, to } = req.body;
+    if (!from || !to) return res.status(400).json({ error: 'from and to dates are required' });
+    const result = db.prepare(`
+      UPDATE timesheets SET status = 'مقدّم'
+      WHERE employee_id = ? AND status = 'مسودة' AND date >= ? AND date <= ?
+    `).run(employee_id, from, to);
+    res.json({ message: 'Submitted', count: result.changes });
   } catch (err) { next(err); }
 });
 
