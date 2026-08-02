@@ -11,8 +11,32 @@ const STATUSES = ['مسودة', 'قيد المراجعة', 'معتمد', 'مصر
 // deleted while still a draft) — no skipping straight to "مصروف".
 const NEXT_STATUS = { مسودة: 'قيد المراجعة', 'قيد المراجعة': 'معتمد', معتمد: 'مصروف' };
 
+// Builds one pay item from an employee row that's been left-joined against
+// their most recent active compensation package (see queries below). Prefers
+// the itemized package when one exists; falls back to the flat employee
+// salary/allowances fields for employees who never got a formal package.
+function buildPayItem(e) {
+  const hasPackage = e.base_salary != null;
+  const basic = hasPackage ? e.base_salary : (e.salary || 0);
+  const housing_allowance = hasPackage ? e.housing_allowance : 0;
+  const transport_allowance = hasPackage ? e.transport_allowance : 0;
+  const other_allowances = hasPackage ? e.other_allowances : (e.allowances || 0);
+  const bonus = hasPackage ? e.bonus : 0;
+  const allowances = housing_allowance + transport_allowance + other_allowances + bonus;
+  const deductions = Math.round(basic * 0.1);
+  const net = basic + allowances - deductions;
+  return { basic, housing_allowance, transport_allowance, other_allowances, bonus, allowances, deductions, net };
+}
+
+const ACTIVE_COMP_JOIN = `
+  LEFT JOIN compensation c ON c.id = (
+    SELECT id FROM compensation WHERE employee_id = e.id AND status = 'نشط' ORDER BY effective_date DESC, id DESC LIMIT 1
+  )
+`;
+
 // Payroll overview across employees (HR / admins only).
-// Net = basic + allowances − GOSI (10% of basic, simple model).
+// Net = basic + allowances − GOSI (10% of basic, simple model). Uses each
+// employee's active compensation package when one exists.
 router.get('/', requireRole(...MANAGE), (req, res, next) => {
   try {
     const { department_id } = req.query;
@@ -22,20 +46,16 @@ router.get('/', requireRole(...MANAGE), (req, res, next) => {
 
     const rows = db.prepare(`
       SELECT e.id, e.full_name, e.job_title, e.employee_number, e.salary, e.allowances,
-             d.name as department_name
+             d.name as department_name,
+             c.base_salary, c.housing_allowance, c.transport_allowance, c.other_allowances, c.bonus
       FROM employees e
       LEFT JOIN departments d ON e.department_id = d.id
+      ${ACTIVE_COMP_JOIN}
       ${where}
       ORDER BY e.salary DESC
     `).all(...params);
 
-    const payroll = rows.map((r) => {
-      const basic = r.salary || 0;
-      const allowances = r.allowances || 0;
-      const deductions = Math.round(basic * 0.1);
-      const net = basic + allowances - deductions;
-      return { ...r, basic, allowances, deductions, net };
-    });
+    const payroll = rows.map((r) => ({ ...r, ...buildPayItem(r) }));
 
     const totals = payroll.reduce(
       (t, p) => ({
@@ -107,15 +127,16 @@ router.post('/runs', requireRole(...MANAGE), (req, res, next) => {
     const existing = db.prepare('SELECT id FROM payroll_runs WHERE month = ? AND year = ?').get(month, year);
     if (existing) return res.status(400).json({ error: 'يوجد مسير رواتب لهذا الشهر بالفعل' });
 
-    const employees = db.prepare("SELECT id, salary, allowances FROM employees WHERE status = 'نشط'").all();
+    const employees = db.prepare(`
+      SELECT e.id, e.salary, e.allowances,
+             c.base_salary, c.housing_allowance, c.transport_allowance, c.other_allowances, c.bonus
+      FROM employees e
+      ${ACTIVE_COMP_JOIN}
+      WHERE e.status = 'نشط'
+    `).all();
     if (employees.length === 0) return res.status(400).json({ error: 'لا يوجد موظفون نشطون لإنشاء المسير' });
 
-    const items = employees.map((e) => {
-      const basic = e.salary || 0;
-      const allowances = e.allowances || 0;
-      const deductions = Math.round(basic * 0.1);
-      return { employee_id: e.id, basic, allowances, deductions, net: basic + allowances - deductions };
-    });
+    const items = employees.map((e) => ({ employee_id: e.id, ...buildPayItem(e) }));
     const totalNet = items.reduce((s, i) => s + i.net, 0);
 
     const result = db.prepare(`
@@ -125,10 +146,13 @@ router.post('/runs', requireRole(...MANAGE), (req, res, next) => {
 
     const runId = result.lastInsertRowid;
     const insItem = db.prepare(`
-      INSERT INTO payroll_run_items (run_id, employee_id, basic, allowances, deductions, net)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO payroll_run_items
+        (run_id, employee_id, basic, housing_allowance, transport_allowance, other_allowances, bonus, allowances, deductions, net)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    for (const i of items) insItem.run(runId, i.employee_id, i.basic, i.allowances, i.deductions, i.net);
+    for (const i of items) {
+      insItem.run(runId, i.employee_id, i.basic, i.housing_allowance, i.transport_allowance, i.other_allowances, i.bonus, i.allowances, i.deductions, i.net);
+    }
 
     res.status(201).json({ message: 'Created', run: { id: runId } });
   } catch (err) { next(err); }

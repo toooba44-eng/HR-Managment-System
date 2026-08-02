@@ -10,8 +10,9 @@ const AR_MONTHS = [
   'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
 ];
 
-// Generate the last N payslips for an employee from their contract salary.
-// GOSI deduction ~ 10% of basic (Saudi employee share) as a simple model.
+// An employee's payslips are the line items of actual payroll runs that have
+// at least been approved (drafts and runs still under review aren't final,
+// so they're never shown as a payslip).
 router.get('/:employee_id', (req, res, next) => {
   try {
     const employeeId = parseInt(req.params.employee_id, 10);
@@ -23,7 +24,7 @@ router.get('/:employee_id', (req, res, next) => {
     }
 
     const emp = db.prepare(`
-      SELECT id, full_name, employee_number, job_title, salary, allowances, bank_name, bank_account
+      SELECT id, full_name, employee_number, job_title, bank_name, bank_account
       FROM employees WHERE id = ?
     `).get(employeeId);
 
@@ -31,35 +32,33 @@ router.get('/:employee_id', (req, res, next) => {
       return res.status(404).json({ error: 'Employee not found' });
     }
 
-    const basic = emp.salary || 0;
-    const allowances = emp.allowances || 0;
-    const gosi = Math.round(basic * 0.1);
-    const gross = basic + allowances;
-    const net = gross - gosi;
+    const rows = db.prepare(`
+      SELECT i.*, r.month, r.year, r.status as run_status, r.approved_at, r.paid_at
+      FROM payroll_run_items i
+      JOIN payroll_runs r ON i.run_id = r.id
+      WHERE i.employee_id = ? AND r.status IN ('معتمد', 'مصروف')
+      ORDER BY r.year DESC, r.month DESC
+    `).all(employeeId);
 
-    const months = 6;
-    const now = new Date();
-    const payslips = [];
-    for (let i = 0; i < months; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      payslips.push({
-        id: `${d.getFullYear()}-${d.getMonth() + 1}`,
-        month: AR_MONTHS[d.getMonth()],
-        year: d.getFullYear(),
-        basic,
-        allowances,
-        deductions: gosi,
-        gross,
-        net,
-        status: 'مدفوع'
-      });
-    }
+    const payslips = rows.map((r) => ({
+      id: r.run_id,
+      month: AR_MONTHS[r.month - 1],
+      year: r.year,
+      basic: r.basic,
+      housing_allowance: r.housing_allowance,
+      transport_allowance: r.transport_allowance,
+      other_allowances: r.other_allowances,
+      bonus: r.bonus,
+      allowances: r.allowances,
+      deductions: r.deductions,
+      gross: r.basic + r.allowances,
+      net: r.net,
+      status: r.run_status === 'مصروف' ? 'مدفوع' : 'معتمد',
+      paid_at: r.paid_at,
+    }));
 
     res.json({
-      employee: {
-        id: emp.id, full_name: emp.full_name, employee_number: emp.employee_number,
-        job_title: emp.job_title, bank_name: emp.bank_name, bank_account: emp.bank_account
-      },
+      employee: { id: emp.id, full_name: emp.full_name, employee_number: emp.employee_number, job_title: emp.job_title, bank_name: emp.bank_name, bank_account: emp.bank_account },
       payslips
     });
   } catch (err) {

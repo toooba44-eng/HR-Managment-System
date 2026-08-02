@@ -13,9 +13,12 @@ function PayslipDetail({ slip, employee, onClose }) {
   if (!slip) return null
   const rows = [
     { label: 'الراتب الأساسي', value: slip.basic, positive: true },
-    { label: 'البدلات', value: slip.allowances, positive: true },
+    { label: 'بدل السكن', value: slip.housing_allowance, positive: true },
+    { label: 'بدل النقل', value: slip.transport_allowance, positive: true },
+    { label: 'بدلات أخرى', value: slip.other_allowances, positive: true },
+    { label: 'مكافآت', value: slip.bonus, positive: true },
     { label: 'التأمينات (GOSI)', value: -slip.deductions, positive: false },
-  ]
+  ].filter((r) => r.value)
   return (
     <Modal open={!!slip} onClose={onClose} title={`قسيمة راتب — ${slip.month} ${slip.year}`}>
       <div className="space-y-4">
@@ -24,7 +27,7 @@ function PayslipDetail({ slip, employee, onClose }) {
             <p className="font-bold text-slate-800">{employee.full_name}</p>
             <p className="text-slate-400">{employee.job_title} · {employee.employee_number}</p>
           </div>
-          <Badge status="حاضر">{slip.status}</Badge>
+          <Badge status={slip.status} />
         </div>
 
         <div className="rounded-xl border border-slate-100 divide-y divide-slate-50">
