@@ -526,6 +526,27 @@ const migrations = [
     FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
   )`,
 
+  // Shift swap requests: the requester proposes trading their shift with a
+  // colleague's; the colleague must agree first, then a manager/HR
+  // approves, which is what actually exchanges the two shifts' employee_id.
+  `CREATE TABLE IF NOT EXISTS shift_swap_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    requester_id INTEGER NOT NULL,
+    shift_a_id INTEGER NOT NULL,
+    target_id INTEGER NOT NULL,
+    shift_b_id INTEGER NOT NULL,
+    reason TEXT,
+    status TEXT DEFAULT 'بانتظار موافقة الزميل' CHECK(status IN ('بانتظار موافقة الزميل', 'بانتظار اعتماد المدير', 'معتمد', 'مرفوض')),
+    approved_by INTEGER,
+    approved_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (requester_id) REFERENCES employees(id) ON DELETE CASCADE,
+    FOREIGN KEY (target_id) REFERENCES employees(id) ON DELETE CASCADE,
+    FOREIGN KEY (shift_a_id) REFERENCES shifts(id) ON DELETE CASCADE,
+    FOREIGN KEY (shift_b_id) REFERENCES shifts(id) ON DELETE CASCADE,
+    FOREIGN KEY (approved_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
   // Timesheets (project hours)
   `CREATE TABLE IF NOT EXISTS timesheets (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

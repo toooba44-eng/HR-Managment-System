@@ -457,11 +457,19 @@ function seedData() {
   // Shifts
   if (isEmpty('shifts')) {
     const ins = db.prepare(`INSERT INTO shifts (employee_id, date, shift_type, start_time, end_time, location, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)`);
-    ins.run(6, addDaysStr(0), 'صباحية', '08:00', '16:00', 'المقر الرئيسي', 5);
+    const shift1 = ins.run(6, addDaysStr(0), 'صباحية', '08:00', '16:00', 'المقر الرئيسي', 5).lastInsertRowid;
     ins.run(6, addDaysStr(1), 'صباحية', '08:00', '16:00', 'المقر الرئيسي', 5);
     ins.run(10, addDaysStr(0), 'مسائية', '16:00', '00:00', 'فرع جدة', 5);
     ins.run(4, addDaysStr(0), 'صباحية', '09:00', '17:00', 'فرع جدة', 5);
+    const shift2 = ins.run(10, addDaysStr(3), 'مسائية', '16:00', '00:00', 'فرع جدة', 5).lastInsertRowid;
+    const shift3 = ins.run(6, addDaysStr(3), 'صباحية', '08:00', '16:00', 'المقر الرئيسي', 5).lastInsertRowid;
     console.log('✅ Shifts seeded');
+
+    if (isEmpty('shift_swap_requests')) {
+      db.prepare(`INSERT INTO shift_swap_requests (requester_id, shift_a_id, target_id, shift_b_id, reason, status) VALUES (?, ?, ?, ?, ?, ?)`)
+        .run(6, shift3, 10, shift2, 'لدي موعد شخصي في ذلك اليوم وأودّ التبديل.', 'بانتظار موافقة الزميل');
+      console.log('✅ Shift swap requests seeded');
+    }
   }
 
   // Timesheets
