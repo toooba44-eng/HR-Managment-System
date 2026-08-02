@@ -238,6 +238,7 @@ const realOffboardingApi = {
 // ---------- Grievances ----------
 const realGrievancesApi = {
   list: () => api.get('/grievances').then((r) => r.data),
+  mine: () => api.get('/grievances/mine').then((r) => r.data),
   create: (data) => api.post('/grievances', data).then((r) => r.data),
   update: (id, data) => api.put(`/grievances/${id}`, data).then((r) => r.data),
   remove: (id) => api.delete(`/grievances/${id}`).then((r) => r.data),

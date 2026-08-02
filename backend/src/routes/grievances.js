@@ -4,6 +4,26 @@ const { authenticateToken, requireRole } = require('../middleware/auth');
 const router = express.Router();
 
 router.use(authenticateToken);
+
+// Employee self-view: basic status of my own cases (filed complaints or
+// disciplinary matters concerning me) — registered before the HR/admin
+// gate below so it stays open to anyone. Deliberately excludes the
+// confidential investigation notes and severity assessment, exposing only
+// what's needed to track progress: type, category, status, and the final
+// action once resolved.
+router.get('/mine', (req, res, next) => {
+  try {
+    if (!req.user.employee_id) return res.status(400).json({ error: 'No employee associated with this account' });
+    const rows = db.prepare(`
+      SELECT id, type, category, status, action, created_at
+      FROM grievances
+      WHERE employee_id = ?
+      ORDER BY created_at DESC
+    `).all(req.user.employee_id);
+    res.json(rows);
+  } catch (err) { next(err); }
+});
+
 router.use(requireRole('admin', 'hr_manager', 'super_admin'));
 
 router.get('/', (req, res, next) => {
