@@ -238,6 +238,8 @@ const realGrievancesApi = {
   create: (data) => api.post('/grievances', data).then((r) => r.data),
   update: (id, data) => api.put(`/grievances/${id}`, data).then((r) => r.data),
   remove: (id) => api.delete(`/grievances/${id}`).then((r) => r.data),
+  notes: (id) => api.get(`/grievances/${id}/notes`).then((r) => r.data),
+  addNote: (id, note) => api.post(`/grievances/${id}/notes`, { note }).then((r) => r.data),
 }
 
 // ---------- Health & safety incidents ----------

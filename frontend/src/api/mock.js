@@ -252,8 +252,13 @@ function findOffTask(taskId) {
 
 let grvSeq = 1
 const grievances = [
-  { id: grvSeq++, employee_id: 10, type: 'مخالفة', category: 'الالتزام بالدوام', description: 'تأخر متكرر عن موعد الحضور.', severity: 'متوسطة', status: 'قيد المعالجة', action: 'تم توجيه إنذار شفهي.', created_by: 5, created_at: nowIso() },
-  { id: grvSeq++, employee_id: 6, type: 'شكوى', category: 'بيئة العمل', description: 'شكوى بخصوص ضوضاء في مساحة العمل.', severity: 'منخفضة', status: 'مفتوحة', action: null, created_by: 5, created_at: nowIso() },
+  { id: grvSeq++, employee_id: 10, type: 'مخالفة', category: 'الالتزام بالدوام', description: 'تأخر متكرر عن موعد الحضور.', severity: 'متوسطة', status: 'قيد المعالجة', action: 'تم توجيه إنذار شفهي.', assigned_to: 5, created_by: 5, created_at: nowIso() },
+  { id: grvSeq++, employee_id: 6, type: 'شكوى', category: 'بيئة العمل', description: 'شكوى بخصوص ضوضاء في مساحة العمل.', severity: 'منخفضة', status: 'مفتوحة', action: null, assigned_to: null, created_by: 5, created_at: nowIso() },
+]
+let grievanceNoteSeq = 1
+const grievanceNotes = [
+  { id: grievanceNoteSeq++, grievance_id: 1, author_id: 5, note: 'راجعت سجل الحضور — 4 حالات تأخر خلال الشهرين الماضيين.', created_at: addDays(-4) },
+  { id: grievanceNoteSeq++, grievance_id: 1, author_id: 5, note: 'اجتمعت مع الموظف وتم توجيه إنذار شفهي مع متابعة الحضور أسبوعياً.', created_at: addDays(-2) },
 ]
 
 let incSeq = 1
@@ -2014,10 +2019,26 @@ export const mockOffboardingApi = {
 }
 
 export const mockGrievancesApi = {
-  async list() { await delay(); return grievances.map(withEmp) },
-  async create(data) { await delay(); const g = { id: grvSeq++, type: data.type || 'شكوى', category: data.category || 'أخرى', severity: data.severity || 'متوسطة', status: 'مفتوحة', action: null, created_by: currentUser()?.employee_id || 5, created_at: nowIso(), ...data }; grievances.unshift(g); return { message: 'تم', grievance: g } },
+  async list() {
+    await delay()
+    return grievances.map((g) => ({ ...withEmp(g), assigned_to_name: empName(g.assigned_to), notes_count: grievanceNotes.filter((n) => n.grievance_id === g.id).length }))
+  },
+  async create(data) { await delay(); const g = { id: grvSeq++, type: data.type || 'شكوى', category: data.category || 'أخرى', severity: data.severity || 'متوسطة', status: 'مفتوحة', action: null, assigned_to: null, created_by: currentUser()?.employee_id || 5, created_at: nowIso(), ...data }; grievances.unshift(g); return { message: 'تم', grievance: g } },
   async update(id, data) { await delay(); const g = grievances.find((x) => x.id === Number(id)); if (g) Object.assign(g, data); return { message: 'تم التحديث' } },
   async remove(id) { await delay(); const i = grievances.findIndex((x) => x.id === Number(id)); if (i > -1) grievances.splice(i, 1); return { message: 'تم الحذف' } },
+  async notes(id) {
+    await delay()
+    return grievanceNotes.filter((n) => n.grievance_id === Number(id)).map((n) => ({ ...n, author_name: empName(n.author_id), author_picture: null }))
+  },
+  async addNote(id, note) {
+    await delay()
+    const g = grievances.find((x) => x.id === Number(id))
+    if (!g) throw notFound()
+    const text = (note || '').trim()
+    if (!text) throw badReq('الملاحظة مطلوبة')
+    grievanceNotes.push({ id: grievanceNoteSeq++, grievance_id: Number(id), author_id: currentUser()?.employee_id || 5, note: text, created_at: nowIso() })
+    return { message: 'تم' }
+  },
 }
 
 export const mockIncidentsApi = {
