@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Users, Building2, Building, CalendarCheck, CalendarDays, ClipboardCheck, Table2, Grid3x3,
+  LayoutDashboard, Users, Building2, Building, CalendarCheck, CalendarDays, ClipboardCheck, Table2, Grid3x3, Grid2x2,
   UserCircle, CreditCard, Package, HardDrive, Activity, LifeBuoy, Settings,
   Globe, FileText, ScrollText, Plug, Gauge, Database, Megaphone, UserCog,
   ArrowUpDown, Bot, Wallet, ClipboardList, Target, TrendingUp, GraduationCap,
@@ -82,6 +82,7 @@ import AttendanceCorrections from '../pages/AttendanceCorrections'
 import LeaveCalendar from '../pages/LeaveCalendar'
 import ReportBuilder from '../pages/hr/ReportBuilder'
 import NineBox from '../pages/hr/NineBox'
+import SkillsMatrix from '../pages/hr/SkillsMatrix'
 
 /**
  * Each portal maps to one or more roles and declares its own navigation.
@@ -157,6 +158,7 @@ export const PORTALS = {
       { section: 'الأداء والتطوير', to: '/hr/performance', label: 'الأداء والأهداف', icon: Target, element: <Performance /> },
       { section: 'الأداء والتطوير', to: '/hr/training', label: 'التدريب والتطوير', icon: GraduationCap, element: <Training /> },
       { section: 'الأداء والتطوير', to: '/hr/nine-box', label: 'مصفوفة المواهب 9-Box', icon: Grid3x3, element: <NineBox /> },
+      { section: 'الأداء والتطوير', to: '/hr/skills-matrix', label: 'مصفوفة المهارات', icon: Grid2x2, element: <SkillsMatrix /> },
       { section: 'الأداء والتطوير', to: '/hr/talent', label: 'المواهب والتعاقب الوظيفي', icon: Star, element: <Talent /> },
 
       { section: 'خدمات الموظفين', to: '/hr/requests', label: 'الخدمات والطلبات', icon: Inbox, element: <Requests title="الخدمات والطلبات" description="راجع واعتمد طلبات الموظفين (خطابات، تحديث بيانات، عمل عن بُعد…)." /> },

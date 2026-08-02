@@ -1851,6 +1851,60 @@ export const mockTalentGridApi = {
   async clear(employeeId) { await delay(); delete talentReviews[Number(employeeId)]; return { message: 'تم' } },
 }
 
+const SKILL_LEVELS = { 1: 'مبتدئ', 2: 'أساسي', 3: 'كفؤ', 4: 'متقدم', 5: 'خبير' }
+// employeeSkills[employeeId] = { skill: level }
+const employeeSkills = {
+  2: { 'إدارة المشاريع': 5, 'JavaScript': 4, 'قواعد البيانات': 4, 'القيادة': 4 },
+  6: { 'JavaScript': 5, 'قواعد البيانات': 3, 'التواصل': 3, 'إدارة المشاريع': 2 },
+  10: { 'JavaScript': 3, 'قواعد البيانات': 2, 'التواصل': 4 },
+  3: { 'التحليل المالي': 5, 'Excel المتقدم': 4, 'إدارة المشاريع': 3, 'القيادة': 3 },
+  5: { 'التوظيف': 5, 'التواصل': 5, 'القيادة': 4, 'إدارة المشاريع': 3 },
+  4: { 'التفاوض': 5, 'التواصل': 4, 'Excel المتقدم': 2 },
+}
+export const mockSkillsApi = {
+  async matrix() {
+    await delay()
+    const u = currentUser()
+    let emps = employees.filter((e) => e.status === 'نشط')
+    if (u && u.role === 'department_head') {
+      const dep = employees.find((e) => e.id === u.employee_id)?.department_id
+      emps = emps.filter((e) => e.department_id === dep)
+    }
+    const skillSet = new Map()
+    const rows = emps.map((e) => {
+      const sk = employeeSkills[e.id] || {}
+      for (const [name, lv] of Object.entries(sk)) {
+        const agg = skillSet.get(name) || { sum: 0, count: 0 }
+        agg.sum += lv; agg.count += 1; skillSet.set(name, agg)
+      }
+      return { id: e.id, full_name: e.full_name, job_title: e.job_title, profile_picture: null, department_name: deptName(e.department_id), skills: { ...sk } }
+    })
+    const skills = [...skillSet.keys()].sort((a, b) => a.localeCompare(b, 'ar')).map((name) => {
+      const agg = skillSet.get(name)
+      return { name, avg: Number((agg.sum / agg.count).toFixed(1)), rated: agg.count }
+    })
+    const all = rows.flatMap((r) => Object.values(r.skills))
+    return {
+      employees: rows, skills, levels: SKILL_LEVELS,
+      summary: { employees: rows.length, skills: skills.length, ratings: all.length, gaps: all.filter((l) => l <= 2).length, experts: all.filter((l) => l === 5).length },
+    }
+  },
+  async set(employeeId, data) {
+    await delay()
+    const name = (data.skill || '').trim()
+    if (!name) throw badReq('المهارة مطلوبة')
+    if (![1, 2, 3, 4, 5].includes(data.level)) throw badReq('المستوى يجب أن يكون 1-5')
+    ;(employeeSkills[Number(employeeId)] ||= {})[name] = data.level
+    return { message: 'تم' }
+  },
+  async remove(employeeId, skill) {
+    await delay()
+    const bag = employeeSkills[Number(employeeId)]
+    if (bag) delete bag[(skill || '').trim()]
+    return { message: 'تم' }
+  },
+}
+
 export const mockSuccessionApi = {
   async list({ status } = {}) {
     await delay()
