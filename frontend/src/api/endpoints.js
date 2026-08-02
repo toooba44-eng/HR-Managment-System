@@ -208,6 +208,14 @@ const realAssetsApi = {
   addHistory: (id, data) => api.post(`/assets/${id}/history`, data).then((r) => r.data),
 }
 
+// ---------- Asset purchase requests (approval-gated procurement ask) ----------
+const realAssetRequestsApi = {
+  list: (params) => api.get('/asset-requests', { params }).then((r) => r.data),
+  create: (data) => api.post('/asset-requests', data).then((r) => r.data),
+  setStatus: (id, status) => api.put(`/asset-requests/${id}/status`, { status }).then((r) => r.data),
+  remove: (id) => api.delete(`/asset-requests/${id}`).then((r) => r.data),
+}
+
 // ---------- Performance goals ----------
 const realGoalsApi = {
   list: (params) => api.get('/goals', { params }).then((r) => r.data),
@@ -503,6 +511,7 @@ export const platformApi = DEMO ? mock.mockPlatformApi : realPlatformApi
 export const saConfigApi = DEMO ? mock.mockSaConfigApi : realSaConfigApi
 export const expensesApi = DEMO ? mock.mockExpensesApi : realExpensesApi
 export const assetsApi = DEMO ? mock.mockAssetsApi : realAssetsApi
+export const assetRequestsApi = DEMO ? mock.mockAssetRequestsApi : realAssetRequestsApi
 export const goalsApi = DEMO ? mock.mockGoalsApi : realGoalsApi
 export const trainingApi = DEMO ? mock.mockTrainingApi : realTrainingApi
 export const reportsApi = DEMO ? mock.mockReportsApi : realReportsApi

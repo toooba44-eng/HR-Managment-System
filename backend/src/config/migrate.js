@@ -375,6 +375,28 @@ const migrations = [
     FOREIGN KEY (performed_by) REFERENCES employees(id) ON DELETE SET NULL
   )`,
 
+  // Asset purchase requests — an approval-gated ask for new equipment,
+  // distinct from assets.js's direct registration: approving one is a
+  // green light to procure, not the asset itself (its serial number etc.
+  // aren't known until it's actually bought, exactly like hiring_requests
+  // approving headcount without creating the job posting).
+  `CREATE TABLE IF NOT EXISTS asset_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    category TEXT DEFAULT 'أخرى',
+    item_name TEXT NOT NULL,
+    justification TEXT,
+    estimated_cost REAL,
+    status TEXT DEFAULT 'معلق' CHECK(status IN ('معلق', 'معتمد', 'مرفوض')),
+    requested_by INTEGER,
+    reviewed_by INTEGER,
+    reviewed_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+    FOREIGN KEY (requested_by) REFERENCES employees(id) ON DELETE SET NULL,
+    FOREIGN KEY (reviewed_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
   // Performance goals (OKR/KPI style)
   `CREATE TABLE IF NOT EXISTS goals (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

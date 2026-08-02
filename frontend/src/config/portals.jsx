@@ -23,6 +23,7 @@ import Requests from '../pages/employee/Requests'
 import Payslips from '../pages/employee/Payslips'
 import MySkills from '../pages/employee/MySkills'
 import MyGrievances from '../pages/employee/MyGrievances'
+import MyAssetRequests from '../pages/employee/MyAssetRequests'
 import Policies from '../pages/hr/Policies'
 import Payroll from '../pages/hr/Payroll'
 import Tasks from '../pages/manager/Tasks'
@@ -253,6 +254,7 @@ export const PORTALS = {
       { section: 'الطلبات والخدمات', to: '/ess/sign', label: 'توقيع المستندات', icon: FileSignature, element: <Signatures /> },
       { section: 'الطلبات والخدمات', to: '/ess/complaints', label: 'الشكاوى والاستفسارات', icon: MessageSquare, element: <Requests type="شكوى" title="الشكاوى والاستفسارات" description="قدّم شكوى أو استفساراً وتابع الرد عليه." /> },
       { section: 'الطلبات والخدمات', to: '/ess/my-cases', label: 'حالاتي لدى الموارد البشرية', icon: ShieldAlert, element: <MyGrievances /> },
+      { section: 'الطلبات والخدمات', to: '/ess/asset-requests', label: 'طلب أصول', icon: Package, element: <MyAssetRequests /> },
       { section: 'الطلبات والخدمات', to: '/ess/help-desk', label: 'مكتب المساعدة', icon: LifeBuoy, element: <HelpDesk /> },
 
       { section: 'التواصل والمعرفة', to: '/assistant', label: 'المساعد الذكي', icon: Bot, element: <Assistant /> },

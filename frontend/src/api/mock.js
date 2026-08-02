@@ -188,6 +188,11 @@ const assetHistory = [
 const ASSET_HISTORY_ACTIONS = ['تخصيص', 'إرجاع', 'صيانة', 'إتلاف']
 const ASSET_CONDITIONS = ['ممتازة', 'جيدة', 'متوسطة', 'تالفة']
 
+let assetReqSeq = 1
+const assetRequests = [
+  { id: assetReqSeq++, employee_id: 10, category: 'أجهزة حاسب', item_name: 'لابتوب بمواصفات أعلى', justification: 'الجهاز الحالي بطيء عند تشغيل بيئة التطوير.', estimated_cost: 6500, status: 'معلق', requested_by: 2, reviewed_by: null, reviewed_at: null, created_at: nowIso() },
+]
+
 let goalSeq = 1
 const goals = [
   { id: goalSeq++, employee_id: 6, title: 'إطلاق الوحدة الجديدة', description: 'إنهاء وإطلاق وحدة التقارير قبل نهاية الربع.', weight: 40, progress: 60, target_date: addDays(30), status: 'قيد التنفيذ', created_by: 2 },
@@ -1766,6 +1771,66 @@ export const mockAssetsApi = {
     if (data.condition && !ASSET_CONDITIONS.includes(data.condition)) throw badReq('حالة غير صالحة')
     assetHistory.unshift({ id: assetHistorySeq++, asset_id: Number(id), employee_id: asset.assigned_to, action: data.action, condition: data.condition || null, notes: data.notes || null, performed_by: currentUser()?.employee_id || 5, created_at: nowIso() })
     return { message: 'تم' }
+  },
+}
+
+export const mockAssetRequestsApi = {
+  async list({ status = '' } = {}) {
+    await delay()
+    const u = currentUser()
+    let rows = assetRequests
+    if (u && ['employee', 'candidate'].includes(u.role)) {
+      rows = rows.filter((r) => r.employee_id === u.employee_id)
+    } else if (u && u.role === 'department_head') {
+      const dep = employees.find((e) => e.id === u.employee_id)?.department_id
+      rows = rows.filter((r) => r.requested_by === u.employee_id || employees.find((e) => e.id === r.employee_id)?.department_id === dep)
+    }
+    if (status) rows = rows.filter((r) => r.status === status)
+    const list = [...rows]
+      .sort((a, b) => (a.status === 'معلق' ? -1 : 1) - (b.status === 'معلق' ? -1 : 1) || b.id - a.id)
+      .map((r) => ({
+        ...r,
+        full_name: empName(r.employee_id),
+        job_title: employees.find((e) => e.id === r.employee_id)?.job_title,
+        profile_picture: null,
+        department_id: employees.find((e) => e.id === r.employee_id)?.department_id,
+        requested_by_name: empName(r.requested_by),
+        reviewed_by_name: empName(r.reviewed_by),
+      }))
+    const summary = list.reduce((s, r) => { s.total += 1; if (r.status === 'معلق') s.pending += 1; s.estimatedTotal += r.estimated_cost || 0; return s }, { total: 0, pending: 0, estimatedTotal: 0 })
+    return { requests: list, summary }
+  },
+  async create(data) {
+    await delay()
+    const u = currentUser()
+    let employee_id = data.employee_id ? Number(data.employee_id) : null
+    if (!['admin', 'hr_manager', 'super_admin', 'department_head'].includes(u?.role) || !employee_id) {
+      employee_id = u?.employee_id
+    }
+    if (!employee_id) throw badReq('No employee associated with this account')
+    if (!data.item_name) throw badReq('اسم العنصر مطلوب')
+    const r = {
+      id: assetReqSeq++, employee_id, category: data.category || 'أخرى', item_name: data.item_name,
+      justification: data.justification || null, estimated_cost: data.estimated_cost != null ? Number(data.estimated_cost) : null,
+      status: 'معلق', requested_by: u?.employee_id || 5, reviewed_by: null, reviewed_at: null, created_at: nowIso(),
+    }
+    assetRequests.unshift(r)
+    return { message: 'تم', request: { id: r.id } }
+  },
+  async setStatus(id, status) {
+    await delay()
+    const r = assetRequests.find((x) => x.id === Number(id))
+    if (!r) throw notFound()
+    r.status = status
+    r.reviewed_by = currentUser()?.employee_id || 5
+    r.reviewed_at = nowIso()
+    return { message: 'تم' }
+  },
+  async remove(id) {
+    await delay()
+    const i = assetRequests.findIndex((x) => x.id === Number(id))
+    if (i > -1) assetRequests.splice(i, 1)
+    return { message: 'تم الحذف' }
   },
 }
 
