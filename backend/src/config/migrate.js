@@ -372,6 +372,19 @@ const migrations = [
     FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
   )`,
 
+  // Offboarding exit checklist (asset return, access revocation, clearances, ...)
+  `CREATE TABLE IF NOT EXISTS offboarding_tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    offboarding_id INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    category TEXT DEFAULT 'أخرى' CHECK(category IN ('عهدة', 'صلاحيات', 'تصفية مالية', 'مقابلة خروج', 'مستندات', 'أخرى')),
+    owner TEXT DEFAULT 'الموارد البشرية',
+    due_date DATE,
+    is_done INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (offboarding_id) REFERENCES offboarding(id) ON DELETE CASCADE
+  )`,
+
   // Grievances / disciplinary cases
   `CREATE TABLE IF NOT EXISTS grievances (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

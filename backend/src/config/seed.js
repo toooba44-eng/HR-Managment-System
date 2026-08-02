@@ -376,8 +376,18 @@ function seedData() {
   // Offboarding
   if (isEmpty('offboarding')) {
     const ins = db.prepare(`INSERT INTO offboarding (employee_id, type, reason, last_working_day, status, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)`);
-    ins.run(9, 'انتهاء عقد', 'انتهاء مدة العقد محدد المدة.', addDaysStr(20), 'قيد المعالجة', 'بانتظار إجراءات المخالصة.', 5);
+    const caseId = ins.run(9, 'انتهاء عقد', 'انتهاء مدة العقد محدد المدة.', addDaysStr(20), 'قيد المعالجة', 'بانتظار إجراءات المخالصة.', 5).lastInsertRowid;
     console.log('✅ Offboarding seeded');
+
+    if (isEmpty('offboarding_tasks')) {
+      const insTask = db.prepare(`INSERT INTO offboarding_tasks (offboarding_id, title, category, owner, due_date, is_done) VALUES (?, ?, ?, ?, ?, ?)`);
+      insTask.run(caseId, 'استرجاع الحاسب والعهد والبطاقة التعريفية', 'عهدة', 'تقنية المعلومات', addDaysStr(18), 1);
+      insTask.run(caseId, 'إلغاء صلاحيات الأنظمة والبريد الإلكتروني', 'صلاحيات', 'تقنية المعلومات', addDaysStr(20), 0);
+      insTask.run(caseId, 'تصفية الرصيد المالي ومستحقات نهاية الخدمة', 'تصفية مالية', 'الموارد البشرية', addDaysStr(22), 0);
+      insTask.run(caseId, 'إجراء مقابلة خروج (Exit Interview)', 'مقابلة خروج', 'الموارد البشرية', addDaysStr(19), 0);
+      insTask.run(caseId, 'تسليم مستند إخلاء الطرف', 'مستندات', 'الموارد البشرية', addDaysStr(22), 0);
+      console.log('✅ Offboarding checklist seeded');
+    }
   }
 
   // Grievances
