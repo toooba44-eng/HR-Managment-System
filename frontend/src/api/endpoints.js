@@ -208,6 +208,8 @@ const realGoalsApi = {
 // ---------- Reports & analytics ----------
 const realReportsApi = {
   overview: () => api.get('/reports/overview').then((r) => r.data),
+  datasets: () => api.get('/reports/datasets').then((r) => r.data),
+  run: (def) => api.post('/reports/run', def).then((r) => r.data),
 }
 
 // ---------- Offboarding ----------
