@@ -15,6 +15,7 @@ import Departments from '../pages/Departments'
 import Attendance from '../pages/Attendance'
 import Leaves from '../pages/Leaves'
 import Profile from '../pages/Profile'
+import Assistant from '../pages/Assistant'
 import SuperAdminHome from '../pages/portals/SuperAdminHome'
 import CandidateHome from '../pages/portals/CandidateHome'
 import Announcements from '../pages/employee/Announcements'
@@ -134,6 +135,7 @@ export const PORTALS = {
     home: '/',
     nav: [
       { to: '/', label: 'الصفحة الرئيسية', icon: LayoutDashboard, element: <Dashboard />, exact: true },
+      { to: '/assistant', label: 'المساعد الذكي', icon: Bot, element: <Assistant /> },
 
       { section: 'المؤسسة', to: '/hr/company', label: 'مؤسستي', icon: Building2, element: <Company /> },
       { section: 'المؤسسة', to: '/departments', label: 'الإدارات والأقسام', icon: Building, element: <Departments /> },
@@ -188,6 +190,7 @@ export const PORTALS = {
     nav: [
       { to: '/', label: 'لوحة الفريق', icon: LayoutDashboard, element: <Dashboard />, exact: true },
       { to: '/mgr/metrics', label: 'مؤشرات الفريق', icon: TrendingUp, element: <TeamMetrics /> },
+      { to: '/assistant', label: 'المساعد الذكي', icon: Bot, element: <Assistant /> },
 
       { section: 'إدارة الفريق', to: '/employees', label: 'أعضاء الفريق', icon: Users, element: <Employees /> },
       { section: 'إدارة الفريق', to: '/attendance', label: 'حضور الفريق', icon: CalendarCheck, element: <Attendance /> },
@@ -241,6 +244,7 @@ export const PORTALS = {
       { section: 'الطلبات والخدمات', to: '/ess/sign', label: 'توقيع المستندات', icon: FileSignature, element: <Signatures /> },
       { section: 'الطلبات والخدمات', to: '/ess/complaints', label: 'الشكاوى والاستفسارات', icon: MessageSquare, element: <Requests type="شكوى" title="الشكاوى والاستفسارات" description="قدّم شكوى أو استفساراً وتابع الرد عليه." /> },
 
+      { section: 'التواصل والمعرفة', to: '/assistant', label: 'المساعد الذكي', icon: Bot, element: <Assistant /> },
       { section: 'التواصل والمعرفة', to: '/ess/announcements', label: 'الإعلانات', icon: Megaphone, element: <Announcements /> },
       { section: 'التواصل والمعرفة', to: '/ess/policies', label: 'السياسات', icon: ScrollText, element: <Policies /> },
       { section: 'التواصل والمعرفة', to: '/ess/surveys', label: 'الاستطلاعات', icon: ListChecks, element: <Surveys /> },

@@ -681,6 +681,19 @@ const migrations = [
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`,
 
+  // AI assistant question log — read-only answers about the employee's own
+  // data (leave balance, payslip, attendance) or company policies. It never
+  // takes or recommends hiring/firing/disciplinary decisions; every answer
+  // just surfaces existing records for a human to act on.
+  `CREATE TABLE IF NOT EXISTS assistant_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER,
+    message TEXT NOT NULL,
+    intent TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
   // Platform: system-wide settings (single row)
   `CREATE TABLE IF NOT EXISTS platform_settings (
     id INTEGER PRIMARY KEY CHECK(id = 1),

@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { Bot, Save, ScanSearch, MessageCircle, LineChart, FileText, Sparkles } from 'lucide-react'
+import { Bot, Save, ScanSearch, MessageCircle, LineChart, FileText, Sparkles, MessagesSquare } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { saConfigApi } from '../../api/endpoints'
+import { saConfigApi, assistantApi } from '../../api/endpoints'
 import Spinner from '../../components/ui/Spinner'
+import Avatar from '../../components/ui/Avatar'
 import { Field, Input, Select, Button } from '../../components/ui/Form'
+import { formatDate } from '../../lib/utils'
+
+const INTENT_LABEL = { leave_balance: 'رصيد الإجازات', payslip: 'الراتب', attendance: 'الحضور', policies: 'السياسات', fallback: 'أخرى' }
 
 const FEATURES = [
   { key: 'resume_screening', icon: ScanSearch, label: 'فرز السير الذاتية', hint: 'تحليل وترتيب المرشحين آلياً' },
@@ -24,6 +28,7 @@ function Toggle({ checked, onChange, disabled }) {
 export default function AI() {
   const qc = useQueryClient()
   const { data, isLoading } = useQuery('ai-settings', () => saConfigApi.ai())
+  const { data: logsData } = useQuery('assistant-logs', () => assistantApi.logs())
   const [form, setForm] = useState(null)
   useEffect(() => { if (data?.ai) setForm(data.ai) }, [data])
   const m = useMutation((d) => saConfigApi.updateAi(d), {
@@ -75,6 +80,28 @@ export default function AI() {
           ))}
         </div>
       </div>
+
+      {logsData && logsData.total > 0 && (
+        <div className="card">
+          <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4"><MessagesSquare className="w-5 h-5 text-slate-400" /> استخدام المساعد الذكي</h3>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {Object.entries(logsData.breakdown).map(([intent, count]) => (
+              <span key={intent} className="badge bg-violet-50 text-violet-700">{INTENT_LABEL[intent] || intent}: {count}</span>
+            ))}
+          </div>
+          <div className="space-y-2 max-h-72 overflow-y-auto">
+            {logsData.logs.slice(0, 20).map((l) => (
+              <div key={l.id} className="flex items-start gap-3 py-2 border-b border-slate-50 last:border-0">
+                <Avatar name={l.full_name || '؟'} size="sm" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-slate-700">{l.message}</p>
+                  <p className="text-[11px] text-slate-400">{l.full_name || 'مستخدم غير معروف'} · {formatDate(l.created_at)} · {INTENT_LABEL[l.intent] || l.intent}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex justify-end"><Button onClick={() => m.mutate(form)} loading={m.isLoading}><Save className="w-5 h-5" /> حفظ الإعدادات</Button></div>
     </div>
