@@ -221,6 +221,26 @@ const migrations = [
     FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE
   )`,
 
+  // Structured interview scorecards — one per (application, interviewer), so
+  // multiple interviewers can independently score the same candidate and HR
+  // can compare their feedback side by side.
+  `CREATE TABLE IF NOT EXISTS interview_scorecards (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    application_id INTEGER NOT NULL,
+    interviewer_id INTEGER NOT NULL,
+    technical INTEGER NOT NULL CHECK(technical BETWEEN 1 AND 5),
+    communication INTEGER NOT NULL CHECK(communication BETWEEN 1 AND 5),
+    problem_solving INTEGER NOT NULL CHECK(problem_solving BETWEEN 1 AND 5),
+    culture_fit INTEGER NOT NULL CHECK(culture_fit BETWEEN 1 AND 5),
+    recommendation TEXT NOT NULL DEFAULT 'محايد' CHECK(recommendation IN ('يوصى بشدة', 'يوصى', 'محايد', 'لا يوصى')),
+    notes TEXT,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(application_id, interviewer_id),
+    FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE,
+    FOREIGN KEY (interviewer_id) REFERENCES employees(id) ON DELETE CASCADE
+  )`,
+
   // Platform tenants (Super Admin / SaaS)
   `CREATE TABLE IF NOT EXISTS companies (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

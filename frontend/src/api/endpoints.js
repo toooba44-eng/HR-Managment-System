@@ -276,6 +276,13 @@ const realSkillsApi = {
   remove: (employeeId, skill) => api.delete(`/skills/${employeeId}`, { params: { skill } }).then((r) => r.data),
 }
 
+// ---------- Interview scorecards ----------
+const realScorecardsApi = {
+  get: (applicationId) => api.get(`/scorecards/${applicationId}`).then((r) => r.data),
+  submit: (applicationId, data) => api.put(`/scorecards/${applicationId}`, data).then((r) => r.data),
+  remove: (applicationId) => api.delete(`/scorecards/${applicationId}`).then((r) => r.data),
+}
+
 // ---------- Talent & succession ----------
 const realSuccessionApi = {
   list: (params) => api.get('/succession', { params }).then((r) => r.data),
@@ -445,6 +452,7 @@ export const compensationApi = DEMO ? mock.mockCompensationApi : realCompensatio
 export const successionApi = DEMO ? mock.mockSuccessionApi : realSuccessionApi
 export const talentGridApi = DEMO ? mock.mockTalentGridApi : realTalentGridApi
 export const skillsApi = DEMO ? mock.mockSkillsApi : realSkillsApi
+export const scorecardsApi = DEMO ? mock.mockScorecardsApi : realScorecardsApi
 export const companyApi = DEMO ? mock.mockCompanyApi : realCompanyApi
 export const settingsApi = DEMO ? mock.mockSettingsApi : realSettingsApi
 export const onboardingApi = DEMO ? mock.mockOnboardingApi : realOnboardingApi

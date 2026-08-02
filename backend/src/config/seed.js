@@ -243,20 +243,36 @@ function seedData() {
       ['محاسب', 'المالية', 'الرياض - المقر الرئيسي', 'عقد', 'إعداد التقارير المالية ومتابعة الميزانيات.', 'مغلقة', 5],
     ];
     const jobIds = jobs.map(j => insertJob.run(j).lastInsertRowid);
+    let scoredAppIds = [];
     if (isEmpty('applications')) {
       const insApp = db.prepare(`INSERT INTO applications (job_id, candidate_email, candidate_name, cover_note, status, stage, source, rating) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
       const S2ST = { 'متقدم جديد': 'قيد المراجعة', 'مراجعة أولية': 'قيد المراجعة', 'اختبار': 'قيد المراجعة', 'مقابلة': 'مقابلة', 'عرض وظيفي': 'مقابلة', 'تم التوظيف': 'مقبول', 'مرفوض': 'مرفوض' };
-      const app = (job, email, name, note, stage, source, rating) => insApp.run(job, email, name, note, S2ST[stage], stage, source, rating);
-      app(jobIds[0], 'candidate@quant.com', 'مرشح تجريبي', 'لديّ خبرة 3 سنوات في تطوير الواجهات.', 'مقابلة', 'LinkedIn', 4);
+      const app = (job, email, name, note, stage, source, rating) => insApp.run(job, email, name, note, S2ST[stage], stage, source, rating).lastInsertRowid;
+      const app1 = app(jobIds[0], 'candidate@quant.com', 'مرشح تجريبي', 'لديّ خبرة 3 سنوات في تطوير الواجهات.', 'مقابلة', 'LinkedIn', 4);
       app(jobIds[0], 'sultan.dev@mail.com', 'سلطان الحربي', 'خبرة قوية في React و TypeScript.', 'اختبار', 'الموقع', null);
-      app(jobIds[0], 'tariq.dev@mail.com', 'طارق القحطاني', 'مطوّر شغوف بواجهات المستخدم.', 'عرض وظيفي', 'LinkedIn', 5);
+      const app3 = app(jobIds[0], 'tariq.dev@mail.com', 'طارق القحطاني', 'مطوّر شغوف بواجهات المستخدم.', 'عرض وظيفي', 'LinkedIn', 5);
       app(jobIds[0], 'huda.dev@mail.com', 'هدى العنزي', 'حديثة تخرّج بمشاريع متميزة.', 'متقدم جديد', 'إحالة موظف', null);
       app(jobIds[1], 'mona.hr@mail.com', 'منى العتيبي', 'خبرة 5 سنوات في التوظيف.', 'مراجعة أولية', 'الموقع', 3);
-      app(jobIds[1], 'faisal.hr@mail.com', 'فيصل النمر', 'أخصائي موارد بشرية معتمد.', 'مقابلة', 'Indeed', 4);
+      const app6 = app(jobIds[1], 'faisal.hr@mail.com', 'فيصل النمر', 'أخصائي موارد بشرية معتمد.', 'مقابلة', 'Indeed', 4);
       app(jobIds[2], 'saad.sales@mail.com', 'سعد الدوسري', 'سجل مبيعات حافل.', 'تم التوظيف', 'إحالة موظف', 5);
       app(jobIds[2], 'noor.sales@mail.com', 'نور الشهري', 'خبرة في مبيعات التجزئة.', 'مرفوض', 'الموقع', 2);
+      scoredAppIds = [app1, app3, app6];
     }
     console.log('✅ Jobs & applications seeded');
+
+    if (isEmpty('interview_scorecards') && scoredAppIds.length) {
+      const [app1, app3, app6] = scoredAppIds;
+      const insSc = db.prepare(`INSERT INTO interview_scorecards (application_id, interviewer_id, technical, communication, problem_solving, culture_fit, recommendation, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+      // Two interviewers scored the same candidate (app1) — a mild disagreement to demo comparison
+      insSc.run(app1, 2, 4, 4, 4, 4, 'يوصى', 'أداء تقني جيد ومهارات تواصل ممتازة.');
+      insSc.run(app1, 5, 2, 2, 2, 3, 'لا يوصى', 'أرى فجوات واضحة في الأساسيات لم يستطع تجاوزها.');
+      // A candidate everyone agrees strongly on
+      insSc.run(app3, 2, 5, 5, 4, 5, 'يوصى بشدة', 'من أفضل من قابلنا هذا الربع.');
+      insSc.run(app3, 4, 5, 4, 5, 5, 'يوصى بشدة', 'حل المسائل التقنية بسرعة وثقة عالية.');
+      // Single interviewer so far
+      insSc.run(app6, 5, 4, 5, 3, 4, 'يوصى', 'خبرة جيدة في التوظيف، تحتاج دعماً في القرارات الصعبة.');
+      console.log('✅ Interview scorecards seeded');
+    }
   }
 
   // Companies (platform tenants)

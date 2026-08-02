@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { Users, UserCheck, UserX, Activity, Star, GripVertical } from 'lucide-react'
+import { Users, UserCheck, UserX, Activity, Star, GripVertical, ClipboardList, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { applicationsApi, jobsApi } from '../../api/endpoints'
+import { applicationsApi, jobsApi, scorecardsApi } from '../../api/endpoints'
 import Spinner from '../../components/ui/Spinner'
 import Avatar from '../../components/ui/Avatar'
 import StatCard from '../../components/ui/StatCard'
-import { Select } from '../../components/ui/Form'
+import Modal from '../../components/ui/Modal'
+import { Select, Field, Textarea, Button } from '../../components/ui/Form'
+import { useAuthStore } from '../../store/authStore'
 
 const STAGE_TONE = {
   'متقدم جديد': 'border-t-slate-400', 'مراجعة أولية': 'border-t-blue-400', اختبار: 'border-t-cyan-400',
@@ -26,11 +28,147 @@ function Stars({ value, onRate }) {
   )
 }
 
+const RECOMMENDATIONS = [
+  { v: 'يوصى بشدة', tone: 'bg-emerald-600 text-white border-emerald-600' },
+  { v: 'يوصى', tone: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+  { v: 'محايد', tone: 'bg-slate-100 text-slate-600 border-slate-200' },
+  { v: 'لا يوصى', tone: 'bg-rose-50 text-rose-600 border-rose-200' },
+]
+const CRITERIA = [
+  { key: 'technical', label: 'الجانب التقني' },
+  { key: 'communication', label: 'التواصل' },
+  { key: 'problem_solving', label: 'حل المشكلات' },
+  { key: 'culture_fit', label: 'التوافق الثقافي' },
+]
+
+function ScoreRow({ label, value, onChange }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-sm text-slate-600 w-32 shrink-0">{label}</span>
+      <div className="flex gap-1 flex-1">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button key={n} type="button" onClick={() => onChange(n)}
+            className={`flex-1 py-1.5 rounded-lg text-xs border transition-colors ${value === n ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}>
+            {n}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ScorecardModal({ application, onClose }) {
+  const qc = useQueryClient()
+  const { user } = useAuthStore()
+  const { data, isLoading } = useQuery(['scorecard', application.id], () => scorecardsApi.get(application.id))
+  const [form, setForm] = useState({ technical: 3, communication: 3, problem_solving: 3, culture_fit: 3, recommendation: 'محايد', notes: '' })
+  const [dirty, setDirty] = useState(false)
+
+  const mine = data?.mine
+  const active = dirty ? form : (mine ? { ...mine, notes: mine.notes || '' } : form)
+
+  const submit = useMutation(() => scorecardsApi.submit(application.id, active), {
+    onSuccess: () => { toast.success('تم حفظ التقييم'); qc.invalidateQueries(['scorecard', application.id]); setDirty(false) },
+    onError: (e) => toast.error(e.response?.data?.error || 'فشل الحفظ'),
+  })
+  const withdraw = useMutation(() => scorecardsApi.remove(application.id), {
+    onSuccess: () => { toast.success('تم سحب التقييم'); qc.invalidateQueries(['scorecard', application.id]); setDirty(false) },
+    onError: () => toast.error('فشل'),
+  })
+  const set = (k, v) => { setDirty(true); setForm((f) => ({ ...(dirty ? f : (mine || f)), [k]: v })) }
+
+  const scorecards = data?.scorecards || []
+  const avg = data?.averages
+
+  return (
+    <Modal open onClose={onClose} title={`بطاقات تقييم المقابلة — ${application.candidate_name}`}>
+      {isLoading ? (
+        <Spinner />
+      ) : (
+        <div className="space-y-5">
+          {avg && (
+            <div className="rounded-xl bg-slate-50 border border-slate-100 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-bold text-slate-700">المتوسط العام: {avg.overall} / 5</span>
+                {data.disagreement && (
+                  <span className="badge bg-amber-50 text-amber-600 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> تباين كبير بين المقيّمين</span>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-500">
+                {CRITERIA.map((c) => <div key={c.key} className="flex justify-between"><span>{c.label}</span><span className="font-medium text-slate-700">{avg[c.key]}</span></div>)}
+              </div>
+            </div>
+          )}
+
+          {scorecards.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-bold text-slate-500">تقييمات المقابلين ({scorecards.length})</p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs border-collapse">
+                  <thead>
+                    <tr className="text-slate-400">
+                      <th className="text-right p-1.5 font-medium">المقابل</th>
+                      {CRITERIA.map((c) => <th key={c.key} className="p-1.5 font-medium text-center min-w-[60px]">{c.label}</th>)}
+                      <th className="p-1.5 font-medium text-center">التوصية</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {scorecards.map((s) => (
+                      <tr key={s.id} className="border-t border-slate-100">
+                        <td className="p-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <Avatar name={s.interviewer_name} src={s.interviewer_picture} size="sm" />
+                            <span className="text-slate-700 truncate">{s.interviewer_name}</span>
+                          </div>
+                        </td>
+                        {CRITERIA.map((c) => <td key={c.key} className="p-1.5 text-center text-slate-600">{s[c.key]}</td>)}
+                        <td className="p-1.5 text-center">
+                          <span className={`badge ${RECOMMENDATIONS.find((r) => r.v === s.recommendation)?.tone || ''}`}>{s.recommendation}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {scorecards.filter((s) => s.notes).map((s) => (
+                <p key={s.id} className="text-xs text-slate-500"><b className="text-slate-600">{s.interviewer_name}:</b> {s.notes}</p>
+              ))}
+            </div>
+          )}
+
+          {user?.employee_id && (
+            <div className="space-y-3 pt-3 border-t border-slate-100">
+              <p className="text-sm font-bold text-slate-700">{mine ? 'تقييمي' : 'أضف تقييمك'}</p>
+              {CRITERIA.map((c) => (
+                <ScoreRow key={c.key} label={c.label} value={active[c.key]} onChange={(v) => set(c.key, v)} />
+              ))}
+              <div className="flex gap-2">
+                {RECOMMENDATIONS.map((r) => (
+                  <button key={r.v} type="button" onClick={() => set('recommendation', r.v)}
+                    className={`flex-1 py-1.5 rounded-lg text-xs border transition-colors ${active.recommendation === r.v ? r.tone : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}>
+                    {r.v}
+                  </button>
+                ))}
+              </div>
+              <Field label="ملاحظات"><Textarea rows={2} value={active.notes || ''} onChange={(e) => set('notes', e.target.value)} /></Field>
+              <div className="flex justify-between gap-3">
+                {mine ? <Button variant="secondary" onClick={() => withdraw.mutate()} loading={withdraw.isLoading} className="text-rose-500">سحب التقييم</Button> : <span />}
+                <Button onClick={() => submit.mutate()} loading={submit.isLoading}>{mine ? 'تحديث التقييم' : 'حفظ التقييم'}</Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </Modal>
+  )
+}
+
 export default function Pipeline() {
   const qc = useQueryClient()
   const [jobId, setJobId] = useState('')
   const [dragId, setDragId] = useState(null)
   const [overStage, setOverStage] = useState(null)
+  const [scoring, setScoring] = useState(null)
   const { data: jobsData } = useQuery('jobs', () => jobsApi.list())
   const { data, isLoading } = useQuery(['pipeline', jobId], () => applicationsApi.pipeline(jobId ? { job_id: jobId } : {}))
   const move = useMutation(({ id, stage }) => applicationsApi.moveStage(id, stage), {
@@ -67,7 +205,7 @@ export default function Pipeline() {
           <option value="">كل الوظائف</option>
           {jobs.map((j) => <option key={j.id} value={j.id}>{j.title}</option>)}
         </Select>
-        <p className="text-xs text-slate-400">اسحب البطاقة لنقل المرشّح بين المراحل</p>
+        <p className="text-xs text-slate-400">اسحب البطاقة لنقل المرشّح، أو انقر عليها لبطاقة تقييم المقابلة</p>
       </div>
 
       <div className="overflow-x-auto pb-2">
@@ -91,6 +229,7 @@ export default function Pipeline() {
                     draggable
                     onDragStart={() => setDragId(c.id)}
                     onDragEnd={() => setDragId(null)}
+                    onClick={() => setScoring(c)}
                     className={`bg-white rounded-xl border border-slate-100 p-3 cursor-grab active:cursor-grabbing hover:shadow-sm ${dragId === c.id ? 'opacity-50' : ''}`}
                   >
                     <div className="flex items-start gap-2">
@@ -100,6 +239,7 @@ export default function Pipeline() {
                         <p className="text-sm font-medium text-slate-700 truncate">{c.candidate_name}</p>
                         <p className="text-[11px] text-slate-400 truncate">{c.job_title}</p>
                       </div>
+                      <ClipboardList className="w-3.5 h-3.5 text-slate-300 shrink-0 mt-1" />
                     </div>
                     <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-50">
                       <Stars value={c.rating} onRate={(rating) => rate.mutate({ id: c.id, rating })} />
@@ -113,6 +253,8 @@ export default function Pipeline() {
           ))}
         </div>
       </div>
+
+      {scoring && <ScorecardModal application={scoring} onClose={() => setScoring(null)} />}
     </div>
   )
 }
