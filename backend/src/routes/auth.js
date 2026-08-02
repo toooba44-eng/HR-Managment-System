@@ -95,11 +95,25 @@ router.put('/change-password', (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
     const decoded = jwt.verify(token, JWT_SECRET);
 
     const { currentPassword, newPassword } = req.body;
+    // Enforced server-side too — a client-side check alone can be bypassed
+    // by calling the API directly.
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current and new password are required' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters' });
+    }
 
     const user = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(decoded.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
 
     if (!bcrypt.compareSync(currentPassword, user.password_hash)) {
       return res.status(400).json({ error: 'Current password is incorrect' });
