@@ -84,6 +84,7 @@ import LeaveCalendar from '../pages/LeaveCalendar'
 import ReportBuilder from '../pages/hr/ReportBuilder'
 import NineBox from '../pages/hr/NineBox'
 import SkillsMatrix from '../pages/hr/SkillsMatrix'
+import HelpDesk from '../pages/hr/HelpDesk'
 
 /**
  * Each portal maps to one or more roles and declares its own navigation.
@@ -163,6 +164,7 @@ export const PORTALS = {
       { section: 'الأداء والتطوير', to: '/hr/skills-matrix', label: 'مصفوفة المهارات', icon: Grid2x2, element: <SkillsMatrix /> },
       { section: 'الأداء والتطوير', to: '/hr/talent', label: 'المواهب والتعاقب الوظيفي', icon: Star, element: <Talent /> },
 
+      { section: 'خدمات الموظفين', to: '/hr/help-desk', label: 'مكتب مساعدة الموارد البشرية', icon: LifeBuoy, element: <HelpDesk /> },
       { section: 'خدمات الموظفين', to: '/hr/requests', label: 'الخدمات والطلبات', icon: Inbox, element: <Requests title="الخدمات والطلبات" description="راجع واعتمد طلبات الموظفين (خطابات، تحديث بيانات، عمل عن بُعد…)." /> },
       { section: 'خدمات الموظفين', to: '/hr/documents', label: 'المستندات', icon: FileText, element: <Documents /> },
       { section: 'خدمات الموظفين', to: '/hr/assets', label: 'الأصول والعهد', icon: Package, element: <Assets /> },
@@ -210,6 +212,7 @@ export const PORTALS = {
       { section: 'التوظيف والتطوير الوظيفي', to: '/mgr/promotions', label: 'الترقية والنقل', icon: ArrowUpDown, element: <Promotions /> },
 
       { section: 'حسابي', to: '/profile', label: 'ملفي الشخصي', icon: UserCircle, element: <Profile /> },
+      { section: 'حسابي', to: '/mgr/help-desk', label: 'مكتب المساعدة', icon: LifeBuoy, element: <HelpDesk /> },
     ],
   },
 
@@ -243,6 +246,7 @@ export const PORTALS = {
       { section: 'الطلبات والخدمات', to: '/ess/data-update', label: 'تحديث البيانات', icon: UserCog, element: <Requests type="تحديث بيانات" title="طلب تحديث البيانات" description="اطلب تعديل بياناتك الشخصية لدى الموارد البشرية." /> },
       { section: 'الطلبات والخدمات', to: '/ess/sign', label: 'توقيع المستندات', icon: FileSignature, element: <Signatures /> },
       { section: 'الطلبات والخدمات', to: '/ess/complaints', label: 'الشكاوى والاستفسارات', icon: MessageSquare, element: <Requests type="شكوى" title="الشكاوى والاستفسارات" description="قدّم شكوى أو استفساراً وتابع الرد عليه." /> },
+      { section: 'الطلبات والخدمات', to: '/ess/help-desk', label: 'مكتب المساعدة', icon: LifeBuoy, element: <HelpDesk /> },
 
       { section: 'التواصل والمعرفة', to: '/assistant', label: 'المساعد الذكي', icon: Bot, element: <Assistant /> },
       { section: 'التواصل والمعرفة', to: '/ess/announcements', label: 'الإعلانات', icon: Megaphone, element: <Announcements /> },

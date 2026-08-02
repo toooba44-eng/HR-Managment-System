@@ -2988,3 +2988,114 @@ export const mockAssistantApi = {
     return { logs: rows, breakdown, total: rows.length }
   },
 }
+
+const HD_MANAGE = ['admin', 'hr_manager', 'super_admin']
+const HD_CATEGORIES = ['استفسار عام', 'رواتب ومزايا', 'إجازات وحضور', 'مشكلة تقنية', 'شكوى', 'أخرى']
+const HD_PRIORITIES = ['منخفضة', 'متوسطة', 'عالية', 'عاجلة']
+const HD_STATUSES = ['مفتوحة', 'قيد المعالجة', 'بانتظار الموظف', 'مغلقة']
+const HD_STATUS_ORDER = { مفتوحة: 1, 'قيد المعالجة': 2, 'بانتظار الموظف': 3, مغلقة: 4 }
+const HD_PRIORITY_ORDER = { عاجلة: 1, عالية: 2, متوسطة: 3, منخفضة: 4 }
+let hdTicketSeq = 1
+let hdReplySeq = 1
+const helpdeskTickets = [
+  {
+    id: hdTicketSeq++, employee_id: 6, category: 'رواتب ومزايا', subject: 'خصم غير مفهوم في راتب الشهر الماضي', description: 'لاحظت خصماً 200 ريال إضافياً عن المعتاد ولا أعرف سببه.', priority: 'عالية', status: 'قيد المعالجة', assigned_to: 5, resolved_at: null, created_at: nowIso(), updated_at: nowIso(),
+    replies: [{ id: hdReplySeq++, author_id: 5, body: 'شكراً لتواصلك، جاري مراجعة كشف الرواتب والرجوع إليك خلال يوم عمل.', created_at: nowIso() }],
+  },
+  {
+    id: hdTicketSeq++, employee_id: 10, category: 'مشكلة تقنية', subject: 'لا أستطيع الدخول لبوابة تسجيل الحضور', description: 'تظهر رسالة خطأ عند محاولة تسجيل الدخول صباحاً.', priority: 'عاجلة', status: 'مفتوحة', assigned_to: null, resolved_at: null, created_at: nowIso(), updated_at: nowIso(),
+    replies: [],
+  },
+  {
+    id: hdTicketSeq++, employee_id: 4, category: 'إجازات وحضور', subject: 'استفسار عن رصيد الإجازة الطارئة', description: 'كم يوم إجازة طارئة متبقٍ لي هذا العام؟', priority: 'منخفضة', status: 'مغلقة', assigned_to: 5, resolved_at: addDays(-3), created_at: addDays(-4), updated_at: addDays(-3),
+    replies: [{ id: hdReplySeq++, author_id: 5, body: 'رصيدك الحالي 5 أيام إجازة طارئة، لم يُستخدم منها أي رصيد هذا العام.', created_at: addDays(-3) }],
+  },
+]
+
+function hdWithEmp(t) {
+  const { replies, ...rest } = t
+  return {
+    ...rest, full_name: empName(t.employee_id), job_title: employees.find((e) => e.id === t.employee_id)?.job_title, profile_picture: null,
+    department_name: deptName(employees.find((e) => e.id === t.employee_id)?.department_id),
+    assigned_to_name: empName(t.assigned_to), replies_count: replies.length,
+  }
+}
+
+export const mockHelpdeskApi = {
+  async list({ status, category, assigned_to } = {}) {
+    await delay()
+    const u = currentUser()
+    let rows = helpdeskTickets
+    if (u && !HD_MANAGE.includes(u.role)) rows = rows.filter((t) => t.employee_id === u.employee_id)
+    else if (assigned_to) rows = rows.filter((t) => t.assigned_to === Number(assigned_to))
+    if (status) rows = rows.filter((t) => t.status === status)
+    if (category) rows = rows.filter((t) => t.category === category)
+    const list = [...rows]
+      .sort((a, b) => (HD_STATUS_ORDER[a.status] - HD_STATUS_ORDER[b.status]) || (HD_PRIORITY_ORDER[a.priority] - HD_PRIORITY_ORDER[b.priority]) || b.id - a.id)
+      .map(hdWithEmp)
+    const summary = list.reduce((s, t) => {
+      s.total += 1
+      if (t.status !== 'مغلقة') s.open += 1
+      if (t.priority === 'عاجلة' && t.status !== 'مغلقة') s.urgent += 1
+      if (!t.assigned_to && t.status !== 'مغلقة') s.unassigned += 1
+      return s
+    }, { total: 0, open: 0, urgent: 0, unassigned: 0 })
+    return { tickets: list, summary, categories: HD_CATEGORIES, priorities: HD_PRIORITIES, statuses: HD_STATUSES }
+  },
+  async get(id) {
+    await delay()
+    const t = helpdeskTickets.find((x) => x.id === Number(id))
+    if (!t) throw notFound()
+    const u = currentUser()
+    if (u && !HD_MANAGE.includes(u.role) && t.employee_id !== u.employee_id) { const e = new Error('bad'); e.response = { status: 403, data: { error: 'غير مسموح' } }; throw e }
+    const replies = t.replies.map((r) => ({ ...r, author_name: empName(r.author_id), author_picture: null }))
+    return { ...hdWithEmp(t), replies }
+  },
+  async create(data) {
+    await delay()
+    const u = currentUser()
+    if (!u?.employee_id) throw badReq('لا يوجد موظف مرتبط بهذا الحساب')
+    if (!data.subject) throw badReq('الموضوع مطلوب')
+    if (data.category && !HD_CATEGORIES.includes(data.category)) throw badReq('تصنيف غير صالح')
+    if (data.priority && !HD_PRIORITIES.includes(data.priority)) throw badReq('أولوية غير صالحة')
+    const t = { id: hdTicketSeq++, employee_id: u.employee_id, category: data.category || 'استفسار عام', subject: data.subject, description: data.description || null, priority: data.priority || 'متوسطة', status: 'مفتوحة', assigned_to: null, resolved_at: null, created_at: nowIso(), updated_at: nowIso(), replies: [] }
+    helpdeskTickets.unshift(t)
+    return { message: 'تم', ticket: { id: t.id } }
+  },
+  async update(id, data) {
+    await delay()
+    const t = helpdeskTickets.find((x) => x.id === Number(id))
+    if (!t) throw notFound()
+    if (data.status && !HD_STATUSES.includes(data.status)) throw badReq('حالة غير صالحة')
+    if (data.priority && !HD_PRIORITIES.includes(data.priority)) throw badReq('أولوية غير صالحة')
+    const wasClosed = t.status === 'مغلقة'
+    if (data.status !== undefined) t.status = data.status
+    if (data.priority !== undefined) t.priority = data.priority
+    if (data.assigned_to !== undefined) t.assigned_to = data.assigned_to || null
+    if (t.status === 'مغلقة' && !wasClosed) t.resolved_at = nowIso()
+    else if (t.status !== 'مغلقة') t.resolved_at = null
+    t.updated_at = nowIso()
+    return { message: 'تم التحديث' }
+  },
+  async reply(id, body) {
+    await delay()
+    const t = helpdeskTickets.find((x) => x.id === Number(id))
+    if (!t) throw notFound()
+    const u = currentUser()
+    const isOwner = t.employee_id === u?.employee_id
+    if (!isOwner && !HD_MANAGE.includes(u?.role)) { const e = new Error('bad'); e.response = { status: 403, data: { error: 'غير مسموح' } }; throw e }
+    const text = (body || '').trim()
+    if (!text) throw badReq('نص الرد مطلوب')
+    t.replies.push({ id: hdReplySeq++, author_id: u?.employee_id || null, body: text, created_at: nowIso() })
+    if (HD_MANAGE.includes(u?.role) && t.status === 'مفتوحة') t.status = 'قيد المعالجة'
+    else if (isOwner && t.status === 'بانتظار الموظف') t.status = 'قيد المعالجة'
+    t.updated_at = nowIso()
+    return { message: 'تم' }
+  },
+  async remove(id) {
+    await delay()
+    const i = helpdeskTickets.findIndex((x) => x.id === Number(id))
+    if (i > -1) helpdeskTickets.splice(i, 1)
+    return { message: 'تم الحذف' }
+  },
+}

@@ -165,6 +165,35 @@ const migrations = [
     FOREIGN KEY (resolved_by) REFERENCES employees(id) ON DELETE SET NULL
   )`,
 
+  // HR Help Desk: support tickets (distinct from the single-response
+  // "requests" table above — these carry priority, assignment, and a
+  // threaded conversation via helpdesk_replies).
+  `CREATE TABLE IF NOT EXISTS helpdesk_tickets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    category TEXT NOT NULL DEFAULT 'استفسار عام' CHECK(category IN ('استفسار عام', 'رواتب ومزايا', 'إجازات وحضور', 'مشكلة تقنية', 'شكوى', 'أخرى')),
+    subject TEXT NOT NULL,
+    description TEXT,
+    priority TEXT DEFAULT 'متوسطة' CHECK(priority IN ('منخفضة', 'متوسطة', 'عالية', 'عاجلة')),
+    status TEXT DEFAULT 'مفتوحة' CHECK(status IN ('مفتوحة', 'قيد المعالجة', 'بانتظار الموظف', 'مغلقة')),
+    assigned_to INTEGER,
+    resolved_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+    FOREIGN KEY (assigned_to) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS helpdesk_replies (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ticket_id INTEGER NOT NULL,
+    author_id INTEGER,
+    body TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (ticket_id) REFERENCES helpdesk_tickets(id) ON DELETE CASCADE,
+    FOREIGN KEY (author_id) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
   // HR policies table
   `CREATE TABLE IF NOT EXISTS policies (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -968,6 +997,8 @@ const indexes = `
   CREATE INDEX IF NOT EXISTS idx_requests_employee ON requests(employee_id);
   CREATE INDEX IF NOT EXISTS idx_requests_status ON requests(status);
   CREATE INDEX IF NOT EXISTS idx_tasks_employee ON tasks(employee_id);
+  CREATE INDEX IF NOT EXISTS idx_helpdesk_tickets_employee ON helpdesk_tickets(employee_id);
+  CREATE INDEX IF NOT EXISTS idx_helpdesk_replies_ticket ON helpdesk_replies(ticket_id);
 `;
 
 function runMigrations() {

@@ -297,6 +297,16 @@ const realAssistantApi = {
   logs: () => api.get('/assistant/logs').then((r) => r.data),
 }
 
+// ---------- HR Help Desk ----------
+const realHelpdeskApi = {
+  list: (params) => api.get('/helpdesk', { params }).then((r) => r.data),
+  get: (id) => api.get(`/helpdesk/${id}`).then((r) => r.data),
+  create: (data) => api.post('/helpdesk', data).then((r) => r.data),
+  update: (id, data) => api.put(`/helpdesk/${id}`, data).then((r) => r.data),
+  reply: (id, body) => api.post(`/helpdesk/${id}/replies`, { body }).then((r) => r.data),
+  remove: (id) => api.delete(`/helpdesk/${id}`).then((r) => r.data),
+}
+
 // ---------- Talent & succession ----------
 const realSuccessionApi = {
   list: (params) => api.get('/succession', { params }).then((r) => r.data),
@@ -461,6 +471,7 @@ export const trainingApi = DEMO ? mock.mockTrainingApi : realTrainingApi
 export const reportsApi = DEMO ? mock.mockReportsApi : realReportsApi
 export const offboardingApi = DEMO ? mock.mockOffboardingApi : realOffboardingApi
 export const assistantApi = DEMO ? mock.mockAssistantApi : realAssistantApi
+export const helpdeskApi = DEMO ? mock.mockHelpdeskApi : realHelpdeskApi
 export const grievancesApi = DEMO ? mock.mockGrievancesApi : realGrievancesApi
 export const incidentsApi = DEMO ? mock.mockIncidentsApi : realIncidentsApi
 export const shiftsApi = DEMO ? mock.mockShiftsApi : realShiftsApi
