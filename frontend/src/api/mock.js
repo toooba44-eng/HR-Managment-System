@@ -2728,9 +2728,9 @@ export const mockIntegrationsApi = {
 let surveySeq = 1
 let surveyRespSeq = 1
 const surveys = [
-  { id: surveySeq++, title: 'استطلاع رضا الموظفين الربعي', description: 'قيّم مدى رضاك عن بيئة العمل والمزايا خلال الربع الحالي', audience: 'الكل', is_active: 1, created_by: 5 },
-  { id: surveySeq++, title: 'تقييم برنامج العمل المرن', description: 'شاركنا رأيك في سياسة العمل عن بُعد والمرونة', audience: 'الكل', is_active: 1, created_by: 5 },
-  { id: surveySeq++, title: 'استطلاع الفعاليات السنوية', description: 'اقترح فعاليات وأنشطة للعام القادم', audience: 'الكل', is_active: 0, created_by: 5 },
+  { id: surveySeq++, title: 'استطلاع رضا الموظفين الربعي', description: 'قيّم مدى رضاك عن بيئة العمل والمزايا خلال الربع الحالي', audience: 'الكل', is_active: 1, anonymous: 1, created_by: 5 },
+  { id: surveySeq++, title: 'تقييم برنامج العمل المرن', description: 'شاركنا رأيك في سياسة العمل عن بُعد والمرونة', audience: 'الكل', is_active: 1, anonymous: 0, created_by: 5 },
+  { id: surveySeq++, title: 'استطلاع الفعاليات السنوية', description: 'اقترح فعاليات وأنشطة للعام القادم', audience: 'الكل', is_active: 0, anonymous: 0, created_by: 5 },
 ]
 const surveyResponses = [
   { id: surveyRespSeq++, survey_id: 1, employee_id: 6, rating: 4, comment: 'بيئة عمل ممتازة بشكل عام', created_at: nowIso() },
@@ -2762,22 +2762,31 @@ export const mockSurveysApi = {
     await delay()
     const survey = surveys.find((s) => s.id === Number(id))
     if (!survey) throw notFound()
-    const responses = surveyResponses.filter((r) => r.survey_id === Number(id))
+    const rows = surveyResponses.filter((r) => r.survey_id === Number(id))
       .map((r) => ({ ...r, full_name: empName(r.employee_id), job_title: employees.find((e) => e.id === r.employee_id)?.job_title || null }))
-    const count = responses.length
-    const avg_rating = count ? Math.round((responses.reduce((x, r) => x + r.rating, 0) / count) * 100) / 100 : null
-    return { survey, responses, stats: { count, avg_rating } }
+    const responses = survey.anonymous
+      ? rows.map((r) => ({ id: r.id, rating: r.rating, comment: r.comment, created_at: r.created_at }))
+      : rows
+    const count = rows.length
+    const avg_rating = count ? Math.round((rows.reduce((x, r) => x + r.rating, 0) / count) * 100) / 100 : null
+    const distribution = [1, 2, 3, 4, 5].reduce((acc, n) => { acc[n] = rows.filter((r) => r.rating === n).length; return acc }, {})
+    return { survey, responses, stats: { count, avg_rating }, distribution }
   },
   async create(data) {
     await delay()
-    const s = { id: surveySeq++, title: data.title, description: data.description || null, audience: data.audience || 'الكل', is_active: 1, created_by: currentUser()?.employee_id || 5 }
+    const s = { id: surveySeq++, title: data.title, description: data.description || null, audience: data.audience || 'الكل', is_active: 1, anonymous: data.anonymous ? 1 : 0, created_by: currentUser()?.employee_id || 5 }
     surveys.unshift(s)
     return { message: 'تم', survey: { id: s.id } }
   },
   async update(id, data) {
     await delay()
     const s = surveys.find((x) => x.id === Number(id))
-    if (s) { if (data.title !== undefined) s.title = data.title; if (data.description !== undefined) s.description = data.description; if (data.is_active !== undefined) s.is_active = data.is_active ? 1 : 0 }
+    if (s) {
+      if (data.title !== undefined) s.title = data.title
+      if (data.description !== undefined) s.description = data.description
+      if (data.is_active !== undefined) s.is_active = data.is_active ? 1 : 0
+      if (data.anonymous !== undefined) s.anonymous = data.anonymous ? 1 : 0
+    }
     return { message: 'تم التحديث' }
   },
   async respond(id, data) {
