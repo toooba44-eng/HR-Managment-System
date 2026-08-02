@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../config/database');
 const { authenticateToken, requireRole } = require('../middleware/auth');
+const { ACTIVE_COMP_JOIN, buildPayItem } = require('../utils/payCalc');
 const router = express.Router();
 
 router.use(authenticateToken);
@@ -42,11 +43,19 @@ router.get('/overview', (req, res, next) => {
       FROM leaves GROUP BY type ORDER BY count DESC
     `).all();
 
-    const pay = db.prepare("SELECT SUM(salary) as basic, SUM(allowances) as allowances FROM employees WHERE status = 'نشط'").get();
-    const basic = pay.basic || 0;
-    const allowances = pay.allowances || 0;
-    const deductions = Math.round(basic * 0.1);
-    const payroll = { basic, allowances, deductions, net: basic + allowances - deductions };
+    // Uses each employee's active compensation package when one exists, so
+    // this agrees with the live payroll overview and payroll runs.
+    const payRows = db.prepare(`
+      SELECT e.salary, e.allowances,
+             c.base_salary, c.housing_allowance, c.transport_allowance, c.other_allowances, c.bonus
+      FROM employees e
+      ${ACTIVE_COMP_JOIN}
+      WHERE e.status = 'نشط'
+    `).all();
+    const payroll = payRows.reduce((t, r) => {
+      const i = buildPayItem(r);
+      return { basic: t.basic + i.basic, allowances: t.allowances + i.allowances, deductions: t.deductions + i.deductions, net: t.net + i.net };
+    }, { basic: 0, allowances: 0, deductions: 0, net: 0 });
 
     const recruitment = {
       openJobs: db.prepare("SELECT COUNT(*) as c FROM jobs WHERE status = 'مفتوحة'").get().c,

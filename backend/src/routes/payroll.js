@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../config/database');
 const { authenticateToken, requireRole } = require('../middleware/auth');
+const { ACTIVE_COMP_JOIN, buildPayItem } = require('../utils/payCalc');
 const router = express.Router();
 
 router.use(authenticateToken);
@@ -10,29 +11,6 @@ const STATUSES = ['مسودة', 'قيد المراجعة', 'معتمد', 'مصر
 // Forward-only lifecycle: each status can only move to the next one (or be
 // deleted while still a draft) — no skipping straight to "مصروف".
 const NEXT_STATUS = { مسودة: 'قيد المراجعة', 'قيد المراجعة': 'معتمد', معتمد: 'مصروف' };
-
-// Builds one pay item from an employee row that's been left-joined against
-// their most recent active compensation package (see queries below). Prefers
-// the itemized package when one exists; falls back to the flat employee
-// salary/allowances fields for employees who never got a formal package.
-function buildPayItem(e) {
-  const hasPackage = e.base_salary != null;
-  const basic = hasPackage ? e.base_salary : (e.salary || 0);
-  const housing_allowance = hasPackage ? e.housing_allowance : 0;
-  const transport_allowance = hasPackage ? e.transport_allowance : 0;
-  const other_allowances = hasPackage ? e.other_allowances : (e.allowances || 0);
-  const bonus = hasPackage ? e.bonus : 0;
-  const allowances = housing_allowance + transport_allowance + other_allowances + bonus;
-  const deductions = Math.round(basic * 0.1);
-  const net = basic + allowances - deductions;
-  return { basic, housing_allowance, transport_allowance, other_allowances, bonus, allowances, deductions, net };
-}
-
-const ACTIVE_COMP_JOIN = `
-  LEFT JOIN compensation c ON c.id = (
-    SELECT id FROM compensation WHERE employee_id = e.id AND status = 'نشط' ORDER BY effective_date DESC, id DESC LIMIT 1
-  )
-`;
 
 // Payroll overview across employees (HR / admins only).
 // Net = basic + allowances − GOSI (10% of basic, simple model). Uses each
