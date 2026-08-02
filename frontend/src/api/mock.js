@@ -1905,6 +1905,63 @@ export const mockSkillsApi = {
   },
 }
 
+const RECOMMENDATIONS = ['يوصى بشدة', 'يوصى', 'محايد', 'لا يوصى']
+let scorecardSeq = 1
+const scorecards = [
+  { id: scorecardSeq++, application_id: 1, interviewer_id: 2, technical: 4, communication: 4, problem_solving: 4, culture_fit: 4, recommendation: 'يوصى', notes: 'أداء تقني جيد ومهارات تواصل ممتازة.', created_at: nowIso() },
+  { id: scorecardSeq++, application_id: 1, interviewer_id: 5, technical: 2, communication: 2, problem_solving: 2, culture_fit: 3, recommendation: 'لا يوصى', notes: 'أرى فجوات واضحة في الأساسيات لم يستطع تجاوزها.', created_at: nowIso() },
+  { id: scorecardSeq++, application_id: 3, interviewer_id: 2, technical: 5, communication: 5, problem_solving: 4, culture_fit: 5, recommendation: 'يوصى بشدة', notes: 'من أفضل من قابلنا هذا الربع.', created_at: nowIso() },
+  { id: scorecardSeq++, application_id: 3, interviewer_id: 4, technical: 5, communication: 4, problem_solving: 5, culture_fit: 5, recommendation: 'يوصى بشدة', notes: 'حل المسائل التقنية بسرعة وثقة عالية.', created_at: nowIso() },
+  { id: scorecardSeq++, application_id: 6, interviewer_id: 5, technical: 4, communication: 5, problem_solving: 3, culture_fit: 4, recommendation: 'يوصى', notes: 'خبرة جيدة في التوظيف، تحتاج دعماً في القرارات الصعبة.', created_at: nowIso() },
+]
+const scOverall = (r) => Number(((r.technical + r.communication + r.problem_solving + r.culture_fit) / 4).toFixed(2))
+export const mockScorecardsApi = {
+  async get(applicationId) {
+    await delay()
+    const app = applications.find((a) => a.id === Number(applicationId))
+    if (!app) { const err = new Error('bad'); err.response = { status: 404, data: { error: 'الطلب غير موجود' } }; throw err }
+    const rows = scorecards.filter((s) => s.application_id === Number(applicationId))
+      .map((s) => ({ ...s, overall: scOverall(s), interviewer_name: empName(s.interviewer_id), interviewer_title: employees.find((e) => e.id === s.interviewer_id)?.job_title, interviewer_picture: null }))
+    const n = rows.length
+    const averages = n === 0 ? null : {
+      technical: Number((rows.reduce((s, r) => s + r.technical, 0) / n).toFixed(2)),
+      communication: Number((rows.reduce((s, r) => s + r.communication, 0) / n).toFixed(2)),
+      problem_solving: Number((rows.reduce((s, r) => s + r.problem_solving, 0) / n).toFixed(2)),
+      culture_fit: Number((rows.reduce((s, r) => s + r.culture_fit, 0) / n).toFixed(2)),
+      overall: Number((rows.reduce((s, r) => s + r.overall, 0) / n).toFixed(2)),
+    }
+    const recommendationCounts = RECOMMENDATIONS.reduce((acc, r) => { acc[r] = rows.filter((x) => x.recommendation === r).length; return acc }, {})
+    const spread = n > 1 ? Math.max(...rows.map((r) => r.overall)) - Math.min(...rows.map((r) => r.overall)) : 0
+    const u = currentUser()
+    const mine = u?.employee_id ? rows.find((r) => r.interviewer_id === u.employee_id) || null : null
+    return { candidate_name: app.candidate_name, scorecards: rows, averages, recommendationCounts, disagreement: spread >= 1.5, mine }
+  },
+  async submit(applicationId, data) {
+    await delay()
+    const u = currentUser()
+    if (!u?.employee_id) throw badReq('لا يوجد موظف مرتبط بهذا الحساب')
+    for (const key of ['technical', 'communication', 'problem_solving', 'culture_fit']) {
+      const v = parseInt(data[key], 10)
+      if (!(v >= 1 && v <= 5)) throw badReq(`${key} يجب أن يكون 1-5`)
+    }
+    if (!RECOMMENDATIONS.includes(data.recommendation)) throw badReq('توصية غير صالحة')
+    const existing = scorecards.find((s) => s.application_id === Number(applicationId) && s.interviewer_id === u.employee_id)
+    if (existing) {
+      Object.assign(existing, { technical: data.technical, communication: data.communication, problem_solving: data.problem_solving, culture_fit: data.culture_fit, recommendation: data.recommendation, notes: data.notes || null })
+    } else {
+      scorecards.push({ id: scorecardSeq++, application_id: Number(applicationId), interviewer_id: u.employee_id, technical: data.technical, communication: data.communication, problem_solving: data.problem_solving, culture_fit: data.culture_fit, recommendation: data.recommendation, notes: data.notes || null, created_at: nowIso() })
+    }
+    return { message: 'تم' }
+  },
+  async remove(applicationId) {
+    await delay()
+    const u = currentUser()
+    const idx = scorecards.findIndex((s) => s.application_id === Number(applicationId) && s.interviewer_id === u?.employee_id)
+    if (idx >= 0) scorecards.splice(idx, 1)
+    return { message: 'تم' }
+  },
+}
+
 export const mockSuccessionApi = {
   async list({ status } = {}) {
     await delay()
