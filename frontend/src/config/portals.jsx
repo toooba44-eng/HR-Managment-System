@@ -6,7 +6,7 @@ import {
   MessageSquare, ShieldCheck, Laptop, Clock, BarChart3, Briefcase,
   FileSignature, Video, Send, Star, Search, Receipt, PlusCircle, ListChecks,
   Inbox, Network, UserPlus, CalendarRange, Timer, Gift, ShieldPlus,
-  AlertTriangle, UserMinus, Workflow,
+  AlertTriangle, UserMinus, Workflow, ShieldAlert,
 } from 'lucide-react'
 
 import Dashboard from '../pages/Dashboard'
@@ -22,6 +22,7 @@ import Announcements from '../pages/employee/Announcements'
 import Requests from '../pages/employee/Requests'
 import Payslips from '../pages/employee/Payslips'
 import MySkills from '../pages/employee/MySkills'
+import MyGrievances from '../pages/employee/MyGrievances'
 import Policies from '../pages/hr/Policies'
 import Payroll from '../pages/hr/Payroll'
 import Tasks from '../pages/manager/Tasks'
@@ -251,6 +252,7 @@ export const PORTALS = {
       { section: 'الطلبات والخدمات', to: '/ess/data-update', label: 'تحديث البيانات', icon: UserCog, element: <Requests type="تحديث بيانات" title="طلب تحديث البيانات" description="اطلب تعديل بياناتك الشخصية لدى الموارد البشرية." /> },
       { section: 'الطلبات والخدمات', to: '/ess/sign', label: 'توقيع المستندات', icon: FileSignature, element: <Signatures /> },
       { section: 'الطلبات والخدمات', to: '/ess/complaints', label: 'الشكاوى والاستفسارات', icon: MessageSquare, element: <Requests type="شكوى" title="الشكاوى والاستفسارات" description="قدّم شكوى أو استفساراً وتابع الرد عليه." /> },
+      { section: 'الطلبات والخدمات', to: '/ess/my-cases', label: 'حالاتي لدى الموارد البشرية', icon: ShieldAlert, element: <MyGrievances /> },
       { section: 'الطلبات والخدمات', to: '/ess/help-desk', label: 'مكتب المساعدة', icon: LifeBuoy, element: <HelpDesk /> },
 
       { section: 'التواصل والمعرفة', to: '/assistant', label: 'المساعد الذكي', icon: Bot, element: <Assistant /> },

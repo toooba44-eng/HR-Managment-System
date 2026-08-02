@@ -2116,6 +2116,14 @@ export const mockGrievancesApi = {
     await delay()
     return grievances.map((g) => ({ ...withEmp(g), assigned_to_name: empName(g.assigned_to), notes_count: grievanceNotes.filter((n) => n.grievance_id === g.id).length }))
   },
+  async mine() {
+    await delay()
+    const empId = currentUser()?.employee_id
+    return grievances
+      .filter((g) => g.employee_id === empId)
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      .map((g) => ({ id: g.id, type: g.type, category: g.category, status: g.status, action: g.action, created_at: g.created_at }))
+  },
   async create(data) { await delay(); const g = { id: grvSeq++, type: data.type || 'شكوى', category: data.category || 'أخرى', severity: data.severity || 'متوسطة', status: 'مفتوحة', action: null, assigned_to: null, created_by: currentUser()?.employee_id || 5, created_at: nowIso(), ...data }; grievances.unshift(g); return { message: 'تم', grievance: g } },
   async update(id, data) { await delay(); const g = grievances.find((x) => x.id === Number(id)); if (g) Object.assign(g, data); return { message: 'تم التحديث' } },
   async remove(id) { await delay(); const i = grievances.findIndex((x) => x.id === Number(id)); if (i > -1) grievances.splice(i, 1); return { message: 'تم الحذف' } },
