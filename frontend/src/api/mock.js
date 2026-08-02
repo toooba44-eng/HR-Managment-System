@@ -97,9 +97,15 @@ const documents = [
 
 let annSeq = 1
 const announcements = [
-  { id: annSeq++, title: 'تحديث سياسة العمل عن بُعد', body: 'يسمح النظام الجديد بيومين عمل عن بُعد أسبوعياً بعد موافقة المدير المباشر. يُرجى تقديم الطلبات عبر بوابة الموظف.', audience: 'الجميع', is_pinned: 1, created_by: 5, created_at: nowIso() },
-  { id: annSeq++, title: 'موعد صرف رواتب الشهر', body: 'سيتم صرف رواتب هذا الشهر يوم 27 كالمعتاد. لأي استفسار يُرجى التواصل مع الموارد البشرية.', audience: 'الجميع', is_pinned: 0, created_by: 5, created_at: nowIso() },
-  { id: annSeq++, title: 'برنامج تدريبي جديد', body: 'انطلق التسجيل في برنامج تطوير المهارات القيادية. الأماكن محدودة — سارع بالتسجيل عبر بوابة الموظف.', audience: 'الجميع', is_pinned: 0, created_by: 5, created_at: nowIso() },
+  { id: annSeq++, title: 'تحديث سياسة العمل عن بُعد', body: 'يسمح النظام الجديد بيومين عمل عن بُعد أسبوعياً بعد موافقة المدير المباشر. يُرجى تقديم الطلبات عبر بوابة الموظف.', audience: 'الجميع', is_pinned: 1, requires_acknowledgment: 1, created_by: 5, created_at: nowIso() },
+  { id: annSeq++, title: 'موعد صرف رواتب الشهر', body: 'سيتم صرف رواتب هذا الشهر يوم 27 كالمعتاد. لأي استفسار يُرجى التواصل مع الموارد البشرية.', audience: 'الجميع', is_pinned: 0, requires_acknowledgment: 0, created_by: 5, created_at: nowIso() },
+  { id: annSeq++, title: 'برنامج تدريبي جديد', body: 'انطلق التسجيل في برنامج تطوير المهارات القيادية. الأماكن محدودة — سارع بالتسجيل عبر بوابة الموظف.', audience: 'الجميع', is_pinned: 0, requires_acknowledgment: 0, created_by: 5, created_at: nowIso() },
+]
+
+let annReadSeq = 1
+const announcementReads = [
+  { id: annReadSeq++, announcement_id: 1, employee_id: 6, read_at: addDays(-1) },
+  { id: annReadSeq++, announcement_id: 1, employee_id: 2, read_at: addDays(-1) },
 ]
 
 let reqSeq = 1
@@ -839,15 +845,46 @@ const AR_MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'ما
 export const mockAnnouncementsApi = {
   async list() {
     await delay()
+    const myId = currentUser()?.employee_id
     return [...announcements]
       .sort((a, b) => (b.is_pinned - a.is_pinned) || b.id - a.id)
-      .map((a) => ({ ...a, created_by_name: empName(a.created_by) }))
+      .map((a) => ({
+        ...a,
+        created_by_name: empName(a.created_by),
+        read_count: announcementReads.filter((r) => r.announcement_id === a.id).length,
+        read_by_me: announcementReads.some((r) => r.announcement_id === a.id && r.employee_id === myId),
+      }))
   },
   async create(data) {
     await delay()
-    const ann = { id: annSeq++, is_pinned: data.is_pinned ? 1 : 0, audience: data.audience || 'الجميع', created_by: currentUser()?.employee_id || null, created_at: nowIso(), ...data }
+    const ann = { id: annSeq++, is_pinned: data.is_pinned ? 1 : 0, requires_acknowledgment: data.requires_acknowledgment ? 1 : 0, audience: data.audience || 'الجميع', created_by: currentUser()?.employee_id || null, created_at: nowIso(), ...data }
     announcements.unshift(ann)
     return { message: 'تم النشر', announcement: ann }
+  },
+  async markRead(id) {
+    await delay()
+    const employee_id = currentUser()?.employee_id
+    if (!employee_id) throw { response: { data: { error: 'No employee associated with this account' } } }
+    const a = announcements.find((x) => x.id === Number(id))
+    if (!a) throw { response: { data: { error: 'Not found' } } }
+    if (!announcementReads.some((r) => r.announcement_id === Number(id) && r.employee_id === employee_id)) {
+      announcementReads.push({ id: annReadSeq++, announcement_id: Number(id), employee_id, read_at: nowIso() })
+    }
+    return { message: 'Acknowledged' }
+  },
+  async reads(id) {
+    await delay()
+    const a = announcements.find((x) => x.id === Number(id))
+    if (!a) throw { response: { data: { error: 'Not found' } } }
+    const readers = announcementReads
+      .filter((r) => r.announcement_id === Number(id))
+      .sort((x, y) => new Date(x.read_at) - new Date(y.read_at))
+      .map((r) => ({ read_at: r.read_at, employee_id: r.employee_id, full_name: empName(r.employee_id), job_title: employees.find((e) => e.id === r.employee_id)?.job_title, profile_picture: null }))
+    const readIds = new Set(readers.map((r) => r.employee_id))
+    const notRead = employees
+      .filter((e) => e.status === 'نشط' && !readIds.has(e.id))
+      .map((e) => ({ employee_id: e.id, full_name: e.full_name, job_title: e.job_title, profile_picture: null }))
+    return { announcement: a, readers, notRead, total: readers.length + notRead.length }
   },
   async remove(id) {
     await delay()
