@@ -201,14 +201,28 @@ router.post('/promotions', requireRole(...REQUEST_ROLES), (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Approving a promotion/transfer applies it to the employee record — the
+// new title and/or department were captured specifically for this, but
+// were never actually written through until now.
 router.put('/promotions/:id/status', requireRole(...REVIEW_ROLES), (req, res, next) => {
   try {
     const { status } = req.body;
     if (!['موافق عليه', 'مرفوض', 'معلق'].includes(status)) return res.status(400).json({ error: 'Invalid status' });
-    const exists = db.prepare('SELECT id FROM promotions WHERE id = ?').get(req.params.id);
-    if (!exists) return res.status(404).json({ error: 'Not found' });
+    const promo = db.prepare('SELECT * FROM promotions WHERE id = ?').get(req.params.id);
+    if (!promo) return res.status(404).json({ error: 'Not found' });
     db.prepare('UPDATE promotions SET status = ?, reviewed_by = ? WHERE id = ?')
       .run(status, req.user.employee_id || null, req.params.id);
+
+    if (status === 'موافق عليه') {
+      const updates = [];
+      const params = [];
+      if (promo.new_title) { updates.push('job_title = ?'); params.push(promo.new_title); }
+      if (promo.new_department_id) { updates.push('department_id = ?'); params.push(promo.new_department_id); }
+      if (updates.length) {
+        params.push(promo.employee_id);
+        db.prepare(`UPDATE employees SET ${updates.join(', ')} WHERE id = ?`).run(...params);
+      }
+    }
     res.json({ message: 'Updated' });
   } catch (err) { next(err); }
 });
