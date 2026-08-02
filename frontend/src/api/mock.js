@@ -929,6 +929,16 @@ export const mockRequestsApi = {
     if (r) { r.status = status; r.response = response || null; r.resolved_by = currentUser()?.employee_id || 5; r.resolved_at = nowIso() }
     return { message: 'تم تحديث الطلب' }
   },
+  async remove(id) {
+    await delay()
+    const r = requests.find((x) => x.id === Number(id))
+    if (!r) throw notFound()
+    if (r.employee_id !== currentUser()?.employee_id) throw { response: { data: { error: 'Access denied' } } }
+    if (r.status !== 'معلقة') throw badReq('لا يمكن سحب طلب تم البت فيه')
+    const i = requests.findIndex((x) => x.id === Number(id))
+    if (i > -1) requests.splice(i, 1)
+    return { message: 'تم سحب الطلب' }
+  },
 }
 
 export const mockPayslipsApi = {

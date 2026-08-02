@@ -74,6 +74,25 @@ router.post('/', (req, res, next) => {
   }
 });
 
+// Withdraw my own request — only while still pending, so a record a
+// manager has already acted on stays in place for the audit trail.
+router.delete('/:id', (req, res, next) => {
+  try {
+    const request = db.prepare('SELECT * FROM requests WHERE id = ?').get(req.params.id);
+    if (!request) return res.status(404).json({ error: 'Request not found' });
+    if (request.employee_id !== req.user.employee_id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    if (request.status !== 'معلقة') {
+      return res.status(400).json({ error: 'لا يمكن سحب طلب تم البت فيه' });
+    }
+    db.prepare('DELETE FROM requests WHERE id = ?').run(req.params.id);
+    res.json({ message: 'Request withdrawn' });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Resolve a request (managers / HR)
 router.put('/:id/resolve', requireRole('admin', 'hr_manager', 'department_head', 'super_admin'), (req, res, next) => {
   try {
