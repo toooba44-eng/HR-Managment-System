@@ -11,6 +11,13 @@ router.use(requireRole('super_admin'));
 // List invoices with company info + revenue summary
 router.get('/', (req, res, next) => {
   try {
+    // Auto-promote any unpaid invoice past its due date to "متأخرة" — the
+    // status reflects reality without anyone having to notice and flag it.
+    db.prepare(`
+      UPDATE invoices SET status = 'متأخرة'
+      WHERE status = 'غير مدفوعة' AND due_date IS NOT NULL AND due_date < date('now')
+    `).run();
+
     const { status, company_id } = req.query;
     let where = 'WHERE 1=1';
     const params = [];

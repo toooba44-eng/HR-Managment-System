@@ -1308,6 +1308,11 @@ const companyName = (id) => companies.find((c) => c.id === Number(id))?.name || 
 export const mockBillingApi = {
   async list({ status, company_id } = {}) {
     await delay()
+    // Auto-promote any unpaid invoice past its due date to "متأخرة" — mirrors the backend.
+    const today = nowIso().slice(0, 10)
+    for (const inv of invoices) {
+      if (inv.status === 'غير مدفوعة' && inv.due_date && inv.due_date < today) inv.status = 'متأخرة'
+    }
     let rows = [...invoices]
     if (status) rows = rows.filter((i) => i.status === status)
     if (company_id) rows = rows.filter((i) => i.company_id === Number(company_id))
