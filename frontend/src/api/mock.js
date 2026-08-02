@@ -3099,3 +3099,55 @@ export const mockHelpdeskApi = {
     return { message: 'تم الحذف' }
   },
 }
+
+// workforcePlans[deptId][year] = { planned_headcount, budget, notes }
+const workforcePlans = {
+  3: { [new Date().getFullYear()]: { planned_headcount: 5, budget: 450000, notes: 'توسعة الفريق التقني بمطوّرين إضافيين لدعم المنتج الجديد.' } },
+  2: { [new Date().getFullYear()]: { planned_headcount: 2, budget: 220000, notes: 'خطة استقطاب أخصائي توظيف إضافي لدعم فريق الموارد البشرية.' } },
+  5: { [new Date().getFullYear()]: { planned_headcount: 2, budget: 300000, notes: 'تعزيز فريق المبيعات بعد نمو المحفظة في فرع جدة.' } },
+  4: { [new Date().getFullYear()]: { planned_headcount: 2, budget: 180000, notes: null } },
+}
+
+export const mockWorkforceApi = {
+  async list(year) {
+    await delay()
+    const y = year || new Date().getFullYear()
+    const u = currentUser()
+    let depts = departments
+    if (u && u.role === 'department_head') {
+      const dep = employees.find((e) => e.id === u.employee_id)?.department_id
+      depts = depts.filter((d) => d.id === dep)
+    }
+    const rows = depts.map((d) => {
+      const plan = workforcePlans[d.id]?.[y]
+      const actual = employees.filter((e) => e.department_id === d.id && e.status === 'نشط').length
+      const open = jobs.filter((j) => j.department === d.name && j.status === 'مفتوحة').length
+      const planned = plan?.planned_headcount ?? 0
+      return {
+        department_id: d.id, department_name: d.name, color: d.color,
+        plan_id: plan ? 1 : null, planned_headcount: plan?.planned_headcount ?? null, budget: plan?.budget ?? null, notes: plan?.notes ?? null,
+        actual_headcount: actual, open_positions: open, variance: actual - planned,
+      }
+    })
+    const summary = rows.reduce((s, p) => {
+      s.planned += p.planned_headcount ?? 0
+      s.actual += p.actual_headcount
+      s.open_positions += p.open_positions
+      s.budget += p.budget ?? 0
+      if (p.plan_id && p.variance > 0) s.overStaffed += 1
+      if (p.plan_id && p.variance < 0) s.understaffed += 1
+      return s
+    }, { planned: 0, actual: 0, open_positions: 0, budget: 0, overStaffed: 0, understaffed: 0 })
+    return { year: y, departments: rows, summary }
+  },
+  async setPlan(departmentId, data) {
+    await delay()
+    const y = Number(data.year) || new Date().getFullYear()
+    const planned = parseInt(data.planned_headcount, 10)
+    if (!Number.isFinite(planned) || planned < 0) throw badReq('عدد الموظفين المخطط له يجب أن يكون رقماً صحيحاً')
+    const budget = data.budget != null ? Number(data.budget) : 0
+    if (!Number.isFinite(budget) || budget < 0) throw badReq('الميزانية يجب أن تكون رقماً صحيحاً')
+    ;(workforcePlans[Number(departmentId)] ||= {})[y] = { planned_headcount: planned, budget, notes: data.notes || null }
+    return { message: 'تم' }
+  },
+}

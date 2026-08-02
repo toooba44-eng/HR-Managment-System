@@ -85,6 +85,7 @@ import ReportBuilder from '../pages/hr/ReportBuilder'
 import NineBox from '../pages/hr/NineBox'
 import SkillsMatrix from '../pages/hr/SkillsMatrix'
 import HelpDesk from '../pages/hr/HelpDesk'
+import WorkforcePlanning from '../pages/hr/WorkforcePlanning'
 
 /**
  * Each portal maps to one or more roles and declares its own navigation.
@@ -142,6 +143,7 @@ export const PORTALS = {
       { section: 'المؤسسة', to: '/departments', label: 'الإدارات والأقسام', icon: Building, element: <Departments /> },
       { section: 'المؤسسة', to: '/hr/org-chart', label: 'الهيكل التنظيمي', icon: Network, element: <OrgChart /> },
       { section: 'المؤسسة', to: '/employees', label: 'الموظفون', icon: Users, element: <Employees /> },
+      { section: 'المؤسسة', to: '/hr/workforce-planning', label: 'تخطيط القوى العاملة', icon: TrendingUp, element: <WorkforcePlanning /> },
 
       { section: 'التوظيف والتعيين', to: '/hr/recruitment', label: 'التوظيف', icon: Briefcase, element: <Recruitment /> },
       { section: 'التوظيف والتعيين', to: '/hr/pipeline', label: 'مسار المرشحين', icon: Network, element: <Pipeline /> },
@@ -195,6 +197,7 @@ export const PORTALS = {
       { to: '/assistant', label: 'المساعد الذكي', icon: Bot, element: <Assistant /> },
 
       { section: 'إدارة الفريق', to: '/employees', label: 'أعضاء الفريق', icon: Users, element: <Employees /> },
+      { section: 'إدارة الفريق', to: '/mgr/workforce-planning', label: 'تخطيط القوى العاملة', icon: TrendingUp, element: <WorkforcePlanning /> },
       { section: 'إدارة الفريق', to: '/attendance', label: 'حضور الفريق', icon: CalendarCheck, element: <Attendance /> },
       { section: 'إدارة الفريق', to: '/mgr/schedule', label: 'جداول الفريق', icon: Clock, element: <Shifts /> },
 

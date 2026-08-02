@@ -222,6 +222,17 @@ function seedData() {
     }
   }
 
+  // Workforce planning: budgeted headcount per department for the current year
+  if (isEmpty('workforce_plans')) {
+    const year = new Date().getFullYear();
+    const insertPlan = db.prepare(`INSERT INTO workforce_plans (department_id, year, planned_headcount, budget, notes, created_by) VALUES (?, ?, ?, ?, ?, ?)`);
+    insertPlan.run(3, year, 5, 450000, 'توسعة الفريق التقني بمطوّرين إضافيين لدعم المنتج الجديد.', 5);
+    insertPlan.run(2, year, 2, 220000, 'خطة استقطاب أخصائي توظيف إضافي لدعم فريق الموارد البشرية.', 5);
+    insertPlan.run(5, year, 2, 300000, 'تعزيز فريق المبيعات بعد نمو المحفظة في فرع جدة.', 5);
+    insertPlan.run(4, year, 2, 180000, null, 5);
+    console.log('✅ Workforce plans seeded');
+  }
+
   // Policies
   if (isEmpty('policies')) {
     const insertPolicy = db.prepare(`INSERT INTO policies (title, category, body, created_by) VALUES (?, ?, ?, ?)`);
