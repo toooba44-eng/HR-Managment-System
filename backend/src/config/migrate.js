@@ -1016,6 +1016,7 @@ const migrations = [
     description TEXT,
     audience TEXT DEFAULT 'الكل',
     is_active INTEGER DEFAULT 1,
+    anonymous INTEGER DEFAULT 0,
     created_by INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
@@ -1117,6 +1118,7 @@ function runMigrations() {
     `ALTER TABLE signatures ADD COLUMN countersigner_status TEXT DEFAULT 'غير مطلوب'`,
     `ALTER TABLE signatures ADD COLUMN countersigned_at DATETIME`,
     `ALTER TABLE grievances ADD COLUMN assigned_to INTEGER REFERENCES employees(id)`,
+    `ALTER TABLE surveys ADD COLUMN anonymous INTEGER DEFAULT 0`,
   ];
   for (const stmt of columnAdditions) {
     try {

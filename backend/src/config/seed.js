@@ -787,11 +787,11 @@ function seedData() {
 
   // Employee surveys + responses
   if (isEmpty('surveys')) {
-    const insS = db.prepare(`INSERT INTO surveys (title, description, audience, is_active, created_by) VALUES (?, ?, ?, ?, ?)`);
+    const insS = db.prepare(`INSERT INTO surveys (title, description, audience, is_active, anonymous, created_by) VALUES (?, ?, ?, ?, ?, ?)`);
     const insR = db.prepare(`INSERT INTO survey_responses (survey_id, employee_id, rating, comment) VALUES (?, ?, ?, ?)`);
-    const s1 = insS.run('استطلاع رضا الموظفين الربعي', 'قيّم مدى رضاك عن بيئة العمل والمزايا خلال الربع الحالي', 'الكل', 1, 5).lastInsertRowid;
-    const s2 = insS.run('تقييم برنامج العمل المرن', 'شاركنا رأيك في سياسة العمل عن بُعد والمرونة', 'الكل', 1, 5).lastInsertRowid;
-    insS.run('استطلاع الفعاليات السنوية', 'اقترح فعاليات وأنشطة للعام القادم', 'الكل', 0, 5);
+    const s1 = insS.run('استطلاع رضا الموظفين الربعي', 'قيّم مدى رضاك عن بيئة العمل والمزايا خلال الربع الحالي', 'الكل', 1, 1, 5).lastInsertRowid;
+    const s2 = insS.run('تقييم برنامج العمل المرن', 'شاركنا رأيك في سياسة العمل عن بُعد والمرونة', 'الكل', 1, 0, 5).lastInsertRowid;
+    insS.run('استطلاع الفعاليات السنوية', 'اقترح فعاليات وأنشطة للعام القادم', 'الكل', 0, 0, 5);
     insR.run(s1, 6, 4, 'بيئة عمل ممتازة بشكل عام');
     insR.run(s1, 10, 5, 'راضٍ جداً عن المزايا');
     insR.run(s1, 4, 3, 'تحتاج بعض الجوانب للتحسين');

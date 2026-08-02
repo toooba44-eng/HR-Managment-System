@@ -36,20 +36,30 @@ router.get('/', (req, res, next) => {
   }
 });
 
-// Survey results with individual responses (managers & HR)
+// Survey results with individual responses (managers & HR). For an
+// anonymous survey, responses are returned without any employee identity —
+// only the rating/comment/date — while the one-response-per-employee rule
+// is still enforced server-side via the UNIQUE constraint.
 router.get('/:id/results', requireRole(...MANAGE), (req, res, next) => {
   try {
     const survey = db.prepare('SELECT * FROM surveys WHERE id = ?').get(req.params.id);
     if (!survey) return res.status(404).json({ error: 'Not found' });
-    const responses = db.prepare(`
+    const rows = db.prepare(`
       SELECT r.*, e.full_name, e.job_title
       FROM survey_responses r
       JOIN employees e ON r.employee_id = e.id
       WHERE r.survey_id = ?
       ORDER BY r.created_at DESC
     `).all(req.params.id);
+    const responses = survey.anonymous
+      ? rows.map((r) => ({ id: r.id, rating: r.rating, comment: r.comment, created_at: r.created_at }))
+      : rows;
     const stats = db.prepare('SELECT COUNT(*) AS count, ROUND(AVG(rating), 2) AS avg_rating FROM survey_responses WHERE survey_id = ?').get(req.params.id);
-    res.json({ survey, responses, stats });
+    const distribution = [1, 2, 3, 4, 5].reduce((acc, n) => {
+      acc[n] = rows.filter((r) => r.rating === n).length;
+      return acc;
+    }, {});
+    res.json({ survey, responses, stats, distribution });
   } catch (err) {
     next(err);
   }
@@ -58,10 +68,10 @@ router.get('/:id/results', requireRole(...MANAGE), (req, res, next) => {
 // Create a survey (managers & HR)
 router.post('/', requireRole(...MANAGE), (req, res, next) => {
   try {
-    const { title, description, audience } = req.body;
+    const { title, description, audience, anonymous } = req.body;
     if (!title) return res.status(400).json({ error: 'Title is required' });
-    const result = db.prepare('INSERT INTO surveys (title, description, audience, created_by) VALUES (?, ?, ?, ?)')
-      .run(title, description || null, audience || 'الكل', req.user.employee_id || null);
+    const result = db.prepare('INSERT INTO surveys (title, description, audience, anonymous, created_by) VALUES (?, ?, ?, ?, ?)')
+      .run(title, description || null, audience || 'الكل', anonymous ? 1 : 0, req.user.employee_id || null);
     res.status(201).json({ message: 'Created', survey: { id: result.lastInsertRowid } });
   } catch (err) {
     next(err);
@@ -74,9 +84,10 @@ router.put('/:id', requireRole(...MANAGE), (req, res, next) => {
     const existing = db.prepare('SELECT * FROM surveys WHERE id = ?').get(req.params.id);
     if (!existing) return res.status(404).json({ error: 'Not found' });
     const b = req.body;
-    db.prepare('UPDATE surveys SET title = ?, description = ?, is_active = ? WHERE id = ?')
+    db.prepare('UPDATE surveys SET title = ?, description = ?, is_active = ?, anonymous = ? WHERE id = ?')
       .run(b.title ?? existing.title, b.description !== undefined ? b.description : existing.description,
-        b.is_active !== undefined ? (b.is_active ? 1 : 0) : existing.is_active, req.params.id);
+        b.is_active !== undefined ? (b.is_active ? 1 : 0) : existing.is_active,
+        b.anonymous !== undefined ? (b.anonymous ? 1 : 0) : existing.anonymous, req.params.id);
     res.json({ message: 'Updated' });
   } catch (err) {
     next(err);
