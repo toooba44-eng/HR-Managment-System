@@ -420,6 +420,21 @@ const migrations = [
     FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
   )`,
 
+  // Talent 9-box reviews (performance x potential)
+  `CREATE TABLE IF NOT EXISTS talent_reviews (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL UNIQUE,
+    performance INTEGER DEFAULT 2 CHECK(performance IN (1, 2, 3)),
+    potential INTEGER DEFAULT 2 CHECK(potential IN (1, 2, 3)),
+    cycle TEXT DEFAULT 'الدورة الحالية',
+    notes TEXT,
+    created_by INTEGER,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
   // Talent & succession planning (critical positions + successors)
   `CREATE TABLE IF NOT EXISTS succession (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

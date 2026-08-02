@@ -261,6 +261,13 @@ const realCompensationApi = {
   remove: (id) => api.delete(`/compensation/${id}`).then((r) => r.data),
 }
 
+// ---------- Talent 9-box grid ----------
+const realTalentGridApi = {
+  get: () => api.get('/talent-grid').then((r) => r.data),
+  set: (employeeId, data) => api.put(`/talent-grid/${employeeId}`, data).then((r) => r.data),
+  clear: (employeeId) => api.delete(`/talent-grid/${employeeId}`).then((r) => r.data),
+}
+
 // ---------- Talent & succession ----------
 const realSuccessionApi = {
   list: (params) => api.get('/succession', { params }).then((r) => r.data),
@@ -428,6 +435,7 @@ export const shiftsApi = DEMO ? mock.mockShiftsApi : realShiftsApi
 export const timesheetsApi = DEMO ? mock.mockTimesheetsApi : realTimesheetsApi
 export const compensationApi = DEMO ? mock.mockCompensationApi : realCompensationApi
 export const successionApi = DEMO ? mock.mockSuccessionApi : realSuccessionApi
+export const talentGridApi = DEMO ? mock.mockTalentGridApi : realTalentGridApi
 export const companyApi = DEMO ? mock.mockCompanyApi : realCompanyApi
 export const settingsApi = DEMO ? mock.mockSettingsApi : realSettingsApi
 export const onboardingApi = DEMO ? mock.mockOnboardingApi : realOnboardingApi
