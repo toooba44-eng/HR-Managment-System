@@ -221,6 +221,14 @@ const incidents = [
   { id: incSeq++, title: 'فحص طفايات الحريق', type: 'ملاحظة سلامة', employee_id: null, location: 'المبنى الرئيسي', severity: 'متوسطة', description: 'حان موعد الفحص الدوري لطفايات الحريق.', status: 'مفتوح', incident_date: addDays(-2), reported_by: 5, created_at: nowIso() },
 ]
 
+let incidentActionSeq = 1
+const incidentActions = [
+  { id: incidentActionSeq++, incident_id: 1, description: 'تركيب لافتات تحذير من الانزلاق في نقاط التنظيف.', owner_id: 5, due_date: addDays(-8), status: 'مكتمل', created_by: 5, completed_at: addDays(-8), created_at: nowIso() },
+  { id: incidentActionSeq++, incident_id: 1, description: 'تدريب طاقم النظافة على وضع اللافتات فوراً.', owner_id: 5, due_date: addDays(-5), status: 'مكتمل', created_by: 5, completed_at: addDays(-6), created_at: nowIso() },
+  { id: incidentActionSeq++, incident_id: 2, description: 'التنسيق مع مورد خارجي لفحص وصيانة الطفايات.', owner_id: 2, due_date: addDays(5), status: 'مفتوح', created_by: 5, completed_at: null, created_at: nowIso() },
+  { id: incidentActionSeq++, incident_id: 2, description: 'تحديث سجل الفحص الدوري بعد الصيانة.', owner_id: 5, due_date: addDays(7), status: 'مفتوح', created_by: 5, completed_at: null, created_at: nowIso() },
+]
+
 let shiftSeq = 1
 const shifts = [
   { id: shiftSeq++, employee_id: 6, date: addDays(0), shift_type: 'صباحية', start_time: '08:00', end_time: '16:00', location: 'المقر الرئيسي', notes: null, created_by: 5 },
@@ -1777,12 +1785,53 @@ export const mockGrievancesApi = {
 export const mockIncidentsApi = {
   async list() {
     await delay()
-    const list = incidents.map((r) => ({ ...r, full_name: empName(r.employee_id), reported_by_name: empName(r.reported_by) }))
-    return { incidents: list, summary: { total: list.length, open: list.filter((r) => r.status !== 'مغلق').length, high: list.filter((r) => r.severity === 'عالية').length } }
+    const list = incidents.map((r) => {
+      const acts = incidentActions.filter((a) => a.incident_id === r.id)
+      return { ...r, full_name: empName(r.employee_id), reported_by_name: empName(r.reported_by), actions_count: acts.length, open_actions_count: acts.filter((a) => a.status === 'مفتوح').length }
+    })
+    return {
+      incidents: list,
+      summary: {
+        total: list.length,
+        open: list.filter((r) => r.status !== 'مغلق').length,
+        high: list.filter((r) => r.severity === 'عالية').length,
+        openActions: list.reduce((s, r) => s + r.open_actions_count, 0),
+      },
+    }
   },
   async create(data) { await delay(); const i = { id: incSeq++, type: data.type || 'ملاحظة سلامة', severity: data.severity || 'متوسطة', status: 'مفتوح', incident_date: data.incident_date || addDays(0), reported_by: currentUser()?.employee_id || 5, created_at: nowIso(), ...data }; incidents.unshift(i); return { message: 'تم', incident: i } },
   async update(id, data) { await delay(); const i = incidents.find((x) => x.id === Number(id)); if (i) Object.assign(i, data); return { message: 'تم التحديث' } },
   async remove(id) { await delay(); const idx = incidents.findIndex((x) => x.id === Number(id)); if (idx > -1) incidents.splice(idx, 1); return { message: 'تم الحذف' } },
+  async actions(incidentId) {
+    await delay()
+    return incidentActions.filter((a) => a.incident_id === Number(incidentId))
+      .map((a) => ({ ...a, owner_name: empName(a.owner_id), owner_picture: null }))
+      .sort((a, b) => (a.status === b.status ? 0 : a.status === 'مفتوح' ? -1 : 1))
+  },
+  async createAction(incidentId, data) {
+    await delay()
+    if (!incidents.find((i) => i.id === Number(incidentId))) { const err = new Error('bad'); err.response = { status: 404, data: { error: 'البلاغ غير موجود' } }; throw err }
+    if (!data.description) throw badReq('الوصف مطلوب')
+    const a = { id: incidentActionSeq++, incident_id: Number(incidentId), description: data.description, owner_id: data.owner_id || null, due_date: data.due_date || null, status: 'مفتوح', created_by: currentUser()?.employee_id || 5, completed_at: null, created_at: nowIso() }
+    incidentActions.push(a)
+    return { message: 'تم', action: a }
+  },
+  async updateAction(actionId, data) {
+    await delay()
+    const a = incidentActions.find((x) => x.id === Number(actionId))
+    if (!a) { const err = new Error('bad'); err.response = { status: 404, data: { error: 'غير موجود' } }; throw err }
+    const wasCompleted = a.status === 'مكتمل'
+    Object.assign(a, data)
+    if (data.status === 'مكتمل' && !wasCompleted) a.completed_at = nowIso()
+    else if (data.status && data.status !== 'مكتمل') a.completed_at = null
+    return { message: 'تم التحديث' }
+  },
+  async removeAction(actionId) {
+    await delay()
+    const idx = incidentActions.findIndex((x) => x.id === Number(actionId))
+    if (idx > -1) incidentActions.splice(idx, 1)
+    return { message: 'تم الحذف' }
+  },
 }
 
 function scopeByRole(rows, key = 'employee_id') {

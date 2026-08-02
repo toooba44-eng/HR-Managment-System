@@ -9,7 +9,9 @@ router.use(requireRole('admin', 'hr_manager', 'super_admin'));
 router.get('/', (req, res, next) => {
   try {
     const rows = db.prepare(`
-      SELECT i.*, e.full_name, reporter.full_name as reported_by_name
+      SELECT i.*, e.full_name, reporter.full_name as reported_by_name,
+        (SELECT COUNT(*) FROM incident_actions a WHERE a.incident_id = i.id) as actions_count,
+        (SELECT COUNT(*) FROM incident_actions a WHERE a.incident_id = i.id AND a.status = 'مفتوح') as open_actions_count
       FROM incidents i
       LEFT JOIN employees e ON i.employee_id = e.id
       LEFT JOIN employees reporter ON i.reported_by = reporter.id
@@ -20,6 +22,7 @@ router.get('/', (req, res, next) => {
       total: rows.length,
       open: rows.filter((r) => r.status !== 'مغلق').length,
       high: rows.filter((r) => r.severity === 'عالية').length,
+      openActions: rows.reduce((s, r) => s + r.open_actions_count, 0),
     };
     res.json({ incidents: rows, summary });
   } catch (err) { next(err); }
@@ -49,6 +52,66 @@ router.put('/:id', (req, res, next) => {
 router.delete('/:id', (req, res, next) => {
   try { db.prepare('DELETE FROM incidents WHERE id = ?').run(req.params.id); res.json({ message: 'Deleted' }); }
   catch (err) { next(err); }
+});
+
+// Corrective / preventive actions (CAPA) for an incident
+router.get('/:id/actions', (req, res, next) => {
+  try {
+    const incident = db.prepare('SELECT id FROM incidents WHERE id = ?').get(req.params.id);
+    if (!incident) return res.status(404).json({ error: 'Incident not found' });
+    const rows = db.prepare(`
+      SELECT a.*, owner.full_name as owner_name, owner.profile_picture as owner_picture
+      FROM incident_actions a
+      LEFT JOIN employees owner ON a.owner_id = owner.id
+      WHERE a.incident_id = ?
+      ORDER BY CASE a.status WHEN 'مفتوح' THEN 1 ELSE 2 END, a.due_date IS NULL, a.due_date ASC
+    `).all(req.params.id);
+    res.json(rows);
+  } catch (err) { next(err); }
+});
+
+router.post('/:id/actions', (req, res, next) => {
+  try {
+    const incident = db.prepare('SELECT id FROM incidents WHERE id = ?').get(req.params.id);
+    if (!incident) return res.status(404).json({ error: 'Incident not found' });
+    const { description, owner_id, due_date } = req.body;
+    if (!description) return res.status(400).json({ error: 'Description is required' });
+    const r = db.prepare(`
+      INSERT INTO incident_actions (incident_id, description, owner_id, due_date, created_by)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(req.params.id, description, owner_id || null, due_date || null, req.user.employee_id || null);
+    res.status(201).json({ message: 'Created', action: { id: r.lastInsertRowid } });
+  } catch (err) { next(err); }
+});
+
+router.put('/actions/:actionId', (req, res, next) => {
+  try {
+    const action = db.prepare('SELECT * FROM incident_actions WHERE id = ?').get(req.params.actionId);
+    if (!action) return res.status(404).json({ error: 'Not found' });
+    const { status, description, owner_id, due_date } = req.body;
+    const nextStatus = status && ['مفتوح', 'مكتمل'].includes(status) ? status : action.status;
+    db.prepare(`
+      UPDATE incident_actions SET
+        description = ?, owner_id = ?, due_date = ?, status = ?,
+        completed_at = CASE WHEN ? = 'مكتمل' AND status != 'مكتمل' THEN CURRENT_TIMESTAMP
+                            WHEN ? != 'مكتمل' THEN NULL ELSE completed_at END
+      WHERE id = ?
+    `).run(
+      description ?? action.description,
+      owner_id !== undefined ? owner_id : action.owner_id,
+      due_date !== undefined ? due_date : action.due_date,
+      nextStatus, nextStatus, nextStatus,
+      req.params.actionId
+    );
+    res.json({ message: 'Updated' });
+  } catch (err) { next(err); }
+});
+
+router.delete('/actions/:actionId', (req, res, next) => {
+  try {
+    db.prepare('DELETE FROM incident_actions WHERE id = ?').run(req.params.actionId);
+    res.json({ message: 'Deleted' });
+  } catch (err) { next(err); }
 });
 
 module.exports = router;

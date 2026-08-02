@@ -405,6 +405,22 @@ const migrations = [
     FOREIGN KEY (reported_by) REFERENCES employees(id) ON DELETE SET NULL
   )`,
 
+  // Corrective / preventive actions (CAPA) tracked against a safety incident
+  `CREATE TABLE IF NOT EXISTS incident_actions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    incident_id INTEGER NOT NULL,
+    description TEXT NOT NULL,
+    owner_id INTEGER,
+    due_date DATE,
+    status TEXT DEFAULT 'مفتوح' CHECK(status IN ('مفتوح', 'مكتمل')),
+    created_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    completed_at DATETIME,
+    FOREIGN KEY (incident_id) REFERENCES incidents(id) ON DELETE CASCADE,
+    FOREIGN KEY (owner_id) REFERENCES employees(id) ON DELETE SET NULL,
+    FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
   // Shifts & schedules
   `CREATE TABLE IF NOT EXISTS shifts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
