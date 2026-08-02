@@ -1,15 +1,22 @@
 import { useState } from 'react'
-import { useQuery } from 'react-query'
-import { Wallet, Users, TrendingDown, Banknote } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from 'react-query'
+import { Wallet, Users, TrendingDown, Banknote, Plus, Trash2, ArrowLeftCircle, ClipboardList, CheckCircle2, Clock } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { payrollApi, departmentsApi } from '../../api/endpoints'
 import Spinner from '../../components/ui/Spinner'
 import EmptyState from '../../components/ui/EmptyState'
+import Modal from '../../components/ui/Modal'
+import Badge from '../../components/ui/Badge'
 import StatCard from '../../components/ui/StatCard'
 import Avatar from '../../components/ui/Avatar'
-import { Select } from '../../components/ui/Form'
-import { formatCurrency } from '../../lib/utils'
+import { Field, Input, Select, Button } from '../../components/ui/Form'
+import { formatCurrency, formatDateTime } from '../../lib/utils'
 
-export default function Payroll() {
+const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
+const NEXT_STATUS = { مسودة: 'قيد المراجعة', 'قيد المراجعة': 'معتمد', معتمد: 'مصروف' }
+const NEXT_LABEL = { مسودة: 'إرسال للمراجعة', 'قيد المراجعة': 'اعتماد', معتمد: 'صرف' }
+
+function OverviewTab() {
   const [departmentId, setDepartmentId] = useState('')
   const { data: departments = [] } = useQuery('departments', departmentsApi.list)
   const { data, isLoading } = useQuery(
@@ -89,6 +96,180 @@ export default function Payroll() {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function NewRunForm({ open, onClose }) {
+  const qc = useQueryClient()
+  const now = new Date()
+  const [form, setForm] = useState({ month: now.getMonth() + 1, year: now.getFullYear() })
+  const m = useMutation(() => payrollApi.createRun(form), {
+    onSuccess: () => { toast.success('تم إنشاء المسير'); qc.invalidateQueries('payroll-runs'); onClose() },
+    onError: (e) => toast.error(e.response?.data?.error || 'فشل الإنشاء'),
+  })
+  return (
+    <Modal open={open} onClose={onClose} title="مسير رواتب جديد">
+      <form onSubmit={(e) => { e.preventDefault(); m.mutate() }} className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="الشهر" required>
+            <Select value={form.month} onChange={(e) => setForm((f) => ({ ...f, month: Number(e.target.value) }))}>
+              {MONTHS.map((mn, i) => <option key={mn} value={i + 1}>{mn}</option>)}
+            </Select>
+          </Field>
+          <Field label="السنة" required>
+            <Input type="number" value={form.year} onChange={(e) => setForm((f) => ({ ...f, year: Number(e.target.value) }))} required />
+          </Field>
+        </div>
+        <p className="text-xs text-slate-400">سيتم إنشاء المسير من رواتب الموظفين النشطين الحالية، وسيمر بمراحل المراجعة والاعتماد والصرف.</p>
+        <div className="flex justify-end gap-3 pt-2">
+          <Button type="button" variant="secondary" onClick={onClose}>إلغاء</Button>
+          <Button type="submit" loading={m.isLoading}>إنشاء</Button>
+        </div>
+      </form>
+    </Modal>
+  )
+}
+
+function RunDetailModal({ runId, onClose }) {
+  const qc = useQueryClient()
+  const { data, isLoading } = useQuery(['payroll-run', runId], () => payrollApi.getRun(runId), { enabled: !!runId })
+  const advance = useMutation((status) => payrollApi.advanceRun(runId, status), {
+    onSuccess: () => { toast.success('تم التحديث'); qc.invalidateQueries(['payroll-run', runId]); qc.invalidateQueries('payroll-runs') },
+    onError: (e) => toast.error(e.response?.data?.error || 'فشل التحديث'),
+  })
+
+  return (
+    <Modal open={!!runId} onClose={onClose} title="تفاصيل مسير الرواتب" size="lg">
+      {isLoading || !data ? (
+        <div className="py-12"><Spinner /></div>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="font-bold text-slate-800">{MONTHS[data.month - 1]} {data.year}</p>
+              <p className="text-xs text-slate-400">{data.employee_count} موظف · الصافي {formatCurrency(data.total_net)}</p>
+            </div>
+            <Badge status={data.status} />
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 text-xs text-slate-500 rounded-xl bg-slate-50 border border-slate-100 p-3">
+            <div>أنشأه: {data.created_by_name || '—'}</div>
+            <div>اعتمده: {data.approved_by_name ? `${data.approved_by_name} (${formatDateTime(data.approved_at)})` : '—'}</div>
+            <div>تاريخ الصرف: {data.paid_at ? formatDateTime(data.paid_at) : '—'}</div>
+          </div>
+
+          <div className="overflow-x-auto max-h-72 overflow-y-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-right text-slate-400 border-b border-slate-100 sticky top-0 bg-white">
+                  <th className="pb-2 font-medium">الموظف</th>
+                  <th className="pb-2 font-medium">الأساسي</th>
+                  <th className="pb-2 font-medium">البدلات</th>
+                  <th className="pb-2 font-medium">الاستقطاعات</th>
+                  <th className="pb-2 font-medium">الصافي</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {data.items.map((i) => (
+                  <tr key={i.id}>
+                    <td className="py-2">
+                      <div className="flex items-center gap-2">
+                        <Avatar name={i.full_name} src={i.profile_picture} size="sm" />
+                        <span className="text-slate-700">{i.full_name}</span>
+                      </div>
+                    </td>
+                    <td className="py-2 text-slate-600">{formatCurrency(i.basic)}</td>
+                    <td className="py-2 text-slate-600">{formatCurrency(i.allowances)}</td>
+                    <td className="py-2 text-rose-500">−{formatCurrency(i.deductions)}</td>
+                    <td className="py-2 font-bold text-emerald-600">{formatCurrency(i.net)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {NEXT_STATUS[data.status] && (
+            <div className="flex justify-end pt-2 border-t border-slate-100">
+              <Button onClick={() => advance.mutate(NEXT_STATUS[data.status])} loading={advance.isLoading}>
+                <ArrowLeftCircle className="w-4 h-4" /> {NEXT_LABEL[data.status]}
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+    </Modal>
+  )
+}
+
+function RunsTab() {
+  const qc = useQueryClient()
+  const [showForm, setShowForm] = useState(false)
+  const [detailId, setDetailId] = useState(null)
+  const { data, isLoading } = useQuery('payroll-runs', payrollApi.runs)
+  const remove = useMutation((id) => payrollApi.removeRun(id), {
+    onSuccess: () => { toast.success('تم الحذف'); qc.invalidateQueries('payroll-runs') },
+    onError: (e) => toast.error(e.response?.data?.error || 'فشل الحذف'),
+  })
+
+  if (isLoading) return <Spinner fullscreen />
+  const runs = data?.runs || []
+  const s = data?.summary || {}
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard icon={ClipboardList} label="إجمالي المسيرات" value={s.total ?? 0} tone="blue" />
+        <StatCard icon={Clock} label="بانتظار الاعتماد" value={s.pendingApproval ?? 0} tone="amber" />
+        <StatCard icon={CheckCircle2} label="مصروفة" value={s.paid ?? 0} tone="green" />
+        <StatCard icon={ClipboardList} label="مسودات" value={s.drafts ?? 0} tone="violet" />
+      </div>
+
+      <div className="flex justify-end"><Button onClick={() => setShowForm(true)}><Plus className="w-5 h-5" /> مسير جديد</Button></div>
+
+      {runs.length === 0 ? (
+        <div className="card"><EmptyState icon={Wallet} title="لا توجد مسيرات رواتب" description="أنشئ أول مسير رواتب لهذا الشهر." /></div>
+      ) : (
+        <div className="space-y-3">
+          {runs.map((r) => (
+            <button key={r.id} onClick={() => setDetailId(r.id)} className="card w-full text-right flex flex-col sm:flex-row sm:items-center gap-3 hover:shadow-sm transition-shadow">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-bold text-slate-800">{MONTHS[r.month - 1]} {r.year}</p>
+                  <Badge status={r.status} />
+                </div>
+                <p className="text-xs text-slate-400 mt-1">{r.employee_count} موظف · الصافي {formatCurrency(r.total_net)} · أنشأه {r.created_by_name || '—'}</p>
+              </div>
+              {r.status === 'مسودة' && (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => { e.stopPropagation(); if (window.confirm('حذف المسير؟')) remove.mutate(r.id) }}
+                  className="text-slate-300 hover:text-rose-500 shrink-0 p-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <NewRunForm open={showForm} onClose={() => setShowForm(false)} />
+      {detailId && <RunDetailModal runId={detailId} onClose={() => setDetailId(null)} />}
+    </div>
+  )
+}
+
+export default function Payroll() {
+  const [tab, setTab] = useState('overview')
+  return (
+    <div className="space-y-6">
+      <div className="flex gap-2 border-b border-slate-100">
+        <button onClick={() => setTab('overview')} className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === 'overview' ? 'border-primary-600 text-primary-700' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>نظرة عامة</button>
+        <button onClick={() => setTab('runs')} className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === 'runs' ? 'border-primary-600 text-primary-700' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>مسيرات الرواتب</button>
+      </div>
+      {tab === 'overview' ? <OverviewTab /> : <RunsTab />}
     </div>
   )
 }

@@ -935,6 +935,93 @@ export const mockPayrollApi = {
   },
 }
 
+const PR_STATUSES = ['مسودة', 'قيد المراجعة', 'معتمد', 'مصروف']
+const PR_NEXT_STATUS = { مسودة: 'قيد المراجعة', 'قيد المراجعة': 'معتمد', معتمد: 'مصروف' }
+let payrollRunSeq = 1
+function prBuildItems() {
+  return employees.filter((e) => e.status === 'نشط').map((e) => {
+    const basic = e.salary || 0
+    const allowances = e.allowances || 0
+    const deductions = Math.round(basic * 0.1)
+    return { employee_id: e.id, basic, allowances, deductions, net: basic + allowances - deductions }
+  })
+}
+function prMakeRun(month, year, status, createdAgoDays, approvedAgoDays, paidAgoDays) {
+  const items = prBuildItems()
+  const total_net = items.reduce((s, i) => s + i.net, 0)
+  return {
+    id: payrollRunSeq++, month, year, status, total_net, employee_count: items.length,
+    created_by: 5, approved_by: approvedAgoDays != null ? 5 : null,
+    approved_at: approvedAgoDays != null ? addDays(-approvedAgoDays) : null,
+    paid_at: paidAgoDays != null ? addDays(-paidAgoDays) : null,
+    created_at: addDays(-createdAgoDays), items,
+  }
+}
+const now = new Date()
+const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+const payrollRuns = [
+  prMakeRun(lastMonthDate.getMonth() + 1, lastMonthDate.getFullYear(), 'مصروف', 28, 25, 20),
+  prMakeRun(now.getMonth() + 1, now.getFullYear(), 'قيد المراجعة', 1, null, null),
+]
+
+Object.assign(mockPayrollApi, {
+  async runs() {
+    await delay()
+    const rows = [...payrollRuns].sort((a, b) => (b.year - a.year) || (b.month - a.month))
+      .map((r) => ({ ...r, items: undefined, created_by_name: empName(r.created_by), approved_by_name: empName(r.approved_by) }))
+    const summary = {
+      total: rows.length,
+      drafts: rows.filter((r) => r.status === 'مسودة').length,
+      pendingApproval: rows.filter((r) => r.status === 'قيد المراجعة').length,
+      paid: rows.filter((r) => r.status === 'مصروف').length,
+    }
+    return { runs: rows, summary }
+  },
+  async getRun(id) {
+    await delay()
+    const r = payrollRuns.find((x) => x.id === Number(id))
+    if (!r) throw notFound()
+    const items = r.items.map((i) => {
+      const e = employees.find((x) => x.id === i.employee_id)
+      return { ...i, full_name: e?.full_name, job_title: e?.job_title, profile_picture: null, employee_number: e?.employee_number }
+    }).sort((a, b) => b.net - a.net)
+    return { ...r, items, created_by_name: empName(r.created_by), approved_by_name: empName(r.approved_by) }
+  },
+  async createRun(data) {
+    await delay()
+    const month = parseInt(data.month, 10)
+    const year = parseInt(data.year, 10)
+    if (!(month >= 1 && month <= 12) || !year) throw badReq('يجب إدخال شهر وسنة صحيحين')
+    if (payrollRuns.find((r) => r.month === month && r.year === year)) throw badReq('يوجد مسير رواتب لهذا الشهر بالفعل')
+    const items = prBuildItems()
+    if (items.length === 0) throw badReq('لا يوجد موظفون نشطون لإنشاء المسير')
+    const total_net = items.reduce((s, i) => s + i.net, 0)
+    const run = { id: payrollRunSeq++, month, year, status: 'مسودة', total_net, employee_count: items.length, created_by: currentUser()?.employee_id || 5, approved_by: null, approved_at: null, paid_at: null, created_at: nowIso(), items }
+    payrollRuns.unshift(run)
+    return { message: 'تم', run: { id: run.id } }
+  },
+  async advanceRun(id, status) {
+    await delay()
+    const r = payrollRuns.find((x) => x.id === Number(id))
+    if (!r) throw notFound()
+    if (!PR_STATUSES.includes(status)) throw badReq('حالة غير صالحة')
+    if (status !== PR_NEXT_STATUS[r.status]) throw badReq(`لا يمكن الانتقال من "${r.status}" إلى "${status}" مباشرة`)
+    r.status = status
+    if (status === 'معتمد') { r.approved_by = currentUser()?.employee_id || 5; r.approved_at = nowIso() }
+    if (status === 'مصروف') r.paid_at = nowIso()
+    return { message: 'تم التحديث' }
+  },
+  async removeRun(id) {
+    await delay()
+    const r = payrollRuns.find((x) => x.id === Number(id))
+    if (!r) throw notFound()
+    if (r.status !== 'مسودة') throw badReq('لا يمكن حذف مسير بعد بدء المراجعة')
+    const i = payrollRuns.findIndex((x) => x.id === Number(id))
+    if (i > -1) payrollRuns.splice(i, 1)
+    return { message: 'تم الحذف' }
+  },
+})
+
 export const mockTasksApi = {
   async list({ status = '' } = {}) {
     await delay()
