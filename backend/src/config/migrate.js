@@ -1020,6 +1020,9 @@ const migrations = [
   )`,
 
   // Document e-signature requests
+  // Multi-party sequential e-signature: the primary employee signs first;
+  // if a countersigner (e.g. their manager) is set, they sign only after
+  // the employee has, and the envelope is "موقّع" only once both have.
   `CREATE TABLE IF NOT EXISTS signatures (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     employee_id INTEGER NOT NULL,
@@ -1028,9 +1031,14 @@ const migrations = [
     status TEXT DEFAULT 'بانتظار التوقيع' CHECK(status IN ('بانتظار التوقيع', 'موقّع', 'مرفوض')),
     requested_by INTEGER,
     signed_at DATETIME,
+    employee_signed_at DATETIME,
+    countersigner_id INTEGER,
+    countersigner_status TEXT DEFAULT 'غير مطلوب' CHECK(countersigner_status IN ('غير مطلوب', 'بانتظار الموظف', 'بانتظار التوقيع', 'موقّع', 'مرفوض')),
+    countersigned_at DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
-    FOREIGN KEY (requested_by) REFERENCES employees(id) ON DELETE SET NULL
+    FOREIGN KEY (requested_by) REFERENCES employees(id) ON DELETE SET NULL,
+    FOREIGN KEY (countersigner_id) REFERENCES employees(id) ON DELETE SET NULL
   )`,
 
   // Organization settings (single row)
@@ -1090,6 +1098,10 @@ function runMigrations() {
     `ALTER TABLE applications ADD COLUMN rating INTEGER`,
     `ALTER TABLE expenses ADD COLUMN settled_amount REAL`,
     `ALTER TABLE expenses ADD COLUMN settled_at DATETIME`,
+    `ALTER TABLE signatures ADD COLUMN employee_signed_at DATETIME`,
+    `ALTER TABLE signatures ADD COLUMN countersigner_id INTEGER REFERENCES employees(id)`,
+    `ALTER TABLE signatures ADD COLUMN countersigner_status TEXT DEFAULT 'غير مطلوب'`,
+    `ALTER TABLE signatures ADD COLUMN countersigned_at DATETIME`,
   ];
   for (const stmt of columnAdditions) {
     try {
