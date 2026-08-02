@@ -21,6 +21,7 @@ import CandidateHome from '../pages/portals/CandidateHome'
 import Announcements from '../pages/employee/Announcements'
 import Requests from '../pages/employee/Requests'
 import Payslips from '../pages/employee/Payslips'
+import MySkills from '../pages/employee/MySkills'
 import Policies from '../pages/hr/Policies'
 import Payroll from '../pages/hr/Payroll'
 import Tasks from '../pages/manager/Tasks'
@@ -244,6 +245,7 @@ export const PORTALS = {
       { section: 'الأداء والتطوير', to: '/ess/goals', label: 'مهامي', icon: ClipboardList, element: <Tasks title="مهامي" description="المهام المسندة إليك — حدّث حالتها فور إنجازها." /> },
       { section: 'الأداء والتطوير', to: '/ess/performance', label: 'الأداء والأهداف', icon: Target, element: <Performance /> },
       { section: 'الأداء والتطوير', to: '/ess/courses', label: 'الدورات', icon: GraduationCap, element: <Training /> },
+      { section: 'الأداء والتطوير', to: '/ess/my-skills', label: 'مهاراتي', icon: Grid2x2, element: <MySkills /> },
 
       { section: 'الطلبات والخدمات', to: '/ess/letters', label: 'الشهادات والخطابات', icon: FileText, element: <Requests typeOptions={['شهادة', 'خطاب']} title="الشهادات والخطابات" description="اطلب خطاب تعريف أو شهادة رسمية وتابع حالتها." /> },
       { section: 'الطلبات والخدمات', to: '/ess/data-update', label: 'تحديث البيانات', icon: UserCog, element: <Requests type="تحديث بيانات" title="طلب تحديث البيانات" description="اطلب تعديل بياناتك الشخصية لدى الموارد البشرية." /> },
