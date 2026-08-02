@@ -160,6 +160,8 @@ const expenses = [
   { id: expenseSeq++, employee_id: 6, type: 'سلفة', category: 'سلفة راتب', amount: 3000, description: 'سلفة على راتب الشهر القادم.', status: 'معتمدة', approved_by: 2, created_at: nowIso() },
   { id: expenseSeq++, employee_id: 10, type: 'مصروف', category: 'قرطاسية', amount: 180, description: 'شراء مستلزمات مكتبية.', status: 'مصروفة', approved_by: 5, created_at: nowIso() },
   { id: expenseSeq++, employee_id: 4, type: 'مصروف', category: 'ضيافة', amount: 620, description: 'ضيافة اجتماع مبيعات.', status: 'معلقة', approved_by: null, created_at: nowIso() },
+  { id: expenseSeq++, employee_id: 3, type: 'سلفة', category: 'سفر', amount: 5000, description: 'سلفة سفر لحضور مؤتمر في الرياض.', status: 'مصروفة', approved_by: 2, settled_amount: null, settled_at: null, created_at: nowIso() },
+  { id: expenseSeq++, employee_id: 5, type: 'سلفة', category: 'سفر', amount: 4000, description: 'سلفة سفر — زيارة فرع جدة.', status: 'مصروفة', approved_by: 2, settled_amount: 3450, settled_at: nowIso(), created_at: nowIso() },
 ]
 
 let assetSeq = 1
@@ -1420,8 +1422,9 @@ export const mockExpensesApi = {
       s.count += 1; s.total += r.amount
       if (r.status === 'معلقة') s.pending += r.amount
       if (r.status === 'معتمدة' || r.status === 'مصروفة') s.approved += r.amount
+      if (r.type === 'سلفة' && r.status === 'مصروفة' && r.settled_at == null) s.outstanding += r.amount
       return s
-    }, { count: 0, total: 0, pending: 0, approved: 0 })
+    }, { count: 0, total: 0, pending: 0, approved: 0, outstanding: 0 })
     return { expenses: list, summary }
   },
   async create(data) {
@@ -1435,6 +1438,16 @@ export const mockExpensesApi = {
     const x = expenses.find((e) => e.id === Number(id))
     if (x) { x.status = status; x.approved_by = currentUser()?.employee_id || 5 }
     return { message: 'تم التحديث' }
+  },
+  async settle(id, settledAmount) {
+    await delay()
+    const x = expenses.find((e) => e.id === Number(id))
+    if (!x) return { message: 'غير موجود' }
+    if (x.type !== 'سلفة') { const err = new Error('bad'); err.response = { data: { error: 'يمكن تسوية السلف فقط' } }; throw err }
+    if (x.status !== 'مصروفة') { const err = new Error('bad'); err.response = { data: { error: 'يجب صرف السلفة قبل التسوية' } }; throw err }
+    x.settled_amount = Number(settledAmount)
+    x.settled_at = nowIso()
+    return { message: 'تمت التسوية', balance: Number((x.amount - x.settled_amount).toFixed(2)) }
   },
 }
 
