@@ -457,10 +457,24 @@ const migrations = [
     severity TEXT DEFAULT 'متوسطة' CHECK(severity IN ('منخفضة', 'متوسطة', 'عالية')),
     status TEXT DEFAULT 'مفتوحة' CHECK(status IN ('مفتوحة', 'قيد المعالجة', 'مغلقة')),
     action TEXT,
+    assigned_to INTEGER,
     created_by INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+    FOREIGN KEY (assigned_to) REFERENCES employees(id) ON DELETE SET NULL,
     FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
+  // Confidential investigation timeline for a grievance/disciplinary case —
+  // visible to HR/admin only, never to the employee involved.
+  `CREATE TABLE IF NOT EXISTS grievance_notes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    grievance_id INTEGER NOT NULL,
+    author_id INTEGER,
+    note TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (grievance_id) REFERENCES grievances(id) ON DELETE CASCADE,
+    FOREIGN KEY (author_id) REFERENCES employees(id) ON DELETE SET NULL
   )`,
 
   // Health & safety incidents
@@ -1102,6 +1116,7 @@ function runMigrations() {
     `ALTER TABLE signatures ADD COLUMN countersigner_id INTEGER REFERENCES employees(id)`,
     `ALTER TABLE signatures ADD COLUMN countersigner_status TEXT DEFAULT 'غير مطلوب'`,
     `ALTER TABLE signatures ADD COLUMN countersigned_at DATETIME`,
+    `ALTER TABLE grievances ADD COLUMN assigned_to INTEGER REFERENCES employees(id)`,
   ];
   for (const stmt of columnAdditions) {
     try {

@@ -424,10 +424,17 @@ function seedData() {
 
   // Grievances
   if (isEmpty('grievances')) {
-    const ins = db.prepare(`INSERT INTO grievances (employee_id, type, category, description, severity, status, action, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
-    ins.run(10, 'مخالفة', 'الالتزام بالدوام', 'تأخر متكرر عن موعد الحضور.', 'متوسطة', 'قيد المعالجة', 'تم توجيه إنذار شفهي.', 5);
-    ins.run(6, 'شكوى', 'بيئة العمل', 'شكوى بخصوص ضوضاء في مساحة العمل.', 'منخفضة', 'مفتوحة', null, 5);
+    const ins = db.prepare(`INSERT INTO grievances (employee_id, type, category, description, severity, status, action, assigned_to, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    const case1 = ins.run(10, 'مخالفة', 'الالتزام بالدوام', 'تأخر متكرر عن موعد الحضور.', 'متوسطة', 'قيد المعالجة', 'تم توجيه إنذار شفهي.', 5, 5).lastInsertRowid;
+    ins.run(6, 'شكوى', 'بيئة العمل', 'شكوى بخصوص ضوضاء في مساحة العمل.', 'منخفضة', 'مفتوحة', null, null, 5);
     console.log('✅ Grievances seeded');
+
+    if (isEmpty('grievance_notes')) {
+      const insNote = db.prepare(`INSERT INTO grievance_notes (grievance_id, author_id, note, created_at) VALUES (?, ?, ?, ?)`);
+      insNote.run(case1, 5, 'راجعت سجل الحضور — 4 حالات تأخر خلال الشهرين الماضيين.', addDaysStr(-4));
+      insNote.run(case1, 5, 'اجتمعت مع الموظف وتم توجيه إنذار شفهي مع متابعة الحضور أسبوعياً.', addDaysStr(-2));
+      console.log('✅ Grievance notes seeded');
+    }
   }
 
   // Health & safety incidents
