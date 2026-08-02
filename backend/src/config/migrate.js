@@ -346,6 +346,22 @@ const migrations = [
     FOREIGN KEY (assigned_to) REFERENCES employees(id) ON DELETE SET NULL
   )`,
 
+  // Asset custody/maintenance log: an audit trail of every assignment,
+  // return, and maintenance event for an asset.
+  `CREATE TABLE IF NOT EXISTS asset_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    asset_id INTEGER NOT NULL,
+    employee_id INTEGER,
+    action TEXT NOT NULL CHECK(action IN ('تخصيص', 'إرجاع', 'صيانة', 'إتلاف')),
+    condition TEXT CHECK(condition IN ('ممتازة', 'جيدة', 'متوسطة', 'تالفة')),
+    notes TEXT,
+    performed_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL,
+    FOREIGN KEY (performed_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
   // Performance goals (OKR/KPI style)
   `CREATE TABLE IF NOT EXISTS goals (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

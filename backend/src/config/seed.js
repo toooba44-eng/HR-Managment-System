@@ -348,15 +348,20 @@ function seedData() {
   // Assets & custody
   if (isEmpty('assets')) {
     const insertAsset = db.prepare(`INSERT INTO assets (name, category, serial_number, assigned_to, status, assigned_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?)`);
-    const assets = [
-      ['لابتوب Dell Latitude', 'أجهزة حاسب', 'DL-2024-0012', 6, 'مُخصّص', addDaysStr(-120), 'مخصّص لفريق التطوير.'],
-      ['شاشة LG 27"', 'ملحقات', 'LG-27-0345', 6, 'مُخصّص', addDaysStr(-120), null],
-      ['هاتف iPhone 15', 'أجهزة جوال', 'IP-15-0088', 4, 'مُخصّص', addDaysStr(-60), 'لمندوب المبيعات.'],
-      ['لابووب MacBook Pro', 'أجهزة حاسب', 'MBP-2024-0021', null, 'متاح', null, 'متاح للتخصيص.'],
-      ['طابعة HP LaserJet', 'أجهزة مكتبية', 'HP-LJ-0007', null, 'صيانة', null, 'قيد الصيانة الدورية.'],
-    ];
-    assets.forEach(a => insertAsset.run(a));
+    const laptopId = insertAsset.run('لابتوب Dell Latitude', 'أجهزة حاسب', 'DL-2024-0012', 6, 'مُخصّص', addDaysStr(-120), 'مخصّص لفريق التطوير.').lastInsertRowid;
+    insertAsset.run('شاشة LG 27"', 'ملحقات', 'LG-27-0345', 6, 'مُخصّص', addDaysStr(-120), null);
+    const phoneId = insertAsset.run('هاتف iPhone 15', 'أجهزة جوال', 'IP-15-0088', 4, 'مُخصّص', addDaysStr(-60), 'لمندوب المبيعات.').lastInsertRowid;
+    insertAsset.run('لابووب MacBook Pro', 'أجهزة حاسب', 'MBP-2024-0021', null, 'متاح', null, 'متاح للتخصيص.');
+    const printerId = insertAsset.run('طابعة HP LaserJet', 'أجهزة مكتبية', 'HP-LJ-0007', null, 'صيانة', null, 'قيد الصيانة الدورية.').lastInsertRowid;
     console.log('✅ Assets seeded');
+
+    if (isEmpty('asset_history')) {
+      const insertHistory = db.prepare(`INSERT INTO asset_history (asset_id, employee_id, action, condition, notes, performed_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`);
+      insertHistory.run(laptopId, 6, 'تخصيص', null, 'تسليم عند الالتحاق بفريق التطوير.', 5, addDaysStr(-120));
+      insertHistory.run(phoneId, 4, 'تخصيص', null, 'تسليم لمندوب المبيعات.', 5, addDaysStr(-60));
+      insertHistory.run(printerId, null, 'صيانة', null, 'انحشار ورق متكرر — أُرسلت للصيانة الدورية.', 5, addDaysStr(-3));
+      console.log('✅ Asset history seeded');
+    }
   }
 
   // Performance goals

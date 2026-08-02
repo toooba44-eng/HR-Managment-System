@@ -201,6 +201,8 @@ const realAssetsApi = {
   create: (data) => api.post('/assets', data).then((r) => r.data),
   update: (id, data) => api.put(`/assets/${id}`, data).then((r) => r.data),
   remove: (id) => api.delete(`/assets/${id}`).then((r) => r.data),
+  history: (id) => api.get(`/assets/${id}/history`).then((r) => r.data),
+  addHistory: (id, data) => api.post(`/assets/${id}/history`, data).then((r) => r.data),
 }
 
 // ---------- Performance goals ----------
