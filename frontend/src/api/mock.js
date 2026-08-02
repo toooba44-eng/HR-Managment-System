@@ -205,9 +205,41 @@ const courseCertificates = [
 ]
 
 let offSeq = 1
+let offTaskSeq = 1
 const offboardings = [
-  { id: offSeq++, employee_id: 9, type: 'انتهاء عقد', reason: 'انتهاء مدة العقد محدد المدة.', last_working_day: addDays(20), status: 'قيد المعالجة', notes: 'بانتظار إجراءات المخالصة.', created_by: 5, created_at: nowIso() },
+  {
+    id: offSeq++, employee_id: 9, type: 'انتهاء عقد', reason: 'انتهاء مدة العقد محدد المدة.', last_working_day: addDays(20), status: 'قيد المعالجة', notes: 'بانتظار إجراءات المخالصة.', created_by: 5, created_at: nowIso(),
+    tasks: [
+      { id: offTaskSeq++, title: 'استرجاع الحاسب والعهد والبطاقة التعريفية', category: 'عهدة', owner: 'تقنية المعلومات', due_date: addDays(18), is_done: 1 },
+      { id: offTaskSeq++, title: 'إلغاء صلاحيات الأنظمة والبريد الإلكتروني', category: 'صلاحيات', owner: 'تقنية المعلومات', due_date: addDays(20), is_done: 0 },
+      { id: offTaskSeq++, title: 'تصفية الرصيد المالي ومستحقات نهاية الخدمة', category: 'تصفية مالية', owner: 'الموارد البشرية', due_date: addDays(22), is_done: 0 },
+      { id: offTaskSeq++, title: 'إجراء مقابلة خروج (Exit Interview)', category: 'مقابلة خروج', owner: 'الموارد البشرية', due_date: addDays(19), is_done: 0 },
+      { id: offTaskSeq++, title: 'تسليم مستند إخلاء الطرف', category: 'مستندات', owner: 'الموارد البشرية', due_date: addDays(22), is_done: 0 },
+    ],
+  },
 ]
+
+const OFF_DEFAULT_TASKS = [
+  { title: 'استرجاع الحاسب والعهد والبطاقة التعريفية', category: 'عهدة', owner: 'تقنية المعلومات' },
+  { title: 'إلغاء صلاحيات الأنظمة والبريد الإلكتروني', category: 'صلاحيات', owner: 'تقنية المعلومات' },
+  { title: 'تصفية الرصيد المالي ومستحقات نهاية الخدمة', category: 'تصفية مالية', owner: 'الموارد البشرية' },
+  { title: 'إجراء مقابلة خروج (Exit Interview)', category: 'مقابلة خروج', owner: 'الموارد البشرية' },
+  { title: 'تسليم مستند إخلاء الطرف', category: 'مستندات', owner: 'الموارد البشرية' },
+]
+const OFF_TYPE_TO_EMP_STATUS = { استقالة: 'مستقيل', فصل: 'مفصول', 'انتهاء عقد': 'مستقيل', تقاعد: 'مستقيل' }
+
+function offProgress(o) {
+  const total = o.tasks.length
+  const done = o.tasks.filter((t) => t.is_done).length
+  return { ...withEmp(o), tasks_total: total, tasks_done: done, progress: total ? Math.round((done / total) * 100) : 0 }
+}
+function findOffTask(taskId) {
+  for (const o of offboardings) {
+    const t = o.tasks.find((x) => x.id === Number(taskId))
+    if (t) return { kase: o, task: t }
+  }
+  return {}
+}
 
 let grvSeq = 1
 const grievances = [
@@ -1769,10 +1801,82 @@ const RB_DATASETS = {
 const withEmp = (r) => ({ ...r, full_name: empName(r.employee_id), job_title: employees.find((e) => e.id === r.employee_id)?.job_title, department_name: deptName(employees.find((e) => e.id === r.employee_id)?.department_id), profile_picture: null })
 
 export const mockOffboardingApi = {
-  async list() { await delay(); return offboardings.map(withEmp) },
-  async create(data) { await delay(); const o = { id: offSeq++, type: data.type || 'استقالة', status: 'قيد المعالجة', created_by: currentUser()?.employee_id || 5, created_at: nowIso(), ...data }; offboardings.unshift(o); return { message: 'تم', offboarding: o } },
-  async update(id, data) { await delay(); const o = offboardings.find((x) => x.id === Number(id)); if (o) Object.assign(o, data); return { message: 'تم التحديث' } },
+  async list() {
+    await delay()
+    const cases = offboardings.map(offProgress)
+    const summary = cases.reduce((s, c) => {
+      s.total += 1
+      if (c.status === 'قيد المعالجة') s.active += 1
+      if (c.status === 'مكتملة') s.completed += 1
+      return s
+    }, { total: 0, active: 0, completed: 0 })
+    return { offboarding: cases, summary }
+  },
+  async get(id) {
+    await delay()
+    const o = offboardings.find((x) => x.id === Number(id))
+    if (!o) throw notFound()
+    return { ...offProgress(o), tasks: o.tasks.slice() }
+  },
+  async create(data) {
+    await delay()
+    const list = Array.isArray(data.tasks) && data.tasks.length ? data.tasks : OFF_DEFAULT_TASKS
+    const o = {
+      id: offSeq++, employee_id: Number(data.employee_id), type: data.type || 'استقالة', reason: data.reason || null,
+      last_working_day: data.last_working_day || null, status: 'قيد المعالجة', notes: data.notes || null,
+      created_by: currentUser()?.employee_id || 5, created_at: nowIso(),
+      tasks: list.map((t) => ({ id: offTaskSeq++, title: t.title, category: t.category || 'أخرى', owner: t.owner || 'الموارد البشرية', due_date: t.due_date || data.last_working_day || null, is_done: 0 })),
+    }
+    offboardings.unshift(o)
+    return { message: 'تم', offboarding: { id: o.id } }
+  },
+  async update(id, data) {
+    await delay()
+    const o = offboardings.find((x) => x.id === Number(id))
+    if (o) {
+      if (data.status !== undefined) o.status = data.status
+      if (data.notes !== undefined) o.notes = data.notes
+      if (data.status === 'مكتملة') {
+        const emp = employees.find((e) => e.id === o.employee_id)
+        if (emp) emp.status = OFF_TYPE_TO_EMP_STATUS[o.type] || 'مستقيل'
+      }
+    }
+    return { message: 'تم التحديث' }
+  },
   async remove(id) { await delay(); const i = offboardings.findIndex((x) => x.id === Number(id)); if (i > -1) offboardings.splice(i, 1); return { message: 'تم الحذف' } },
+  async addTask(id, data) {
+    await delay()
+    const o = offboardings.find((x) => x.id === Number(id))
+    if (!o) throw notFound()
+    const t = { id: offTaskSeq++, title: data.title, category: data.category || 'أخرى', owner: data.owner || 'الموارد البشرية', due_date: data.due_date || null, is_done: 0 }
+    o.tasks.push(t)
+    return { message: 'تم', task: { id: t.id } }
+  },
+  async updateTask(taskId, data) {
+    await delay()
+    const { kase, task } = findOffTask(taskId)
+    if (!task) throw notFound()
+    if (data.title !== undefined) task.title = data.title
+    if (data.category !== undefined) task.category = data.category
+    if (data.owner !== undefined) task.owner = data.owner
+    if (data.due_date !== undefined) task.due_date = data.due_date
+    if (data.is_done !== undefined) task.is_done = data.is_done ? 1 : 0
+    if (kase && kase.status !== 'ملغاة') {
+      const allDone = kase.tasks.length > 0 && kase.tasks.every((t) => t.is_done)
+      if (allDone) {
+        kase.status = 'مكتملة'
+        const emp = employees.find((e) => e.id === kase.employee_id)
+        if (emp) emp.status = OFF_TYPE_TO_EMP_STATUS[kase.type] || 'مستقيل'
+      } else if (kase.status === 'مكتملة') kase.status = 'قيد المعالجة'
+    }
+    return { message: 'تم' }
+  },
+  async removeTask(taskId) {
+    await delay()
+    const { kase } = findOffTask(taskId)
+    if (kase) kase.tasks = kase.tasks.filter((t) => t.id !== Number(taskId))
+    return { message: 'تم الحذف' }
+  },
 }
 
 export const mockGrievancesApi = {

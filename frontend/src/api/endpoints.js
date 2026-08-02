@@ -216,9 +216,13 @@ const realReportsApi = {
 // ---------- Offboarding ----------
 const realOffboardingApi = {
   list: () => api.get('/offboarding').then((r) => r.data),
+  get: (id) => api.get(`/offboarding/${id}`).then((r) => r.data),
   create: (data) => api.post('/offboarding', data).then((r) => r.data),
   update: (id, data) => api.put(`/offboarding/${id}`, data).then((r) => r.data),
   remove: (id) => api.delete(`/offboarding/${id}`).then((r) => r.data),
+  addTask: (id, data) => api.post(`/offboarding/${id}/tasks`, data).then((r) => r.data),
+  updateTask: (taskId, data) => api.put(`/offboarding/tasks/${taskId}`, data).then((r) => r.data),
+  removeTask: (taskId) => api.delete(`/offboarding/tasks/${taskId}`).then((r) => r.data),
 }
 
 // ---------- Grievances ----------
