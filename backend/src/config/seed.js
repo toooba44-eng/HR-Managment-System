@@ -391,9 +391,18 @@ function seedData() {
   // Health & safety incidents
   if (isEmpty('incidents')) {
     const ins = db.prepare(`INSERT INTO incidents (title, type, employee_id, location, severity, description, status, incident_date, reported_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);
-    ins.run('انزلاق في الممر', 'حادث', 6, 'الطابق الثاني - الممر', 'منخفضة', 'أرضية مبللة دون لافتة تحذير.', 'مغلق', addDaysStr(-10), 5);
-    ins.run('فحص طفايات الحريق', 'ملاحظة سلامة', null, 'المبنى الرئيسي', 'متوسطة', 'حان موعد الفحص الدوري لطفايات الحريق.', 'مفتوح', addDaysStr(-2), 5);
+    const slip = ins.run('انزلاق في الممر', 'حادث', 6, 'الطابق الثاني - الممر', 'منخفضة', 'أرضية مبللة دون لافتة تحذير.', 'مغلق', addDaysStr(-10), 5).lastInsertRowid;
+    const extinguisher = ins.run('فحص طفايات الحريق', 'ملاحظة سلامة', null, 'المبنى الرئيسي', 'متوسطة', 'حان موعد الفحص الدوري لطفايات الحريق.', 'مفتوح', addDaysStr(-2), 5).lastInsertRowid;
     console.log('✅ Incidents seeded');
+
+    if (isEmpty('incident_actions')) {
+      const insAction = db.prepare(`INSERT INTO incident_actions (incident_id, description, owner_id, due_date, status, created_by, completed_at) VALUES (?, ?, ?, ?, ?, ?, ?)`);
+      insAction.run(slip, 'تركيب لافتات تحذير من الانزلاق في نقاط التنظيف.', 5, addDaysStr(-8), 'مكتمل', 5, addDaysStr(-8));
+      insAction.run(slip, 'تدريب طاقم النظافة على وضع اللافتات فوراً.', 5, addDaysStr(-5), 'مكتمل', 5, addDaysStr(-6));
+      insAction.run(extinguisher, 'التنسيق مع مورد خارجي لفحص وصيانة الطفايات.', 2, addDaysStr(5), 'مفتوح', 5, null);
+      insAction.run(extinguisher, 'تحديث سجل الفحص الدوري بعد الصيانة.', 5, addDaysStr(7), 'مفتوح', 5, null);
+      console.log('✅ Incident actions seeded');
+    }
   }
 
   // Shifts

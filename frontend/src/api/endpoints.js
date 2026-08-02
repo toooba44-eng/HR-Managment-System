@@ -235,6 +235,10 @@ const realIncidentsApi = {
   create: (data) => api.post('/incidents', data).then((r) => r.data),
   update: (id, data) => api.put(`/incidents/${id}`, data).then((r) => r.data),
   remove: (id) => api.delete(`/incidents/${id}`).then((r) => r.data),
+  actions: (incidentId) => api.get(`/incidents/${incidentId}/actions`).then((r) => r.data),
+  createAction: (incidentId, data) => api.post(`/incidents/${incidentId}/actions`, data).then((r) => r.data),
+  updateAction: (actionId, data) => api.put(`/incidents/actions/${actionId}`, data).then((r) => r.data),
+  removeAction: (actionId) => api.delete(`/incidents/actions/${actionId}`).then((r) => r.data),
 }
 
 // ---------- Shifts & schedules ----------
