@@ -83,6 +83,7 @@ const realRequestsApi = {
   list: (params) => api.get('/requests', { params }).then((r) => r.data),
   create: (data) => api.post('/requests', data).then((r) => r.data),
   resolve: (id, data) => api.put(`/requests/${id}/resolve`, data).then((r) => r.data),
+  remove: (id) => api.delete(`/requests/${id}`).then((r) => r.data),
 }
 
 // ---------- Payslips ----------

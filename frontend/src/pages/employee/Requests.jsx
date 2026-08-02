@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { Plus, Check, X, CheckCheck, Inbox } from 'lucide-react'
+import { Plus, Check, X, CheckCheck, Inbox, Undo2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { requestsApi } from '../../api/endpoints'
 import { useAuthStore } from '../../store/authStore'
@@ -82,6 +82,11 @@ export default function Requests({ type, typeOptions, title, description }) {
     }
   )
 
+  const withdrawMutation = useMutation((id) => requestsApi.remove(id), {
+    onSuccess: () => { toast.success('تم سحب الطلب'); qc.invalidateQueries('requests') },
+    onError: (err) => toast.error(err.response?.data?.error || 'فشل سحب الطلب'),
+  })
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -133,6 +138,16 @@ export default function Requests({ type, typeOptions, title, description }) {
                       </button>
                       <button onClick={() => resolveMutation.mutate({ id: r.id, status: 'مرفوضة' })} className="text-xs px-3 py-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center gap-1">
                         <X className="w-3.5 h-3.5" /> رفض
+                      </button>
+                    </div>
+                  )}
+                  {r.employee_id === user?.employee_id && r.status === 'معلقة' && (
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={() => window.confirm('سحب هذا الطلب؟') && withdrawMutation.mutate(r.id)}
+                        className="text-xs px-3 py-1.5 rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center gap-1"
+                      >
+                        <Undo2 className="w-3.5 h-3.5" /> سحب الطلب
                       </button>
                     </div>
                   )}
