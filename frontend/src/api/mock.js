@@ -195,6 +195,13 @@ const enrollments = [
   { id: enrollSeq++, course_id: 2, employee_id: 6, progress: 40, status: 'قيد التقدم', enrolled_at: nowIso() },
   { id: enrollSeq++, course_id: 4, employee_id: 6, progress: 100, status: 'مكتمل', enrolled_at: nowIso() },
   { id: enrollSeq++, course_id: 1, employee_id: 10, progress: 10, status: 'قيد التقدم', enrolled_at: nowIso() },
+  { id: enrollSeq++, course_id: 3, employee_id: 10, progress: 100, status: 'مكتمل', enrolled_at: nowIso() },
+]
+
+let certSeq = 1
+const courseCertificates = [
+  { id: certSeq++, enrollment_id: 2, employee_id: 6, course_id: 4, code: 'QNT-8A21FC03', issued_at: nowIso() },
+  { id: certSeq++, enrollment_id: 4, employee_id: 10, course_id: 3, code: 'QNT-5B9E7D14', issued_at: nowIso() },
 ]
 
 let offSeq = 1
@@ -1600,11 +1607,37 @@ export const mockTrainingApi = {
   async setProgress(enrollmentId, progress) {
     await delay()
     const e = enrollments.find((x) => x.id === Number(enrollmentId))
+    let certificate = null
     if (e) {
       e.progress = Math.max(0, Math.min(100, parseInt(progress, 10)))
       e.status = e.progress >= 100 ? 'مكتمل' : e.progress > 0 ? 'قيد التقدم' : 'مسجّل'
+      if (e.status === 'مكتمل') {
+        certificate = courseCertificates.find((c) => c.enrollment_id === e.id)
+        if (!certificate) {
+          certificate = { id: certSeq++, enrollment_id: e.id, employee_id: e.employee_id, course_id: e.course_id, code: `QNT-${Math.random().toString(16).slice(2, 10).toUpperCase()}`, issued_at: nowIso() }
+          courseCertificates.push(certificate)
+        }
+      }
     }
-    return { message: 'تم التحديث' }
+    return { message: 'تم التحديث', certificate }
+  },
+  async certificates() {
+    await delay()
+    const u = currentUser()
+    const MANAGE = ['admin', 'hr_manager', 'super_admin']
+    let rows = courseCertificates
+    if (u && !MANAGE.includes(u.role)) rows = rows.filter((c) => c.employee_id === u.employee_id)
+    return [...rows].sort((a, b) => new Date(b.issued_at) - new Date(a.issued_at)).map((c) => {
+      const course = courses.find((x) => x.id === c.course_id)
+      return { ...c, employee_name: empName(c.employee_id), profile_picture: null, course_title: course?.title, hours: course?.hours, level: course?.level, category: course?.category }
+    })
+  },
+  async verifyCertificate(code) {
+    await delay()
+    const c = courseCertificates.find((x) => x.code === code)
+    if (!c) { const err = new Error('bad'); err.response = { status: 404, data: { valid: false, error: 'الشهادة غير موجودة' } }; throw err }
+    const course = courses.find((x) => x.id === c.course_id)
+    return { valid: true, certificate: { code: c.code, issued_at: c.issued_at, employee_name: empName(c.employee_id), course_title: course?.title, hours: course?.hours, level: course?.level } }
   },
 }
 

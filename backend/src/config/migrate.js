@@ -343,6 +343,20 @@ const migrations = [
     UNIQUE(course_id, employee_id)
   )`,
 
+  // Training: certificates auto-issued when an enrollment is completed.
+  // The code is a shareable, publicly verifiable identifier (no PII).
+  `CREATE TABLE IF NOT EXISTS course_certificates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    enrollment_id INTEGER NOT NULL UNIQUE,
+    employee_id INTEGER NOT NULL,
+    course_id INTEGER NOT NULL,
+    code TEXT NOT NULL UNIQUE,
+    issued_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (enrollment_id) REFERENCES enrollments(id) ON DELETE CASCADE,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+    FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
+  )`,
+
   // Offboarding / end of service
   `CREATE TABLE IF NOT EXISTS offboarding (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

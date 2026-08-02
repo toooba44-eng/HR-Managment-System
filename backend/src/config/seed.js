@@ -359,8 +359,16 @@ function seedData() {
     if (isEmpty('enrollments')) {
       const insertEnroll = db.prepare(`INSERT INTO enrollments (course_id, employee_id, progress, status) VALUES (?, ?, ?, ?)`);
       insertEnroll.run(courseIds[1], 6, 40, 'قيد التقدم');
-      insertEnroll.run(courseIds[3], 6, 100, 'مكتمل');
+      const cert1 = insertEnroll.run(courseIds[3], 6, 100, 'مكتمل').lastInsertRowid;
       insertEnroll.run(courseIds[0], 10, 10, 'قيد التقدم');
+      const cert2 = insertEnroll.run(courseIds[2], 10, 100, 'مكتمل').lastInsertRowid;
+
+      if (isEmpty('course_certificates')) {
+        const insertCert = db.prepare(`INSERT INTO course_certificates (enrollment_id, employee_id, course_id, code) VALUES (?, ?, ?, ?)`);
+        insertCert.run(cert1, 6, courseIds[3], 'QNT-8A21FC03');
+        insertCert.run(cert2, 10, courseIds[2], 'QNT-5B9E7D14');
+        console.log('✅ Course certificates seeded');
+      }
     }
     console.log('✅ Courses & enrollments seeded');
   }

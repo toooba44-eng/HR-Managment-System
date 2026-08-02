@@ -1,11 +1,35 @@
 const express = require('express');
+const crypto = require('crypto');
 const db = require('../config/database');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 const router = express.Router();
 
-router.use(authenticateToken);
-
 const MANAGE = ['admin', 'hr_manager', 'super_admin'];
+
+// Generate a shareable, unique certificate code like "QNT-9F3A2B1C"
+function genCertCode() {
+  return `QNT-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+}
+
+// Public certificate verification — no auth, so anyone with the code
+// (e.g. shared on LinkedIn) can confirm it was really issued by us.
+router.get('/certificates/verify/:code', (req, res, next) => {
+  try {
+    const cert = db.prepare(`
+      SELECT cert.code, cert.issued_at, e.full_name as employee_name, c.title as course_title, c.hours, c.level
+      FROM course_certificates cert
+      JOIN employees e ON cert.employee_id = e.id
+      JOIN courses c ON cert.course_id = c.id
+      WHERE cert.code = ?
+    `).get(req.params.code);
+    if (!cert) return res.status(404).json({ valid: false, error: 'الشهادة غير موجودة' });
+    res.json({ valid: true, certificate: cert });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.use(authenticateToken);
 
 // List courses; each includes the current user's enrollment (if any) and count
 router.get('/courses', (req, res, next) => {
@@ -117,7 +141,47 @@ router.put('/enrollments/:id', (req, res, next) => {
     else status = 'مسجّل';
 
     db.prepare('UPDATE enrollments SET progress = ?, status = ? WHERE id = ?').run(progress, status, req.params.id);
-    res.json({ message: 'Updated' });
+
+    let certificate = null;
+    if (status === 'مكتمل') {
+      const existing = db.prepare('SELECT * FROM course_certificates WHERE enrollment_id = ?').get(enr.id);
+      if (existing) {
+        certificate = existing;
+      } else {
+        let code;
+        do { code = genCertCode(); } while (db.prepare('SELECT 1 FROM course_certificates WHERE code = ?').get(code));
+        const result = db.prepare(`
+          INSERT INTO course_certificates (enrollment_id, employee_id, course_id, code)
+          VALUES (?, ?, ?, ?)
+        `).run(enr.id, enr.employee_id, enr.course_id, code);
+        certificate = { id: result.lastInsertRowid, code };
+      }
+    }
+
+    res.json({ message: 'Updated', certificate });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// My certificates (or all, for HR)
+router.get('/certificates', (req, res, next) => {
+  try {
+    let where = 'WHERE 1=1';
+    const params = [];
+    if (!MANAGE.includes(req.user.role)) {
+      where += ' AND cert.employee_id = ?';
+      params.push(req.user.employee_id);
+    }
+    const rows = db.prepare(`
+      SELECT cert.*, e.full_name as employee_name, e.profile_picture, c.title as course_title, c.hours, c.level, c.category
+      FROM course_certificates cert
+      JOIN employees e ON cert.employee_id = e.id
+      JOIN courses c ON cert.course_id = c.id
+      ${where}
+      ORDER BY cert.issued_at DESC
+    `).all(...params);
+    res.json(rows);
   } catch (err) {
     next(err);
   }
