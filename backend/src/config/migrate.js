@@ -641,6 +641,10 @@ const migrations = [
     run_id INTEGER NOT NULL,
     employee_id INTEGER NOT NULL,
     basic REAL NOT NULL DEFAULT 0,
+    housing_allowance REAL NOT NULL DEFAULT 0,
+    transport_allowance REAL NOT NULL DEFAULT 0,
+    other_allowances REAL NOT NULL DEFAULT 0,
+    bonus REAL NOT NULL DEFAULT 0,
     allowances REAL NOT NULL DEFAULT 0,
     deductions REAL NOT NULL DEFAULT 0,
     net REAL NOT NULL DEFAULT 0,
@@ -1175,6 +1179,10 @@ function runMigrations() {
     `ALTER TABLE surveys ADD COLUMN anonymous INTEGER DEFAULT 0`,
     `ALTER TABLE timesheets ADD COLUMN billable INTEGER DEFAULT 1`,
     `ALTER TABLE announcements ADD COLUMN requires_acknowledgment INTEGER DEFAULT 0`,
+    `ALTER TABLE payroll_run_items ADD COLUMN housing_allowance REAL DEFAULT 0`,
+    `ALTER TABLE payroll_run_items ADD COLUMN transport_allowance REAL DEFAULT 0`,
+    `ALTER TABLE payroll_run_items ADD COLUMN other_allowances REAL DEFAULT 0`,
+    `ALTER TABLE payroll_run_items ADD COLUMN bonus REAL DEFAULT 0`,
   ];
   for (const stmt of columnAdditions) {
     try {

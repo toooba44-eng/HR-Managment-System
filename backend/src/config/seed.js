@@ -504,19 +504,43 @@ function seedData() {
     }
   }
 
-  // Payroll runs: last month (paid) + current month (pending review)
+  // Payroll runs: last month (paid) + current month (pending review). Uses
+  // each employee's active compensation package for an itemized breakdown
+  // where one exists, falling back to their flat salary/allowances.
   if (isEmpty('payroll_runs')) {
     const now = new Date();
-    const activeEmployees = db.prepare("SELECT id, salary, allowances FROM employees WHERE status = 'نشط'").all();
+    const activeEmployees = db.prepare(`
+      SELECT e.id, e.salary, e.allowances,
+             c.base_salary, c.housing_allowance, c.transport_allowance, c.other_allowances, c.bonus
+      FROM employees e
+      LEFT JOIN compensation c ON c.id = (
+        SELECT id FROM compensation WHERE employee_id = e.id AND status = 'نشط' ORDER BY effective_date DESC, id DESC LIMIT 1
+      )
+      WHERE e.status = 'نشط'
+    `).all();
     const insRun = db.prepare(`INSERT INTO payroll_runs (month, year, status, total_net, employee_count, created_by, approved_by, approved_at, paid_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
-    const insItem = db.prepare(`INSERT INTO payroll_run_items (run_id, employee_id, basic, allowances, deductions, net) VALUES (?, ?, ?, ?, ?, ?)`);
+    const insItem = db.prepare(`
+      INSERT INTO payroll_run_items
+        (run_id, employee_id, basic, housing_allowance, transport_allowance, other_allowances, bonus, allowances, deductions, net)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
 
     const buildItems = () => activeEmployees.map((e) => {
-      const basic = e.salary || 0;
-      const allowances = e.allowances || 0;
+      const hasPackage = e.base_salary != null;
+      const basic = hasPackage ? e.base_salary : (e.salary || 0);
+      const housing_allowance = hasPackage ? e.housing_allowance : 0;
+      const transport_allowance = hasPackage ? e.transport_allowance : 0;
+      const other_allowances = hasPackage ? e.other_allowances : (e.allowances || 0);
+      const bonus = hasPackage ? e.bonus : 0;
+      const allowances = housing_allowance + transport_allowance + other_allowances + bonus;
       const deductions = Math.round(basic * 0.1);
-      return { employee_id: e.id, basic, allowances, deductions, net: basic + allowances - deductions };
+      return { employee_id: e.id, basic, housing_allowance, transport_allowance, other_allowances, bonus, allowances, deductions, net: basic + allowances - deductions };
     });
+    const insertItems = (runId, items) => {
+      for (const i of items) {
+        insItem.run(runId, i.employee_id, i.basic, i.housing_allowance, i.transport_allowance, i.other_allowances, i.bonus, i.allowances, i.deductions, i.net);
+      }
+    };
 
     // Last month: fully paid
     const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -526,7 +550,7 @@ function seedData() {
       lastMonthDate.getMonth() + 1, lastMonthDate.getFullYear(), 'مصروف', lastTotal, lastItems.length,
       5, 5, addDaysStr(-25), addDaysStr(-20), addDaysStr(-28)
     ).lastInsertRowid;
-    lastItems.forEach((i) => insItem.run(lastRunId, i.employee_id, i.basic, i.allowances, i.deductions, i.net));
+    insertItems(lastRunId, lastItems);
 
     // This month: awaiting review
     const thisItems = buildItems();
@@ -535,7 +559,7 @@ function seedData() {
       now.getMonth() + 1, now.getFullYear(), 'قيد المراجعة', thisTotal, thisItems.length,
       5, null, null, null, addDaysStr(-1)
     ).lastInsertRowid;
-    thisItems.forEach((i) => insItem.run(thisRunId, i.employee_id, i.basic, i.allowances, i.deductions, i.net));
+    insertItems(thisRunId, thisItems);
 
     console.log('✅ Payroll runs seeded');
   }

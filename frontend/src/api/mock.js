@@ -932,21 +932,27 @@ export const mockRequestsApi = {
 }
 
 export const mockPayslipsApi = {
+  // Payslips are the line items of actual payroll runs that have at least
+  // been approved — drafts and runs still under review aren't final yet.
   async forEmployee(employeeId) {
     await delay()
     const emp = employees.find((e) => e.id === Number(employeeId))
     if (!emp) throw notFound()
-    const basic = emp.salary || 0
-    const allowances = emp.allowances || 0
-    const gosi = Math.round(basic * 0.1)
-    const gross = basic + allowances
-    const net = gross - gosi
-    const now = new Date()
-    const payslips = []
-    for (let i = 0; i < 6; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-      payslips.push({ id: `${d.getFullYear()}-${d.getMonth() + 1}`, month: AR_MONTHS[d.getMonth()], year: d.getFullYear(), basic, allowances, deductions: gosi, gross, net, status: 'مدفوع' })
-    }
+    const payslips = [...payrollRuns]
+      .filter((r) => ['معتمد', 'مصروف'].includes(r.status))
+      .sort((a, b) => (b.year - a.year) || (b.month - a.month))
+      .map((r) => {
+        const i = r.items.find((x) => x.employee_id === Number(employeeId))
+        if (!i) return null
+        return {
+          id: r.id, month: AR_MONTHS[r.month - 1], year: r.year,
+          basic: i.basic, housing_allowance: i.housing_allowance, transport_allowance: i.transport_allowance,
+          other_allowances: i.other_allowances, bonus: i.bonus, allowances: i.allowances, deductions: i.deductions,
+          gross: i.basic + i.allowances, net: i.net,
+          status: r.status === 'مصروف' ? 'مدفوع' : 'معتمد', paid_at: r.paid_at,
+        }
+      })
+      .filter(Boolean)
     return {
       employee: { id: emp.id, full_name: emp.full_name, employee_number: emp.employee_number, job_title: emp.job_title, bank_name: emp.bank_name, bank_account: emp.bank_account },
       payslips,
@@ -988,8 +994,13 @@ export const mockPayrollApi = {
     if (department_id) rows = rows.filter((e) => e.department_id === Number(department_id))
     const payroll = rows
       .map((e) => {
-        const basic = e.salary || 0
-        const allowances = e.allowances || 0
+        const pkg = compensation.find((c) => c.employee_id === e.id && c.status === 'نشط')
+        const basic = pkg ? pkg.base_salary : (e.salary || 0)
+        const housing_allowance = pkg ? pkg.housing_allowance : 0
+        const transport_allowance = pkg ? pkg.transport_allowance : 0
+        const other_allowances = pkg ? pkg.other_allowances : (e.allowances || 0)
+        const bonus = pkg ? pkg.bonus : 0
+        const allowances = housing_allowance + transport_allowance + other_allowances + bonus
         const deductions = Math.round(basic * 0.1)
         return { id: e.id, full_name: e.full_name, job_title: e.job_title, employee_number: e.employee_number, department_name: deptName(e.department_id), basic, allowances, deductions, net: basic + allowances - deductions }
       })
@@ -1004,10 +1015,15 @@ const PR_NEXT_STATUS = { مسودة: 'قيد المراجعة', 'قيد المر
 let payrollRunSeq = 1
 function prBuildItems() {
   return employees.filter((e) => e.status === 'نشط').map((e) => {
-    const basic = e.salary || 0
-    const allowances = e.allowances || 0
+    const pkg = compensation.find((c) => c.employee_id === e.id && c.status === 'نشط')
+    const basic = pkg ? pkg.base_salary : (e.salary || 0)
+    const housing_allowance = pkg ? pkg.housing_allowance : 0
+    const transport_allowance = pkg ? pkg.transport_allowance : 0
+    const other_allowances = pkg ? pkg.other_allowances : (e.allowances || 0)
+    const bonus = pkg ? pkg.bonus : 0
+    const allowances = housing_allowance + transport_allowance + other_allowances + bonus
     const deductions = Math.round(basic * 0.1)
-    return { employee_id: e.id, basic, allowances, deductions, net: basic + allowances - deductions }
+    return { employee_id: e.id, basic, housing_allowance, transport_allowance, other_allowances, bonus, allowances, deductions, net: basic + allowances - deductions }
   })
 }
 function prMakeRun(month, year, status, createdAgoDays, approvedAgoDays, paidAgoDays) {
