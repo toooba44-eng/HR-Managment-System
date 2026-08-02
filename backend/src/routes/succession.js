@@ -56,6 +56,9 @@ router.post('/', requireRole(...MANAGE), (req, res, next) => {
   try {
     const b = req.body;
     if (!b.position_title) return res.status(400).json({ error: 'Position title is required' });
+    if (b.successor_id && b.incumbent_id && Number(b.successor_id) === Number(b.incumbent_id)) {
+      return res.status(400).json({ error: 'لا يمكن أن يكون الموظف خليفة لنفسه' });
+    }
     const result = db.prepare(`
       INSERT INTO succession
         (position_title, department_id, incumbent_id, successor_id, readiness, risk_level, potential, notes, created_by)
@@ -77,6 +80,11 @@ router.put('/:id', requireRole(...MANAGE), (req, res, next) => {
     const existing = db.prepare('SELECT * FROM succession WHERE id = ?').get(req.params.id);
     if (!existing) return res.status(404).json({ error: 'Not found' });
     const b = req.body;
+    const nextIncumbent = b.incumbent_id !== undefined ? b.incumbent_id : existing.incumbent_id;
+    const nextSuccessor = b.successor_id !== undefined ? b.successor_id : existing.successor_id;
+    if (nextSuccessor && nextIncumbent && Number(nextSuccessor) === Number(nextIncumbent)) {
+      return res.status(400).json({ error: 'لا يمكن أن يكون الموظف خليفة لنفسه' });
+    }
     db.prepare(`
       UPDATE succession SET
         position_title = ?, department_id = ?, incumbent_id = ?, successor_id = ?,
