@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { Gift, Plus, Trash2, Pencil, Wallet, Users, ShieldCheck, TrendingUp } from 'lucide-react'
+import { Gift, Plus, Trash2, Pencil, Wallet, Users, ShieldCheck, TrendingUp, History, ArrowUp, ArrowDown } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { compensationApi, employeesApi } from '../../api/endpoints'
 import { useAuthStore } from '../../store/authStore'
@@ -10,8 +10,8 @@ import Modal from '../../components/ui/Modal'
 import Badge from '../../components/ui/Badge'
 import Avatar from '../../components/ui/Avatar'
 import StatCard from '../../components/ui/StatCard'
-import { Field, Input, Select, Button } from '../../components/ui/Form'
-import { formatCurrency } from '../../lib/utils'
+import { Field, Input, Textarea, Select, Button } from '../../components/ui/Form'
+import { formatCurrency, formatDate } from '../../lib/utils'
 
 const MANAGE = ['admin', 'hr_manager', 'department_head', 'super_admin']
 const INSURANCE = ['الفئة أ', 'الفئة ب', 'الفئة ج', 'بدون']
@@ -57,7 +57,10 @@ function Form({ open, onClose, editing }) {
           <Field label="تاريخ السريان"><Input type="date" value={form.effective_date || ''} onChange={set('effective_date')} /></Field>
         </div>
         {editing && (
-          <Field label="الحالة"><Select value={form.status} onChange={set('status')}><option>نشط</option><option>مؤرشف</option></Select></Field>
+          <>
+            <Field label="الحالة"><Select value={form.status} onChange={set('status')}><option>نشط</option><option>مؤرشف</option></Select></Field>
+            <Field label="سبب التغيير (اختياري)"><Textarea value={form.change_reason || ''} onChange={set('change_reason')} rows={2} placeholder="مثال: ترقية سنوية، تعديل السوق..." /></Field>
+          </>
         )}
         <div className="flex justify-end gap-3 pt-2">
           <Button type="button" variant="secondary" onClick={onClose}>إلغاء</Button>
@@ -68,12 +71,47 @@ function Form({ open, onClose, editing }) {
   )
 }
 
+function HistoryModal({ pkg, onClose }) {
+  const { data = [], isLoading } = useQuery(['compensation-history', pkg.id], () => compensationApi.history(pkg.id))
+  return (
+    <Modal open onClose={onClose} title={`سجل تعديلات الراتب — ${pkg.full_name || ''}`}>
+      {isLoading ? <Spinner /> : data.length === 0 ? (
+        <p className="text-sm text-slate-400 text-center py-4">لا توجد تعديلات مسجّلة بعد.</p>
+      ) : (
+        <div className="space-y-2">
+          {data.map((h) => {
+            const diff = h.new_total - h.old_total
+            const pct = h.old_total ? Math.round((diff / h.old_total) * 1000) / 10 : 0
+            return (
+              <div key={h.id} className="rounded-xl border border-slate-100 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-slate-500">{formatCurrency(h.old_total)}</span>
+                    <span className="text-slate-300">←</span>
+                    <span className="font-bold text-slate-800">{formatCurrency(h.new_total)}</span>
+                  </div>
+                  <span className={`badge inline-flex items-center gap-1 ${diff >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                    {diff >= 0 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />} {Math.abs(pct)}%
+                  </span>
+                </div>
+                {h.reason && <p className="text-xs text-slate-500 mt-1.5">{h.reason}</p>}
+                <p className="text-[11px] text-slate-400 mt-1">{h.changed_by_name || 'مستخدم'} · {formatDate(h.created_at)}</p>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </Modal>
+  )
+}
+
 export default function Compensation() {
   const qc = useQueryClient()
   const { user } = useAuthStore()
   const canManage = MANAGE.includes(user?.role)
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState(null)
+  const [viewingHistory, setViewingHistory] = useState(null)
   const { data, isLoading } = useQuery('compensation', () => compensationApi.list())
   const del = useMutation((id) => compensationApi.remove(id), {
     onSuccess: () => { toast.success('تم الحذف'); qc.invalidateQueries('compensation') },
@@ -114,7 +152,7 @@ export default function Compensation() {
                 <th className="pb-3 font-medium">الإجمالي الشهري</th>
                 <th className="pb-3 font-medium">التأمين</th>
                 <th className="pb-3 font-medium">الحالة</th>
-                {canManage && <th className="pb-3 font-medium"></th>}
+                <th className="pb-3 font-medium"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -133,14 +171,17 @@ export default function Compensation() {
                     <td className="py-3 font-bold text-slate-800">{formatCurrency(pkgTotal(r))}</td>
                     <td className="py-3 text-slate-600">{r.insurance_class}</td>
                     <td className="py-3"><Badge status={r.status} /></td>
-                    {canManage && (
-                      <td className="py-3">
-                        <div className="flex gap-1 justify-end">
-                          <button onClick={() => openEdit(r)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button>
-                          <button onClick={() => window.confirm('حذف الحزمة؟') && del.mutate(r.id)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-300 hover:text-rose-500"><Trash2 className="w-4 h-4" /></button>
-                        </div>
-                      </td>
-                    )}
+                    <td className="py-3">
+                      <div className="flex gap-1 justify-end">
+                        <button onClick={() => setViewingHistory(r)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-violet-600" title="سجل التعديلات"><History className="w-4 h-4" /></button>
+                        {canManage && (
+                          <>
+                            <button onClick={() => openEdit(r)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button>
+                            <button onClick={() => window.confirm('حذف الحزمة؟') && del.mutate(r.id)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-300 hover:text-rose-500"><Trash2 className="w-4 h-4" /></button>
+                          </>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 )
               })}
@@ -149,6 +190,7 @@ export default function Compensation() {
         </div>
       )}
       {showForm && <Form open={showForm} onClose={() => setShowForm(false)} editing={editing} />}
+      {viewingHistory && <HistoryModal pkg={viewingHistory} onClose={() => setViewingHistory(null)} />}
     </div>
   )
 }

@@ -74,12 +74,31 @@ router.post('/', requireRole(...MANAGE), (req, res, next) => {
   }
 });
 
-// Update a compensation package (managers & HR)
+// Update a compensation package (managers & HR). Whenever the total package
+// value actually changes, a compensation_history row is recorded first so
+// the raise/adjustment stays auditable.
 router.put('/:id', requireRole(...MANAGE), (req, res, next) => {
   try {
     const existing = db.prepare('SELECT * FROM compensation WHERE id = ?').get(req.params.id);
     if (!existing) return res.status(404).json({ error: 'Not found' });
     const b = req.body;
+
+    const next_ = {
+      grade: b.grade ?? existing.grade,
+      base_salary: b.base_salary != null ? NUM(b.base_salary) : existing.base_salary,
+      housing_allowance: b.housing_allowance != null ? NUM(b.housing_allowance) : existing.housing_allowance,
+      transport_allowance: b.transport_allowance != null ? NUM(b.transport_allowance) : existing.transport_allowance,
+      other_allowances: b.other_allowances != null ? NUM(b.other_allowances) : existing.other_allowances,
+      bonus: b.bonus != null ? NUM(b.bonus) : existing.bonus,
+      insurance_class: b.insurance_class ?? existing.insurance_class,
+      effective_date: b.effective_date ?? existing.effective_date,
+      status: b.status ?? existing.status,
+      notes: b.notes ?? existing.notes,
+    };
+
+    const oldTotal = total(existing);
+    const newTotal = total(next_);
+
     db.prepare(`
       UPDATE compensation SET
         grade = ?, base_salary = ?, housing_allowance = ?, transport_allowance = ?,
@@ -87,18 +106,18 @@ router.put('/:id', requireRole(...MANAGE), (req, res, next) => {
         status = ?, notes = ?
       WHERE id = ?
     `).run(
-      b.grade ?? existing.grade,
-      b.base_salary != null ? NUM(b.base_salary) : existing.base_salary,
-      b.housing_allowance != null ? NUM(b.housing_allowance) : existing.housing_allowance,
-      b.transport_allowance != null ? NUM(b.transport_allowance) : existing.transport_allowance,
-      b.other_allowances != null ? NUM(b.other_allowances) : existing.other_allowances,
-      b.bonus != null ? NUM(b.bonus) : existing.bonus,
-      b.insurance_class ?? existing.insurance_class,
-      b.effective_date ?? existing.effective_date,
-      b.status ?? existing.status,
-      b.notes ?? existing.notes,
-      req.params.id,
+      next_.grade, next_.base_salary, next_.housing_allowance, next_.transport_allowance,
+      next_.other_allowances, next_.bonus, next_.insurance_class, next_.effective_date,
+      next_.status, next_.notes, req.params.id,
     );
+
+    if (newTotal !== oldTotal) {
+      db.prepare(`
+        INSERT INTO compensation_history (compensation_id, employee_id, old_total, new_total, old_base_salary, new_base_salary, reason, changed_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(req.params.id, existing.employee_id, oldTotal, newTotal, existing.base_salary, next_.base_salary, b.change_reason || null, req.user.employee_id || null);
+    }
+
     res.json({ message: 'Updated' });
   } catch (err) {
     next(err);
@@ -111,6 +130,32 @@ router.delete('/:id', requireRole(...MANAGE), (req, res, next) => {
     const result = db.prepare('DELETE FROM compensation WHERE id = ?').run(req.params.id);
     if (result.changes === 0) return res.status(404).json({ error: 'Not found' });
     res.json({ message: 'Deleted' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Revision history for a package (role-scoped like the list above)
+router.get('/:id/history', (req, res, next) => {
+  try {
+    const pkg = db.prepare('SELECT * FROM compensation WHERE id = ?').get(req.params.id);
+    if (!pkg) return res.status(404).json({ error: 'Not found' });
+    if (['employee', 'candidate'].includes(req.user.role) && pkg.employee_id !== req.user.employee_id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    if (req.user.role === 'department_head') {
+      const dept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(req.user.employee_id);
+      const pkgDept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(pkg.employee_id);
+      if (!dept || !pkgDept || dept.department_id !== pkgDept.department_id) return res.status(403).json({ error: 'Access denied' });
+    }
+    const rows = db.prepare(`
+      SELECT h.*, c.full_name as changed_by_name
+      FROM compensation_history h
+      LEFT JOIN employees c ON h.changed_by = c.id
+      WHERE h.compensation_id = ?
+      ORDER BY h.created_at DESC
+    `).all(req.params.id);
+    res.json(rows);
   } catch (err) {
     next(err);
   }

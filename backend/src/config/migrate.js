@@ -583,6 +583,25 @@ const migrations = [
     FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
   )`,
 
+  // Compensation revision history — one entry per package update that
+  // changes the total package, so raises/adjustments stay auditable even
+  // though the package itself is edited in place.
+  `CREATE TABLE IF NOT EXISTS compensation_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    compensation_id INTEGER NOT NULL,
+    employee_id INTEGER NOT NULL,
+    old_total REAL NOT NULL,
+    new_total REAL NOT NULL,
+    old_base_salary REAL NOT NULL,
+    new_base_salary REAL NOT NULL,
+    reason TEXT,
+    changed_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (compensation_id) REFERENCES compensation(id) ON DELETE CASCADE,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+    FOREIGN KEY (changed_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
   // Payroll runs: a monthly batch that snapshots each active employee's pay
   // figures at creation time, then moves through a review/approval/payment
   // lifecycle. Snapshotting keeps historical runs stable even if an

@@ -283,6 +283,7 @@ const realCompensationApi = {
   create: (data) => api.post('/compensation', data).then((r) => r.data),
   update: (id, data) => api.put(`/compensation/${id}`, data).then((r) => r.data),
   remove: (id) => api.delete(`/compensation/${id}`).then((r) => r.data),
+  history: (id) => api.get(`/compensation/${id}/history`).then((r) => r.data),
 }
 
 // ---------- Talent 9-box grid ----------

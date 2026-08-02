@@ -308,6 +308,11 @@ const compensation = [
   { id: compSeq++, employee_id: 10, grade: 'الدرجة الرابعة', base_salary: 9000, housing_allowance: 2500, transport_allowance: 800, other_allowances: 0, bonus: 0, insurance_class: 'الفئة ج', effective_date: addDays(-30), status: 'نشط', notes: null, created_by: 5 },
 ]
 
+let compHistSeq = 1
+const compensationHistory = [
+  { id: compHistSeq++, compensation_id: 5, employee_id: 6, old_total: 15000, new_total: 16500, old_base_salary: 10500, new_base_salary: 12000, reason: 'ترقية سنوية بعد تقييم الأداء.', changed_by: 5, created_at: addDays(-45) },
+]
+
 let succSeq = 1
 const succession = [
   { id: succSeq++, position_title: 'الرئيس التنفيذي', department_id: 1, incumbent_id: 1, successor_id: 2, readiness: 'خلال سنتين', risk_level: 'مرتفع', potential: 'نجم صاعد', status: 'نشط', notes: 'يحتاج برنامج تطوير قيادي', created_by: 5 },
@@ -2240,8 +2245,31 @@ export const mockCompensationApi = {
     return { compensation: items, summary }
   },
   async create(data) { await delay(); const c = { id: compSeq++, grade: 'الدرجة الأولى', base_salary: 0, housing_allowance: 0, transport_allowance: 0, other_allowances: 0, bonus: 0, insurance_class: 'الفئة أ', status: 'نشط', notes: null, created_by: currentUser()?.employee_id || 5, ...data, employee_id: Number(data.employee_id) }; compensation.unshift(c); return { message: 'تم', compensation: c } },
-  async update(id, data) { await delay(); const c = compensation.find((x) => x.id === Number(id)); if (c) Object.assign(c, data); return { message: 'تم التحديث' } },
+  async update(id, data) {
+    await delay()
+    const c = compensation.find((x) => x.id === Number(id))
+    if (!c) return { message: 'تم التحديث' }
+    const oldTotal = compTotal(c)
+    const oldBase = c.base_salary
+    const { change_reason, ...rest } = data
+    Object.assign(c, rest)
+    const newTotal = compTotal(c)
+    if (newTotal !== oldTotal) {
+      compensationHistory.unshift({ id: compHistSeq++, compensation_id: c.id, employee_id: c.employee_id, old_total: oldTotal, new_total: newTotal, old_base_salary: oldBase, new_base_salary: c.base_salary, reason: change_reason || null, changed_by: currentUser()?.employee_id || 5, created_at: nowIso() })
+    }
+    return { message: 'تم التحديث' }
+  },
   async remove(id) { await delay(); const i = compensation.findIndex((x) => x.id === Number(id)); if (i > -1) compensation.splice(i, 1); return { message: 'تم الحذف' } },
+  async history(id) {
+    await delay()
+    const c = compensation.find((x) => x.id === Number(id))
+    if (!c) throw notFound()
+    const u = currentUser()
+    if (u && ['employee', 'candidate'].includes(u.role) && c.employee_id !== u.employee_id) { const e = new Error('bad'); e.response = { status: 403, data: { error: 'غير مسموح' } }; throw e }
+    return compensationHistory.filter((h) => h.compensation_id === Number(id))
+      .map((h) => ({ ...h, changed_by_name: empName(h.changed_by) }))
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+  },
 }
 
 const riskOrder = { مرتفع: 1, متوسط: 2, منخفض: 3 }
