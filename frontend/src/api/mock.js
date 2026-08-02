@@ -281,6 +281,13 @@ const shifts = [
   { id: shiftSeq++, employee_id: 6, date: addDays(1), shift_type: 'صباحية', start_time: '08:00', end_time: '16:00', location: 'المقر الرئيسي', notes: null, created_by: 5 },
   { id: shiftSeq++, employee_id: 10, date: addDays(0), shift_type: 'مسائية', start_time: '16:00', end_time: '00:00', location: 'فرع جدة', notes: null, created_by: 5 },
   { id: shiftSeq++, employee_id: 4, date: addDays(0), shift_type: 'صباحية', start_time: '09:00', end_time: '17:00', location: 'فرع جدة', notes: null, created_by: 5 },
+  { id: shiftSeq++, employee_id: 10, date: addDays(3), shift_type: 'مسائية', start_time: '16:00', end_time: '00:00', location: 'فرع جدة', notes: null, created_by: 5 },
+  { id: shiftSeq++, employee_id: 6, date: addDays(3), shift_type: 'صباحية', start_time: '08:00', end_time: '16:00', location: 'المقر الرئيسي', notes: null, created_by: 5 },
+]
+
+let swapSeq = 1
+const shiftSwapRequests = [
+  { id: swapSeq++, requester_id: 6, shift_a_id: 6, target_id: 10, shift_b_id: 5, reason: 'لدي موعد شخصي في ذلك اليوم وأودّ التبديل.', status: 'بانتظار موافقة الزميل', approved_by: null, approved_at: null, created_at: nowIso() },
 ]
 
 let tsSeq = 1
@@ -2114,6 +2121,71 @@ export const mockShiftsApi = {
   async create(data) { await delay(); const s = { id: shiftSeq++, shift_type: data.shift_type || 'صباحية', location: data.location || 'المقر الرئيسي', created_by: currentUser()?.employee_id || 5, ...data }; shifts.unshift(s); return { message: 'تم', shift: s } },
   async update(id, data) { await delay(); const s = shifts.find((x) => x.id === Number(id)); if (s) Object.assign(s, data); return { message: 'تم التحديث' } },
   async remove(id) { await delay(); const i = shifts.findIndex((x) => x.id === Number(id)); if (i > -1) shifts.splice(i, 1); return { message: 'تم الحذف' } },
+  async swapRequests() {
+    await delay()
+    const u = currentUser()
+    let rows = shiftSwapRequests
+    if (u && ['employee', 'candidate'].includes(u.role)) {
+      rows = rows.filter((r) => r.requester_id === u.employee_id || r.target_id === u.employee_id)
+    } else if (u && u.role === 'department_head') {
+      const dep = employees.find((e) => e.id === u.employee_id)?.department_id
+      rows = rows.filter((r) => employees.find((e) => e.id === r.requester_id)?.department_id === dep || employees.find((e) => e.id === r.target_id)?.department_id === dep)
+    }
+    const order = { 'بانتظار موافقة الزميل': 1, 'بانتظار اعتماد المدير': 2, معتمد: 3, مرفوض: 3 }
+    return [...rows].sort((a, b) => (order[a.status] - order[b.status]) || new Date(b.created_at) - new Date(a.created_at)).map((r) => {
+      const sa = shifts.find((s) => s.id === r.shift_a_id)
+      const sb = shifts.find((s) => s.id === r.shift_b_id)
+      return {
+        ...r, requester_name: empName(r.requester_id), requester_picture: null, target_name: empName(r.target_id), target_picture: null,
+        shift_a_date: sa?.date, shift_a_type: sa?.shift_type, shift_b_date: sb?.date, shift_b_type: sb?.shift_type,
+      }
+    })
+  },
+  async requestSwap(data) {
+    await delay()
+    const u = currentUser()
+    if (!u?.employee_id) throw badReq('لا يوجد موظف مرتبط بهذا الحساب')
+    if (Number(data.target_id) === u.employee_id) throw badReq('لا يمكن تبديل الوردية مع نفسك')
+    const shiftA = shifts.find((s) => s.id === Number(data.shift_a_id))
+    if (!shiftA || shiftA.employee_id !== u.employee_id) throw badReq('الوردية الأولى غير صحيحة')
+    const shiftB = shifts.find((s) => s.id === Number(data.shift_b_id))
+    if (!shiftB || shiftB.employee_id !== Number(data.target_id)) throw badReq('وردية الزميل غير صحيحة')
+    const r = { id: swapSeq++, requester_id: u.employee_id, shift_a_id: shiftA.id, target_id: Number(data.target_id), shift_b_id: shiftB.id, reason: data.reason || null, status: 'بانتظار موافقة الزميل', approved_by: null, approved_at: null, created_at: nowIso() }
+    shiftSwapRequests.unshift(r)
+    return { message: 'تم', swap: { id: r.id } }
+  },
+  async respondSwap(id, accept) {
+    await delay()
+    const r = shiftSwapRequests.find((x) => x.id === Number(id))
+    if (!r) throw notFound()
+    const u = currentUser()
+    if (r.target_id !== u?.employee_id) { const e = new Error('bad'); e.response = { status: 403, data: { error: 'غير مسموح' } }; throw e }
+    if (r.status !== 'بانتظار موافقة الزميل') throw badReq('تمت المعالجة مسبقاً')
+    r.status = accept ? 'بانتظار اعتماد المدير' : 'مرفوض'
+    return { message: 'تم' }
+  },
+  async approveSwap(id) {
+    await delay()
+    const r = shiftSwapRequests.find((x) => x.id === Number(id))
+    if (!r) throw notFound()
+    if (r.status !== 'بانتظار اعتماد المدير') throw badReq('يجب موافقة الزميل أولاً')
+    const shiftA = shifts.find((s) => s.id === r.shift_a_id)
+    const shiftB = shifts.find((s) => s.id === r.shift_b_id)
+    if (shiftA) shiftA.employee_id = r.target_id
+    if (shiftB) shiftB.employee_id = r.requester_id
+    r.status = 'معتمد'
+    r.approved_by = currentUser()?.employee_id || 5
+    r.approved_at = nowIso()
+    return { message: 'تم الاعتماد' }
+  },
+  async rejectSwap(id) {
+    await delay()
+    const r = shiftSwapRequests.find((x) => x.id === Number(id))
+    if (!r) throw notFound()
+    if (r.status === 'معتمد') throw badReq('تم الاعتماد مسبقاً')
+    r.status = 'مرفوض'
+    return { message: 'تم الرفض' }
+  },
 }
 
 export const mockTimesheetsApi = {

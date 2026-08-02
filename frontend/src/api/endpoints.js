@@ -260,6 +260,11 @@ const realShiftsApi = {
   create: (data) => api.post('/shifts', data).then((r) => r.data),
   update: (id, data) => api.put(`/shifts/${id}`, data).then((r) => r.data),
   remove: (id) => api.delete(`/shifts/${id}`).then((r) => r.data),
+  swapRequests: () => api.get('/shifts/swap-requests').then((r) => r.data),
+  requestSwap: (data) => api.post('/shifts/swap-requests', data).then((r) => r.data),
+  respondSwap: (id, accept) => api.put(`/shifts/swap-requests/${id}/respond`, { accept }).then((r) => r.data),
+  approveSwap: (id) => api.put(`/shifts/swap-requests/${id}/approve`).then((r) => r.data),
+  rejectSwap: (id) => api.put(`/shifts/swap-requests/${id}/reject`).then((r) => r.data),
 }
 
 // ---------- Timesheets ----------

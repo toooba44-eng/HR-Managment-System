@@ -1,14 +1,15 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { CalendarRange, Plus, Trash2, Clock, MapPin } from 'lucide-react'
+import { CalendarRange, Plus, Trash2, Clock, MapPin, ArrowLeftRight, Check, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { shiftsApi, employeesApi } from '../../api/endpoints'
 import { useAuthStore } from '../../store/authStore'
 import Spinner from '../../components/ui/Spinner'
 import EmptyState from '../../components/ui/EmptyState'
 import Modal from '../../components/ui/Modal'
+import Badge from '../../components/ui/Badge'
 import Avatar from '../../components/ui/Avatar'
-import { Field, Input, Select, Button } from '../../components/ui/Form'
+import { Field, Input, Textarea, Select, Button } from '../../components/ui/Form'
 import { formatDate } from '../../lib/utils'
 
 const MANAGE = ['admin', 'hr_manager', 'department_head', 'super_admin']
@@ -49,11 +50,121 @@ function Form({ open, onClose }) {
   )
 }
 
+function RequestSwapModal({ myShift, allShifts, onClose }) {
+  const qc = useQueryClient()
+  const colleagues = useMemo(() => {
+    const seen = new Map()
+    for (const s of allShifts) {
+      if (s.employee_id !== myShift.employee_id) seen.set(s.employee_id, s.full_name)
+    }
+    return [...seen.entries()].map(([id, full_name]) => ({ id, full_name }))
+  }, [allShifts, myShift])
+  const [targetId, setTargetId] = useState('')
+  const [shiftBId, setShiftBId] = useState('')
+  const [reason, setReason] = useState('')
+  const theirShifts = allShifts.filter((s) => s.employee_id === Number(targetId))
+  const m = useMutation(() => shiftsApi.requestSwap({ shift_a_id: myShift.id, target_id: Number(targetId), shift_b_id: Number(shiftBId), reason }), {
+    onSuccess: () => { toast.success('تم إرسال طلب التبديل'); qc.invalidateQueries('shift-swaps'); onClose() },
+    onError: (e) => toast.error(e.response?.data?.error || 'فشل الطلب'),
+  })
+  return (
+    <Modal open onClose={onClose} title="طلب تبديل وردية">
+      <form onSubmit={(e) => { e.preventDefault(); if (targetId && shiftBId) m.mutate() }} className="space-y-4">
+        <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3 text-sm">
+          <span className="text-slate-500">ورديتي: </span>
+          <span className="font-medium text-slate-700">{formatDate(myShift.date)} · {myShift.shift_type}</span>
+        </div>
+        <Field label="الزميل" required>
+          <Select value={targetId} onChange={(e) => { setTargetId(e.target.value); setShiftBId('') }} required>
+            <option value="">اختر زميلاً</option>
+            {colleagues.map((c) => <option key={c.id} value={c.id}>{c.full_name}</option>)}
+          </Select>
+        </Field>
+        {targetId && (
+          <Field label="وردية الزميل" required>
+            <Select value={shiftBId} onChange={(e) => setShiftBId(e.target.value)} required>
+              <option value="">اختر وردية</option>
+              {theirShifts.map((s) => <option key={s.id} value={s.id}>{formatDate(s.date)} · {s.shift_type}</option>)}
+            </Select>
+          </Field>
+        )}
+        <Field label="سبب الطلب"><Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2} /></Field>
+        <p className="text-xs text-slate-400">يجب موافقة الزميل ثم اعتماد المدير لإتمام التبديل.</p>
+        <div className="flex justify-end gap-3 pt-2">
+          <Button type="button" variant="secondary" onClick={onClose}>إلغاء</Button>
+          <Button type="submit" loading={m.isLoading} disabled={!targetId || !shiftBId}>إرسال الطلب</Button>
+        </div>
+      </form>
+    </Modal>
+  )
+}
+
+function SwapRequests({ canManage }) {
+  const qc = useQueryClient()
+  const { user } = useAuthStore()
+  const { data: swaps = [], isLoading } = useQuery('shift-swaps', shiftsApi.swapRequests)
+  const respond = useMutation(({ id, accept }) => shiftsApi.respondSwap(id, accept), {
+    onSuccess: () => { toast.success('تم التحديث'); qc.invalidateQueries('shift-swaps') },
+    onError: (e) => toast.error(e.response?.data?.error || 'فشل'),
+  })
+  const approve = useMutation((id) => shiftsApi.approveSwap(id), {
+    onSuccess: () => { toast.success('تم اعتماد التبديل'); qc.invalidateQueries('shift-swaps'); qc.invalidateQueries('shifts') },
+    onError: (e) => toast.error(e.response?.data?.error || 'فشل'),
+  })
+  const reject = useMutation((id) => shiftsApi.rejectSwap(id), {
+    onSuccess: () => { toast.success('تم الرفض'); qc.invalidateQueries('shift-swaps') },
+    onError: (e) => toast.error(e.response?.data?.error || 'فشل'),
+  })
+
+  if (isLoading) return null
+  if (swaps.length === 0) return null
+
+  return (
+    <div className="card">
+      <div className="flex items-center gap-2 mb-3"><ArrowLeftRight className="w-5 h-5 text-slate-400" /><h3 className="font-bold text-slate-800">طلبات تبديل الورديات</h3></div>
+      <div className="space-y-2">
+        {swaps.map((s) => {
+          const isTarget = s.target_id === user?.employee_id
+          return (
+            <div key={s.id} className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border border-slate-100 p-3">
+              <div className="flex items-center gap-2 flex-1 min-w-0 text-sm">
+                <Avatar name={s.requester_name} src={s.requester_picture} size="sm" />
+                <span className="text-slate-700">{s.requester_name}</span>
+                <span className="text-xs text-slate-400">({formatDate(s.shift_a_date)} · {s.shift_a_type})</span>
+                <ArrowLeftRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                <Avatar name={s.target_name} src={s.target_picture} size="sm" />
+                <span className="text-slate-700">{s.target_name}</span>
+                <span className="text-xs text-slate-400">({formatDate(s.shift_b_date)} · {s.shift_b_type})</span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Badge status={s.status} />
+                {isTarget && s.status === 'بانتظار موافقة الزميل' && (
+                  <>
+                    <button onClick={() => respond.mutate({ id: s.id, accept: true })} className="text-xs px-2 py-1 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center gap-1"><Check className="w-3.5 h-3.5" /> موافقة</button>
+                    <button onClick={() => respond.mutate({ id: s.id, accept: false })} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-rose-500"><X className="w-4 h-4" /></button>
+                  </>
+                )}
+                {canManage && s.status === 'بانتظار اعتماد المدير' && (
+                  <>
+                    <button onClick={() => approve.mutate(s.id)} className="text-xs px-2 py-1 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center gap-1"><Check className="w-3.5 h-3.5" /> اعتماد</button>
+                    <button onClick={() => reject.mutate(s.id)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-rose-500"><X className="w-4 h-4" /></button>
+                  </>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export default function Shifts() {
   const qc = useQueryClient()
   const { user } = useAuthStore()
   const canManage = MANAGE.includes(user?.role)
   const [showForm, setShowForm] = useState(false)
+  const [swapping, setSwapping] = useState(null)
   const { data: items = [], isLoading } = useQuery('shifts', () => shiftsApi.list())
   const del = useMutation((id) => shiftsApi.remove(id), {
     onSuccess: () => { toast.success('تم الحذف'); qc.invalidateQueries('shifts') },
@@ -68,6 +179,7 @@ export default function Shifts() {
 
   return (
     <div className="space-y-6">
+      <SwapRequests canManage={canManage} />
       {canManage && <div className="flex justify-end"><Button onClick={() => setShowForm(true)}><Plus className="w-5 h-5" /> جدولة وردية</Button></div>}
       {items.length === 0 ? (
         <div className="card"><EmptyState icon={CalendarRange} title="لا توجد ورديات مجدولة" /></div>
@@ -89,6 +201,9 @@ export default function Shifts() {
                       <span className="hidden sm:flex items-center gap-1 text-xs text-slate-500"><Clock className="w-3.5 h-3.5" /> {s.start_time}–{s.end_time}</span>
                     )}
                     <span className="hidden md:flex items-center gap-1 text-xs text-slate-400"><MapPin className="w-3.5 h-3.5" /> {s.location}</span>
+                    {s.employee_id === user?.employee_id && s.shift_type !== 'راحة' && (
+                      <button onClick={() => setSwapping(s)} title="طلب تبديل" className="text-slate-300 hover:text-primary-600"><ArrowLeftRight className="w-4 h-4" /></button>
+                    )}
                     {canManage && <button onClick={() => window.confirm('حذف الوردية؟') && del.mutate(s.id)} className="text-slate-300 hover:text-rose-500"><Trash2 className="w-4 h-4" /></button>}
                   </div>
                 ))}
@@ -98,6 +213,7 @@ export default function Shifts() {
         </div>
       )}
       <Form open={showForm} onClose={() => setShowForm(false)} />
+      {swapping && <RequestSwapModal myShift={swapping} allShifts={items} onClose={() => setSwapping(null)} />}
     </div>
   )
 }
