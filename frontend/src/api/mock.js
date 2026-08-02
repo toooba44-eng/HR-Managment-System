@@ -1929,8 +1929,16 @@ export const mockReportsApi = {
     const leavesByType = Object.values(leaveMap).sort((a, b) => b.count - a.count)
 
     const active = employees.filter((e) => e.status === 'نشط')
-    const basic = active.reduce((s, e) => s + (e.salary || 0), 0)
-    const allowances = active.reduce((s, e) => s + (e.allowances || 0), 0)
+    // Uses each employee's active compensation package when one exists, so
+    // this agrees with the live payroll overview and payroll runs.
+    const payTotals = active.reduce((t, e) => {
+      const pkg = compensation.find((c) => c.employee_id === e.id && c.status === 'نشط')
+      const eBasic = pkg ? pkg.base_salary : (e.salary || 0)
+      const eAllowances = pkg ? pkg.housing_allowance + pkg.transport_allowance + pkg.other_allowances + pkg.bonus : (e.allowances || 0)
+      return { basic: t.basic + eBasic, allowances: t.allowances + eAllowances }
+    }, { basic: 0, allowances: 0 })
+    const basic = payTotals.basic
+    const allowances = payTotals.allowances
     const deductions = Math.round(basic * 0.1)
 
     const appStatus = groupCount(applications, 'status')
