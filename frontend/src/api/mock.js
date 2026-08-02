@@ -2912,3 +2912,79 @@ function badReq(msg) {
   e.response = { status: 400, data: { error: msg } }
   return e
 }
+
+// AI assistant: a rule-based FAQ that only reads existing records for the
+// asking employee (or public policies) — it never approves/rejects
+// anything or makes a hiring/firing recommendation.
+const ASSISTANT_SUGGESTIONS = ['كم رصيد إجازتي؟', 'كم راتبي الصافي هذا الشهر؟', 'هل سجّلت حضوري اليوم؟', 'ما هي سياسة الإجازات؟']
+const ASSISTANT_MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
+let assistantLogSeq = 1
+const assistantLogs = []
+
+function detectAssistantIntent(message) {
+  const m = message.toLowerCase()
+  if (/سياس|لائح/.test(m)) return 'policies'
+  if (/راتب|مرتب/.test(m)) return 'payslip'
+  if (/رصيد|إجاز/.test(m)) return 'leave_balance'
+  if (/حضور|دوام|بصمة|انصراف/.test(m)) return 'attendance'
+  return 'fallback'
+}
+function assistantAnswerLeaveBalance(empId) {
+  const e = employees.find((x) => x.id === empId)
+  if (!e) return 'لم أجد بياناتك الوظيفية. تواصل مع الموارد البشرية.'
+  return `رصيدك الحالي: ${e.annual_leave_balance ?? 0} يوم إجازة سنوية، ${e.sick_leave_balance ?? 0} يوم مرضية، ${e.emergency_leave_balance ?? 0} يوم طارئة.`
+}
+function assistantAnswerPayslip(empId) {
+  const e = employees.find((x) => x.id === empId)
+  if (!e) return 'لم أجد بياناتك الوظيفية. تواصل مع الموارد البشرية.'
+  const basic = e.salary || 0
+  const allowances = e.allowances || 0
+  const gosi = Math.round(basic * 0.1)
+  const net = basic + allowances - gosi
+  const now = new Date()
+  return `راتب ${ASSISTANT_MONTHS[now.getMonth()]} ${now.getFullYear()} الصافي التقديري: ${net.toLocaleString('ar-SA')} ر.س (أساسي ${basic.toLocaleString('ar-SA')} + بدلات ${allowances.toLocaleString('ar-SA')} − تأمينات ${gosi.toLocaleString('ar-SA')}). للتفاصيل الكاملة راجع قسائم الراتب.`
+}
+const assistantTime = (iso) => (iso && iso.length >= 16 ? iso.slice(11, 16) : iso)
+function assistantAnswerAttendance(empId) {
+  const today = addDays(0)
+  const a = attendance.find((x) => x.employee_id === empId && x.date === today)
+  if (!a) return 'لم يُسجَّل حضورك اليوم بعد.'
+  if (a.check_in && !a.check_out) return `تم تسجيل حضورك اليوم الساعة ${assistantTime(a.check_in)}. لم تسجّل الانصراف بعد.`
+  if (a.check_in && a.check_out) return `حضورك اليوم: من ${assistantTime(a.check_in)} إلى ${assistantTime(a.check_out)} (${a.status}).`
+  return `حالتك اليوم: ${a.status}.`
+}
+function assistantAnswerPolicies(message) {
+  const stripped = message.replace(/سياسة|سياسات|لائحة|لوائح/g, '').trim()
+  const rows = stripped ? policies.filter((p) => p.title.includes(stripped) || p.body.includes(stripped)).slice(0, 3) : []
+  if (rows.length) return rows.map((p) => `**${p.title}**: ${p.body.slice(0, 160)}${p.body.length > 160 ? '…' : ''}`).join('\n\n')
+  if (!policies.length) return 'لا توجد سياسات مضافة بعد.'
+  return `أقرب السياسات المتاحة: ${policies.slice(0, 8).map((p) => p.title).join('، ')}. اسأل عن أحدها بالاسم لمزيد من التفاصيل.`
+}
+
+export const mockAssistantApi = {
+  async ask(message) {
+    await delay()
+    if (!aiSettings.enabled || !aiSettings.chatbot) throw (() => { const e = new Error('bad'); e.response = { status: 403, data: { error: 'المساعد الذكي غير مفعّل حالياً' } }; return e })()
+    const text = (message || '').trim()
+    if (!text) throw badReq('الرسالة مطلوبة')
+    const u = currentUser()
+    const empId = u?.employee_id
+    const intent = detectAssistantIntent(text)
+    let answer
+    switch (intent) {
+      case 'leave_balance': answer = empId ? assistantAnswerLeaveBalance(empId) : 'هذا السؤال يخص بيانات موظف — سجّل دخولك بحساب موظف لعرض رصيدك.'; break
+      case 'payslip': answer = empId ? assistantAnswerPayslip(empId) : 'هذا السؤال يخص بيانات موظف — سجّل دخولك بحساب موظف لعرض راتبك.'; break
+      case 'attendance': answer = empId ? assistantAnswerAttendance(empId) : 'هذا السؤال يخص بيانات موظف — سجّل دخولك بحساب موظف لعرض حضورك.'; break
+      case 'policies': answer = assistantAnswerPolicies(text); break
+      default: answer = `يمكنني الإجابة عن استفساراتك حول رصيد إجازتك، راتبك، حضورك، أو سياسات الشركة. جرّب أحد هذه الأسئلة:\n${ASSISTANT_SUGGESTIONS.join('\n')}`
+    }
+    assistantLogs.unshift({ id: assistantLogSeq++, employee_id: empId || null, message: text, intent, created_at: nowIso(), full_name: empName(empId) })
+    return { answer, intent, suggestions: ASSISTANT_SUGGESTIONS }
+  },
+  async logs() {
+    await delay()
+    const rows = assistantLogs.slice(0, 100)
+    const breakdown = rows.reduce((acc, r) => { acc[r.intent] = (acc[r.intent] || 0) + 1; return acc }, {})
+    return { logs: rows, breakdown, total: rows.length }
+  },
+}

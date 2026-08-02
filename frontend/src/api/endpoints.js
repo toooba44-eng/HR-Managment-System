@@ -291,6 +291,12 @@ const realScorecardsApi = {
   remove: (applicationId) => api.delete(`/scorecards/${applicationId}`).then((r) => r.data),
 }
 
+// ---------- AI assistant (FAQ-style, reads existing data only) ----------
+const realAssistantApi = {
+  ask: (message) => api.post('/assistant/ask', { message }).then((r) => r.data),
+  logs: () => api.get('/assistant/logs').then((r) => r.data),
+}
+
 // ---------- Talent & succession ----------
 const realSuccessionApi = {
   list: (params) => api.get('/succession', { params }).then((r) => r.data),
@@ -454,6 +460,7 @@ export const goalsApi = DEMO ? mock.mockGoalsApi : realGoalsApi
 export const trainingApi = DEMO ? mock.mockTrainingApi : realTrainingApi
 export const reportsApi = DEMO ? mock.mockReportsApi : realReportsApi
 export const offboardingApi = DEMO ? mock.mockOffboardingApi : realOffboardingApi
+export const assistantApi = DEMO ? mock.mockAssistantApi : realAssistantApi
 export const grievancesApi = DEMO ? mock.mockGrievancesApi : realGrievancesApi
 export const incidentsApi = DEMO ? mock.mockIncidentsApi : realIncidentsApi
 export const shiftsApi = DEMO ? mock.mockShiftsApi : realShiftsApi
