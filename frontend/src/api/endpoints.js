@@ -99,6 +99,11 @@ const realPoliciesApi = {
 // ---------- Payroll ----------
 const realPayrollApi = {
   overview: (params) => api.get('/payroll', { params }).then((r) => r.data),
+  runs: () => api.get('/payroll/runs').then((r) => r.data),
+  getRun: (id) => api.get(`/payroll/runs/${id}`).then((r) => r.data),
+  createRun: (data) => api.post('/payroll/runs', data).then((r) => r.data),
+  advanceRun: (id, status) => api.put(`/payroll/runs/${id}/status`, { status }).then((r) => r.data),
+  removeRun: (id) => api.delete(`/payroll/runs/${id}`).then((r) => r.data),
 }
 
 // ---------- Tasks ----------

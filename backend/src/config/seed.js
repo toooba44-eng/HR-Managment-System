@@ -473,6 +473,42 @@ function seedData() {
     console.log('✅ Compensation seeded');
   }
 
+  // Payroll runs: last month (paid) + current month (pending review)
+  if (isEmpty('payroll_runs')) {
+    const now = new Date();
+    const activeEmployees = db.prepare("SELECT id, salary, allowances FROM employees WHERE status = 'نشط'").all();
+    const insRun = db.prepare(`INSERT INTO payroll_runs (month, year, status, total_net, employee_count, created_by, approved_by, approved_at, paid_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    const insItem = db.prepare(`INSERT INTO payroll_run_items (run_id, employee_id, basic, allowances, deductions, net) VALUES (?, ?, ?, ?, ?, ?)`);
+
+    const buildItems = () => activeEmployees.map((e) => {
+      const basic = e.salary || 0;
+      const allowances = e.allowances || 0;
+      const deductions = Math.round(basic * 0.1);
+      return { employee_id: e.id, basic, allowances, deductions, net: basic + allowances - deductions };
+    });
+
+    // Last month: fully paid
+    const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastItems = buildItems();
+    const lastTotal = lastItems.reduce((s, i) => s + i.net, 0);
+    const lastRunId = insRun.run(
+      lastMonthDate.getMonth() + 1, lastMonthDate.getFullYear(), 'مصروف', lastTotal, lastItems.length,
+      5, 5, addDaysStr(-25), addDaysStr(-20), addDaysStr(-28)
+    ).lastInsertRowid;
+    lastItems.forEach((i) => insItem.run(lastRunId, i.employee_id, i.basic, i.allowances, i.deductions, i.net));
+
+    // This month: awaiting review
+    const thisItems = buildItems();
+    const thisTotal = thisItems.reduce((s, i) => s + i.net, 0);
+    const thisRunId = insRun.run(
+      now.getMonth() + 1, now.getFullYear(), 'قيد المراجعة', thisTotal, thisItems.length,
+      5, null, null, null, addDaysStr(-1)
+    ).lastInsertRowid;
+    thisItems.forEach((i) => insItem.run(thisRunId, i.employee_id, i.basic, i.allowances, i.deductions, i.net));
+
+    console.log('✅ Payroll runs seeded');
+  }
+
   // Talent & succession planning
   if (isEmpty('succession')) {
     const ins = db.prepare(`INSERT INTO succession (position_title, department_id, incumbent_id, successor_id, readiness, risk_level, potential, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);

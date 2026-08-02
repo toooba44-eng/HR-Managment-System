@@ -531,6 +531,40 @@ const migrations = [
     FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
   )`,
 
+  // Payroll runs: a monthly batch that snapshots each active employee's pay
+  // figures at creation time, then moves through a review/approval/payment
+  // lifecycle. Snapshotting keeps historical runs stable even if an
+  // employee's salary changes afterward.
+  `CREATE TABLE IF NOT EXISTS payroll_runs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    month INTEGER NOT NULL CHECK(month BETWEEN 1 AND 12),
+    year INTEGER NOT NULL,
+    status TEXT DEFAULT 'مسودة' CHECK(status IN ('مسودة', 'قيد المراجعة', 'معتمد', 'مصروف')),
+    total_net REAL DEFAULT 0,
+    employee_count INTEGER DEFAULT 0,
+    created_by INTEGER,
+    approved_by INTEGER,
+    approved_at DATETIME,
+    paid_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(month, year),
+    FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL,
+    FOREIGN KEY (approved_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS payroll_run_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id INTEGER NOT NULL,
+    employee_id INTEGER NOT NULL,
+    basic REAL NOT NULL DEFAULT 0,
+    allowances REAL NOT NULL DEFAULT 0,
+    deductions REAL NOT NULL DEFAULT 0,
+    net REAL NOT NULL DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (run_id) REFERENCES payroll_runs(id) ON DELETE CASCADE,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
+  )`,
+
   // Talent 9-box reviews (performance x potential)
   `CREATE TABLE IF NOT EXISTS talent_reviews (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
