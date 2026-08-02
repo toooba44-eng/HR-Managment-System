@@ -3303,7 +3303,7 @@ function badReq(msg) {
 // AI assistant: a rule-based FAQ that only reads existing records for the
 // asking employee (or public policies) — it never approves/rejects
 // anything or makes a hiring/firing recommendation.
-const ASSISTANT_SUGGESTIONS = ['كم رصيد إجازتي؟', 'كم راتبي الصافي هذا الشهر؟', 'هل سجّلت حضوري اليوم؟', 'ما هي سياسة الإجازات؟']
+const ASSISTANT_SUGGESTIONS = ['كم رصيد إجازتي؟', 'كم راتبي الصافي هذا الشهر؟', 'هل سجّلت حضوري اليوم؟', 'ما هي سياسة الإجازات؟', 'هل هناك إعلانات جديدة؟']
 const ASSISTANT_MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
 let assistantLogSeq = 1
 const assistantLogs = []
@@ -3314,6 +3314,7 @@ function detectAssistantIntent(message) {
   if (/راتب|مرتب/.test(m)) return 'payslip'
   if (/رصيد|إجاز/.test(m)) return 'leave_balance'
   if (/حضور|دوام|بصمة|انصراف/.test(m)) return 'attendance'
+  if (/إعلان|تعميم/.test(m)) return 'announcements'
   return 'fallback'
 }
 function assistantAnswerLeaveBalance(empId) {
@@ -3321,15 +3322,29 @@ function assistantAnswerLeaveBalance(empId) {
   if (!e) return 'لم أجد بياناتك الوظيفية. تواصل مع الموارد البشرية.'
   return `رصيدك الحالي: ${e.annual_leave_balance ?? 0} يوم إجازة سنوية، ${e.sick_leave_balance ?? 0} يوم مرضية، ${e.emergency_leave_balance ?? 0} يوم طارئة.`
 }
+// Reads the same source as the Payslips page: the latest payroll run line
+// item that has at least been approved, so the assistant's number never
+// disagrees with the employee's actual payslip.
 function assistantAnswerPayslip(empId) {
-  const e = employees.find((x) => x.id === empId)
-  if (!e) return 'لم أجد بياناتك الوظيفية. تواصل مع الموارد البشرية.'
-  const basic = e.salary || 0
-  const allowances = e.allowances || 0
-  const gosi = Math.round(basic * 0.1)
-  const net = basic + allowances - gosi
-  const now = new Date()
-  return `راتب ${ASSISTANT_MONTHS[now.getMonth()]} ${now.getFullYear()} الصافي التقديري: ${net.toLocaleString('ar-SA')} ر.س (أساسي ${basic.toLocaleString('ar-SA')} + بدلات ${allowances.toLocaleString('ar-SA')} − تأمينات ${gosi.toLocaleString('ar-SA')}). للتفاصيل الكاملة راجع قسائم الراتب.`
+  const row = [...payrollRuns]
+    .filter((r) => ['معتمد', 'مصروف'].includes(r.status))
+    .sort((a, b) => (b.year - a.year) || (b.month - a.month))
+    .map((r) => { const i = r.items.find((x) => x.employee_id === empId); return i ? { ...i, month: r.month, year: r.year, run_status: r.status } : null })
+    .find(Boolean)
+  if (!row) return 'لا توجد قسيمة راتب معتمدة بعد لعرضها. راجع قسم قسائم الرواتب لاحقاً.'
+  const label = row.run_status === 'مصروف' ? 'الصافي المصروف' : 'الصافي المعتمد (بانتظار الصرف)'
+  return `راتب ${ASSISTANT_MONTHS[row.month - 1]} ${row.year} — ${label}: ${row.net.toLocaleString('ar-SA')} ر.س (أساسي ${row.basic.toLocaleString('ar-SA')} + بدلات ${row.allowances.toLocaleString('ar-SA')} − تأمينات ${row.deductions.toLocaleString('ar-SA')}). للتفاصيل الكاملة راجع قسائم الراتب.`
+}
+function assistantAnswerAnnouncements(empId) {
+  const rows = [...announcements]
+    .sort((a, b) => (b.is_pinned - a.is_pinned) || b.id - a.id)
+    .slice(0, 5)
+    .map((a) => ({ ...a, read_by_me: announcementReads.some((r) => r.announcement_id === a.id && r.employee_id === empId) }))
+  if (!rows.length) return 'لا توجد إعلانات حالياً.'
+  const pendingAck = rows.filter((a) => a.requires_acknowledgment && !a.read_by_me)
+  const list = rows.map((a) => `- ${a.title}${a.requires_acknowledgment && !a.read_by_me ? ' (يتطلب إقرارك)' : ''}`).join('\n')
+  const note = pendingAck.length ? `\n\nلديك ${pendingAck.length} إعلان يتطلب إقرارك بالاطلاع — راجع قسم الإعلانات.` : ''
+  return `أحدث الإعلانات:\n${list}${note}`
 }
 const assistantTime = (iso) => (iso && iso.length >= 16 ? iso.slice(11, 16) : iso)
 function assistantAnswerAttendance(empId) {
@@ -3363,6 +3378,7 @@ export const mockAssistantApi = {
       case 'payslip': answer = empId ? assistantAnswerPayslip(empId) : 'هذا السؤال يخص بيانات موظف — سجّل دخولك بحساب موظف لعرض راتبك.'; break
       case 'attendance': answer = empId ? assistantAnswerAttendance(empId) : 'هذا السؤال يخص بيانات موظف — سجّل دخولك بحساب موظف لعرض حضورك.'; break
       case 'policies': answer = assistantAnswerPolicies(text); break
+      case 'announcements': answer = assistantAnswerAnnouncements(empId); break
       default: answer = `يمكنني الإجابة عن استفساراتك حول رصيد إجازتك، راتبك، حضورك، أو سياسات الشركة. جرّب أحد هذه الأسئلة:\n${ASSISTANT_SUGGESTIONS.join('\n')}`
     }
     assistantLogs.unshift({ id: assistantLogSeq++, employee_id: empId || null, message: text, intent, created_at: nowIso(), full_name: empName(empId) })
