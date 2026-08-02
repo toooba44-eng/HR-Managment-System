@@ -3239,7 +3239,23 @@ export const mockPromotionsApi = {
     promotions.unshift(p)
     return { message: 'تم', promotion: { id: p.id } }
   },
-  async setStatus(id, status) { await delay(); const p = promotions.find((x) => x.id === Number(id)); if (!p) throw notFound(); p.status = status; p.reviewed_by = currentUser()?.employee_id || 5; return { message: 'تم' } },
+  async setStatus(id, status) {
+    await delay()
+    const p = promotions.find((x) => x.id === Number(id))
+    if (!p) throw notFound()
+    p.status = status
+    p.reviewed_by = currentUser()?.employee_id || 5
+    // Approving actually applies the change to the employee record — the
+    // new title/department were captured specifically for this.
+    if (status === 'موافق عليه') {
+      const emp = employees.find((e) => e.id === p.employee_id)
+      if (emp) {
+        if (p.new_title) emp.job_title = p.new_title
+        if (p.new_department_id) emp.department_id = p.new_department_id
+      }
+    }
+    return { message: 'تم' }
+  },
   async remove(id) { await delay(); const i = promotions.findIndex((x) => x.id === Number(id)); if (i > -1) promotions.splice(i, 1); return { message: 'تم الحذف' } },
 }
 
