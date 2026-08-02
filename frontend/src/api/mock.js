@@ -1803,6 +1803,41 @@ export const mockCompensationApi = {
 }
 
 const riskOrder = { مرتفع: 1, متوسط: 2, منخفض: 3 }
+const TALENT_BOXES = {
+  '1-3': 'لغز (Enigma)', '2-3': 'صاعد (Growth)', '3-3': 'نجم (Star)',
+  '1-2': 'أداء غير متسق', '2-2': 'أساسي (Core)', '3-2': 'أداء عالٍ',
+  '1-1': 'مخاطرة (Risk)', '2-1': 'فعّال (Effective)', '3-1': 'خبير موثوق',
+}
+const talentReviews = {
+  2: { performance: 3, potential: 3, notes: 'أداء وإمكانات عالية — مرشّح للقيادة' },
+  6: { performance: 2, potential: 3, notes: 'إمكانات عالية بحاجة لتطوير الأداء' },
+  3: { performance: 3, potential: 2, notes: 'أداء عالٍ ومستقر' },
+  5: { performance: 3, potential: 3, notes: 'نجمة في الموارد البشرية' },
+  10: { performance: 2, potential: 2, notes: 'أداء أساسي جيد' },
+  4: { performance: 3, potential: 1, notes: 'خبير موثوق في مجاله' },
+}
+export const mockTalentGridApi = {
+  async get() {
+    await delay()
+    const rows = employees.filter((e) => e.status === 'نشط').map((e) => ({
+      id: e.id, full_name: e.full_name, job_title: e.job_title, profile_picture: null, department_name: deptName(e.department_id),
+      performance: talentReviews[e.id]?.performance || null, potential: talentReviews[e.id]?.potential || null, notes: talentReviews[e.id]?.notes || null,
+    }))
+    const reviewed = rows.filter((r) => r.performance && r.potential)
+    return {
+      employees: rows, boxes: TALENT_BOXES,
+      summary: { total: rows.length, reviewed: reviewed.length, unreviewed: rows.length - reviewed.length, stars: reviewed.filter((r) => r.performance === 3 && r.potential === 3).length, risks: reviewed.filter((r) => r.performance === 1 && r.potential === 1).length },
+    }
+  },
+  async set(employeeId, data) {
+    await delay()
+    if (![1, 2, 3].includes(data.performance) || ![1, 2, 3].includes(data.potential)) throw badReq('التقييم يجب أن يكون 1-3')
+    talentReviews[Number(employeeId)] = { performance: data.performance, potential: data.potential, notes: data.notes || null }
+    return { message: 'تم' }
+  },
+  async clear(employeeId) { await delay(); delete talentReviews[Number(employeeId)]; return { message: 'تم' } },
+}
+
 export const mockSuccessionApi = {
   async list({ status } = {}) {
     await delay()

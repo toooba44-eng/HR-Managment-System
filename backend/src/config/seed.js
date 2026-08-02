@@ -411,6 +411,18 @@ function seedData() {
     console.log('✅ Succession seeded');
   }
 
+  // Talent 9-box reviews
+  if (isEmpty('talent_reviews')) {
+    const ins = db.prepare(`INSERT INTO talent_reviews (employee_id, performance, potential, notes, created_by) VALUES (?, ?, ?, ?, ?)`);
+    ins.run(2, 3, 3, 'أداء وإمكانات عالية — مرشّح للقيادة', 5);
+    ins.run(6, 2, 3, 'إمكانات عالية بحاجة لتطوير الأداء', 5);
+    ins.run(3, 3, 2, 'أداء عالٍ ومستقر', 5);
+    ins.run(5, 3, 3, 'نجمة في الموارد البشرية', 5);
+    ins.run(10, 2, 2, 'أداء أساسي جيد', 5);
+    ins.run(4, 3, 1, 'خبير موثوق في مجاله', 5);
+    console.log('✅ Talent reviews seeded');
+  }
+
   // Organization profile + branches
   if (isEmpty('org_profile')) {
     db.prepare(`INSERT INTO org_profile (id, name, legal_name, cr_number, tax_number, industry, size, founded_year, about, phone, email, website, address, city, country)
