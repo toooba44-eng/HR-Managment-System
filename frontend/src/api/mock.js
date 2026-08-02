@@ -1774,11 +1774,13 @@ export const mockGoalsApi = {
     const list = [...rows]
       .sort((a, b) => (so[a.status] - so[b.status]) || b.id - a.id)
       .map((g) => ({ ...g, full_name: empName(g.employee_id), job_title: employees.find((e) => e.id === g.employee_id)?.job_title, department_id: employees.find((e) => e.id === g.employee_id)?.department_id, profile_picture: null, created_by_name: empName(g.created_by) }))
+    // Weighted by each goal's importance, not a flat average — matches the backend.
+    const totalWeight = list.reduce((s, g) => s + (g.weight || 100), 0)
     const summary = {
       total: list.length,
       completed: list.filter((g) => g.status === 'مكتملة').length,
       inProgress: list.filter((g) => g.status === 'قيد التنفيذ').length,
-      avgProgress: list.length ? Math.round(list.reduce((s, g) => s + (g.progress || 0), 0) / list.length) : 0,
+      avgProgress: totalWeight ? Math.round(list.reduce((s, g) => s + (g.progress || 0) * (g.weight || 100), 0) / totalWeight) : 0,
     }
     return { goals: list, summary }
   },
