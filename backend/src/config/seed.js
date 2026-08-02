@@ -206,6 +206,22 @@ function seedData() {
     console.log('✅ Requests seeded');
   }
 
+  // HR Help Desk tickets + reply threads
+  if (isEmpty('helpdesk_tickets')) {
+    const insertTicket = db.prepare(`INSERT INTO helpdesk_tickets (employee_id, category, subject, description, priority, status, assigned_to, resolved_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+    const t1 = insertTicket.run(6, 'رواتب ومزايا', 'خصم غير مفهوم في راتب الشهر الماضي', 'لاحظت خصماً 200 ريال إضافياً عن المعتاد ولا أعرف سببه.', 'عالية', 'قيد المعالجة', 5, null).lastInsertRowid;
+    const t2 = insertTicket.run(10, 'مشكلة تقنية', 'لا أستطيع الدخول لبوابة تسجيل الحضور', 'تظهر رسالة خطأ عند محاولة تسجيل الدخول صباحاً.', 'عاجلة', 'مفتوحة', null, null).lastInsertRowid;
+    const t3 = insertTicket.run(4, 'إجازات وحضور', 'استفسار عن رصيد الإجازة الطارئة', 'كم يوم إجازة طارئة متبقٍ لي هذا العام؟', 'منخفضة', 'مغلقة', 5, addDaysStr(-3)).lastInsertRowid;
+    console.log('✅ Help desk tickets seeded');
+
+    if (isEmpty('helpdesk_replies')) {
+      const insertReply = db.prepare(`INSERT INTO helpdesk_replies (ticket_id, author_id, body) VALUES (?, ?, ?)`);
+      insertReply.run(t1, 5, 'شكراً لتواصلك، جاري مراجعة كشف الرواتب والرجوع إليك خلال يوم عمل.');
+      insertReply.run(t3, 5, 'رصيدك الحالي 5 أيام إجازة طارئة، لم يُستخدم منها أي رصيد هذا العام.');
+      console.log('✅ Help desk replies seeded');
+    }
+  }
+
   // Policies
   if (isEmpty('policies')) {
     const insertPolicy = db.prepare(`INSERT INTO policies (title, category, body, created_by) VALUES (?, ?, ?, ?)`);

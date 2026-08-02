@@ -108,6 +108,21 @@ export function formatTime(datetime) {
   }
 }
 
+export function formatDateTime(datetime) {
+  if (!datetime) return '—'
+  try {
+    return new Intl.DateTimeFormat('ar-SA', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date(datetime))
+  } catch {
+    return datetime
+  }
+}
+
 export function formatCurrency(amount) {
   if (amount == null) return '—'
   return new Intl.NumberFormat('ar-SA', {
