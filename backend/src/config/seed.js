@@ -794,11 +794,14 @@ function seedData() {
 
   // Document e-signature requests
   if (isEmpty('signatures')) {
-    const ins = db.prepare(`INSERT INTO signatures (employee_id, title, doc_type, status, requested_by, signed_at) VALUES (?, ?, ?, ?, ?, ?)`);
-    ins.run(6, 'عقد العمل المحدّث 2026', 'عقد', 'بانتظار التوقيع', 5, null);
-    ins.run(6, 'سياسة استخدام الأجهزة', 'سياسة', 'موقّع', 5, addDaysStr(-3));
-    ins.run(10, 'إقرار السرية وحماية البيانات', 'إقرار', 'بانتظار التوقيع', 5, null);
-    ins.run(4, 'ملحق تعديل الراتب', 'ملحق', 'موقّع', 5, addDaysStr(-10));
+    const ins = db.prepare(`INSERT INTO signatures (employee_id, title, doc_type, status, requested_by, signed_at, employee_signed_at, countersigner_id, countersigner_status, countersigned_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    ins.run(6, 'عقد العمل المحدّث 2026', 'عقد', 'بانتظار التوقيع', 5, null, null, null, 'غير مطلوب', null);
+    ins.run(6, 'سياسة استخدام الأجهزة', 'سياسة', 'موقّع', 5, addDaysStr(-3), addDaysStr(-3), null, 'غير مطلوب', null);
+    ins.run(10, 'إقرار السرية وحماية البيانات', 'إقرار', 'بانتظار التوقيع', 5, null, null, null, 'غير مطلوب', null);
+    // Two-party envelopes: employee + manager countersigner
+    ins.run(4, 'ملحق تعديل الراتب', 'ملحق', 'موقّع', 5, addDaysStr(-10), addDaysStr(-11), 5, 'موقّع', addDaysStr(-10));
+    ins.run(10, 'خطاب ترقية', 'خطاب', 'بانتظار التوقيع', 5, null, addDaysStr(-1), 2, 'بانتظار التوقيع', null);
+    ins.run(6, 'عقد سرية بيانات العملاء', 'إقرار', 'بانتظار التوقيع', 5, null, null, 2, 'بانتظار الموظف', null);
     console.log('✅ Signatures seeded');
   }
 

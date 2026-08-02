@@ -2781,41 +2781,85 @@ export const mockSurveysApi = {
 
 let sigSeq = 1
 const signatures = [
-  { id: sigSeq++, employee_id: 6, title: 'عقد العمل المحدّث 2026', doc_type: 'عقد', status: 'بانتظار التوقيع', requested_by: 5, signed_at: null, created_at: nowIso() },
-  { id: sigSeq++, employee_id: 6, title: 'سياسة استخدام الأجهزة', doc_type: 'سياسة', status: 'موقّع', requested_by: 5, signed_at: addDays(-3), created_at: nowIso() },
-  { id: sigSeq++, employee_id: 10, title: 'إقرار السرية وحماية البيانات', doc_type: 'إقرار', status: 'بانتظار التوقيع', requested_by: 5, signed_at: null, created_at: nowIso() },
-  { id: sigSeq++, employee_id: 4, title: 'ملحق تعديل الراتب', doc_type: 'ملحق', status: 'موقّع', requested_by: 5, signed_at: addDays(-10), created_at: nowIso() },
+  { id: sigSeq++, employee_id: 6, title: 'عقد العمل المحدّث 2026', doc_type: 'عقد', status: 'بانتظار التوقيع', requested_by: 5, signed_at: null, employee_signed_at: null, countersigner_id: null, countersigner_status: 'غير مطلوب', countersigned_at: null, created_at: nowIso() },
+  { id: sigSeq++, employee_id: 6, title: 'سياسة استخدام الأجهزة', doc_type: 'سياسة', status: 'موقّع', requested_by: 5, signed_at: addDays(-3), employee_signed_at: addDays(-3), countersigner_id: null, countersigner_status: 'غير مطلوب', countersigned_at: null, created_at: nowIso() },
+  { id: sigSeq++, employee_id: 10, title: 'إقرار السرية وحماية البيانات', doc_type: 'إقرار', status: 'بانتظار التوقيع', requested_by: 5, signed_at: null, employee_signed_at: null, countersigner_id: null, countersigner_status: 'غير مطلوب', countersigned_at: null, created_at: nowIso() },
+  { id: sigSeq++, employee_id: 4, title: 'ملحق تعديل الراتب', doc_type: 'ملحق', status: 'موقّع', requested_by: 5, signed_at: addDays(-10), employee_signed_at: addDays(-11), countersigner_id: 5, countersigner_status: 'موقّع', countersigned_at: addDays(-10), created_at: nowIso() },
+  { id: sigSeq++, employee_id: 10, title: 'خطاب ترقية', doc_type: 'خطاب', status: 'بانتظار التوقيع', requested_by: 5, signed_at: null, employee_signed_at: addDays(-1), countersigner_id: 2, countersigner_status: 'بانتظار التوقيع', countersigned_at: null, created_at: nowIso() },
+  { id: sigSeq++, employee_id: 6, title: 'عقد سرية بيانات العملاء', doc_type: 'إقرار', status: 'بانتظار التوقيع', requested_by: 5, signed_at: null, employee_signed_at: null, countersigner_id: 2, countersigner_status: 'بانتظار الموظف', countersigned_at: null, created_at: nowIso() },
 ]
 const sigStatusOrder = { 'بانتظار التوقيع': 1, 'موقّع': 2, مرفوض: 3 }
 
 export const mockSignaturesApi = {
   async list({ status } = {}) {
     await delay()
-    let rows = scopeByRole(signatures)
+    const u = currentUser()
+    let rows = signatures
+    if (u && ['employee', 'candidate'].includes(u.role)) {
+      rows = rows.filter((s) => s.employee_id === u.employee_id || s.countersigner_id === u.employee_id)
+    } else if (u && u.role === 'department_head') {
+      const dep = employees.find((e) => e.id === u.employee_id)?.department_id
+      rows = rows.filter((s) => employees.find((e) => e.id === s.employee_id)?.department_id === dep)
+    }
     if (status) rows = rows.filter((s) => s.status === status)
-    const list = rows.sort((a, b) => (sigStatusOrder[a.status] - sigStatusOrder[b.status]) || (b.id - a.id))
-      .map((s) => ({ ...s, full_name: empName(s.employee_id), job_title: employees.find((e) => e.id === s.employee_id)?.job_title || null, requested_by_name: empName(s.requested_by), profile_picture: null }))
+    const list = [...rows].sort((a, b) => (sigStatusOrder[a.status] - sigStatusOrder[b.status]) || (b.id - a.id))
+      .map((s) => ({ ...s, full_name: empName(s.employee_id), job_title: employees.find((e) => e.id === s.employee_id)?.job_title || null, requested_by_name: empName(s.requested_by), countersigner_name: empName(s.countersigner_id), profile_picture: null }))
     const summary = list.reduce((acc, r) => { acc.total += 1; if (r.status === 'بانتظار التوقيع') acc.pending += 1; if (r.status === 'موقّع') acc.signed += 1; return acc }, { total: 0, pending: 0, signed: 0 })
     return { signatures: list, summary }
   },
   async create(data) {
     await delay()
-    const s = { id: sigSeq++, employee_id: Number(data.employee_id), title: data.title, doc_type: data.doc_type || 'عقد', status: 'بانتظار التوقيع', requested_by: currentUser()?.employee_id || 5, signed_at: null, created_at: nowIso() }
+    if (data.countersigner_id && Number(data.countersigner_id) === Number(data.employee_id)) throw badReq('يجب أن يكون الموقّع المساعد مختلفاً عن الموظف')
+    const s = {
+      id: sigSeq++, employee_id: Number(data.employee_id), title: data.title, doc_type: data.doc_type || 'عقد', status: 'بانتظار التوقيع',
+      requested_by: currentUser()?.employee_id || 5, signed_at: null, employee_signed_at: null,
+      countersigner_id: data.countersigner_id ? Number(data.countersigner_id) : null,
+      countersigner_status: data.countersigner_id ? 'بانتظار الموظف' : 'غير مطلوب', countersigned_at: null, created_at: nowIso(),
+    }
     signatures.unshift(s)
     return { message: 'تم', signature: { id: s.id } }
   },
-  async sign(id) { return this._set(id, 'موقّع') },
-  async decline(id) { return this._set(id, 'مرفوض') },
-  async _set(id, status) {
+  async sign(id) {
     await delay()
     const s = signatures.find((x) => x.id === Number(id))
     if (!s) throw notFound()
     const u = currentUser()
     if (s.employee_id !== u?.employee_id) { const e = new Error('forbidden'); e.response = { status: 403, data: { error: 'غير مصرح' } }; throw e }
-    if (s.status !== 'بانتظار التوقيع') throw badReq('تمت المعالجة مسبقاً')
-    s.status = status
-    s.signed_at = status === 'موقّع' ? nowIso() : null
+    if (s.status !== 'بانتظار التوقيع' || s.employee_signed_at) throw badReq('تمت المعالجة مسبقاً')
+    s.employee_signed_at = nowIso()
+    if (s.countersigner_id) { s.countersigner_status = 'بانتظار التوقيع' } else { s.status = 'موقّع'; s.signed_at = nowIso() }
     return { message: 'تم' }
+  },
+  async countersign(id) {
+    await delay()
+    const s = signatures.find((x) => x.id === Number(id))
+    if (!s) throw notFound()
+    const u = currentUser()
+    if (s.countersigner_id !== u?.employee_id) { const e = new Error('forbidden'); e.response = { status: 403, data: { error: 'غير مصرح' } }; throw e }
+    if (s.countersigner_status !== 'بانتظار التوقيع') throw badReq(s.countersigner_status === 'بانتظار الموظف' ? 'بانتظار توقيع الموظف أولاً' : 'تمت المعالجة مسبقاً')
+    s.countersigner_status = 'موقّع'
+    s.countersigned_at = nowIso()
+    s.status = 'موقّع'
+    s.signed_at = nowIso()
+    return { message: 'تم' }
+  },
+  async decline(id) {
+    await delay()
+    const s = signatures.find((x) => x.id === Number(id))
+    if (!s) throw notFound()
+    const u = currentUser()
+    if (s.employee_id === u?.employee_id && s.status === 'بانتظار التوقيع' && !s.employee_signed_at) {
+      s.status = 'مرفوض'
+      return { message: 'تم' }
+    }
+    if (s.countersigner_id === u?.employee_id && s.countersigner_status === 'بانتظار التوقيع') {
+      s.status = 'مرفوض'; s.countersigner_status = 'مرفوض'
+      return { message: 'تم' }
+    }
+    if (s.employee_id !== u?.employee_id && s.countersigner_id !== u?.employee_id) {
+      const e = new Error('forbidden'); e.response = { status: 403, data: { error: 'غير مصرح' } }; throw e
+    }
+    throw badReq('تمت المعالجة مسبقاً')
   },
   async remove(id) {
     await delay()

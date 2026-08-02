@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { FileSignature, Plus, Trash2, PenLine, X, FileCheck2, Clock, Files } from 'lucide-react'
+import { FileSignature, Plus, Trash2, PenLine, X, FileCheck2, Clock, Files, Users } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { signaturesApi, employeesApi } from '../../api/endpoints'
 import { useAuthStore } from '../../store/authStore'
@@ -19,23 +19,31 @@ const DOC_TYPES = ['عقد', 'ملحق', 'سياسة', 'إقرار', 'خطاب',
 function RequestModal({ onClose }) {
   const qc = useQueryClient()
   const { data: emps } = useQuery('employees-all', () => employeesApi.list({ limit: 100 }))
-  const [form, setForm] = useState({ employee_id: '', title: '', doc_type: 'عقد' })
-  const m = useMutation((d) => signaturesApi.create(d), {
+  const [form, setForm] = useState({ employee_id: '', title: '', doc_type: 'عقد', countersigner_id: '' })
+  const m = useMutation((d) => signaturesApi.create({ ...d, countersigner_id: d.countersigner_id || null }), {
     onSuccess: () => { toast.success('تم إرسال طلب التوقيع'); qc.invalidateQueries('signatures'); onClose() },
     onError: (e) => toast.error(e.response?.data?.error || 'فشلت العملية'),
   })
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
+  const empOptions = emps?.employees || []
   return (
     <Modal open onClose={onClose} title="طلب توقيع مستند">
       <form onSubmit={(e) => { e.preventDefault(); m.mutate(form) }} className="space-y-4">
-        <Field label="الموظف" required>
+        <Field label="الموظف (الموقّع الأول)" required>
           <Select value={form.employee_id} onChange={set('employee_id')} required>
             <option value="">اختر</option>
-            {(emps?.employees || []).map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}
+            {empOptions.map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}
           </Select>
         </Field>
         <Field label="عنوان المستند" required><Input value={form.title} onChange={set('title')} required /></Field>
         <Field label="النوع"><Select value={form.doc_type} onChange={set('doc_type')}>{DOC_TYPES.map((t) => <option key={t}>{t}</option>)}</Select></Field>
+        <Field label="موقّع مساعد (اختياري)">
+          <Select value={form.countersigner_id} onChange={set('countersigner_id')}>
+            <option value="">— بدون —</option>
+            {empOptions.filter((e) => String(e.id) !== String(form.employee_id)).map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}
+          </Select>
+        </Field>
+        {form.countersigner_id && <p className="text-xs text-slate-400">سيوقّع الموقّع المساعد بعد توقيع الموظف الأول.</p>}
         <div className="flex justify-end gap-3 pt-2">
           <Button type="button" variant="secondary" onClick={onClose}>إلغاء</Button>
           <Button type="submit" loading={m.isLoading}>إرسال</Button>
@@ -51,8 +59,9 @@ export default function Signatures() {
   const canManage = MANAGE.includes(user?.role)
   const [showRequest, setShowRequest] = useState(false)
   const { data, isLoading } = useQuery('signatures', () => signaturesApi.list())
-  const sign = useMutation((id) => signaturesApi.sign(id), { onSuccess: () => { toast.success('تم التوقيع'); qc.invalidateQueries('signatures') }, onError: () => toast.error('فشل') })
-  const decline = useMutation((id) => signaturesApi.decline(id), { onSuccess: () => { toast.success('تم الرفض'); qc.invalidateQueries('signatures') }, onError: () => toast.error('فشل') })
+  const sign = useMutation((id) => signaturesApi.sign(id), { onSuccess: () => { toast.success('تم التوقيع'); qc.invalidateQueries('signatures') }, onError: (e) => toast.error(e.response?.data?.error || 'فشل') })
+  const countersign = useMutation((id) => signaturesApi.countersign(id), { onSuccess: () => { toast.success('تم التوقيع المساعد'); qc.invalidateQueries('signatures') }, onError: (e) => toast.error(e.response?.data?.error || 'فشل') })
+  const decline = useMutation((id) => signaturesApi.decline(id), { onSuccess: () => { toast.success('تم الرفض'); qc.invalidateQueries('signatures') }, onError: (e) => toast.error(e.response?.data?.error || 'فشل') })
   const del = useMutation((id) => signaturesApi.remove(id), { onSuccess: () => { toast.success('تم الحذف'); qc.invalidateQueries('signatures') }, onError: () => toast.error('فشل') })
 
   if (isLoading) return <Spinner fullscreen />
@@ -79,36 +88,56 @@ export default function Signatures() {
                 {canManage && <th className="pb-3 font-medium">الموظف</th>}
                 <th className="pb-3 font-medium">المستند</th>
                 <th className="pb-3 font-medium">النوع</th>
-                <th className="pb-3 font-medium">تاريخ التوقيع</th>
+                <th className="pb-3 font-medium">الموقّع المساعد</th>
+                <th className="pb-3 font-medium">تاريخ الإتمام</th>
                 <th className="pb-3 font-medium">الحالة</th>
                 <th className="pb-3 font-medium"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {items.map((sg) => (
-                <tr key={sg.id}>
-                  {canManage && (
-                    <td className="py-3"><div className="flex items-center gap-2"><Avatar name={sg.full_name} size="sm" /><span className="text-slate-700">{sg.full_name}</span></div></td>
-                  )}
-                  <td className="py-3">
-                    <div className="flex items-center gap-2 text-slate-700"><FileSignature className="w-4 h-4 text-slate-300" /> {sg.title}</div>
-                  </td>
-                  <td className="py-3 text-slate-500">{sg.doc_type}</td>
-                  <td className="py-3 text-slate-500">{sg.signed_at ? formatDate(sg.signed_at) : '—'}</td>
-                  <td className="py-3"><Badge status={sg.status} /></td>
-                  <td className="py-3">
-                    <div className="flex gap-1 justify-end">
-                      {sg.employee_id === user?.employee_id && sg.status === 'بانتظار التوقيع' && (
-                        <>
-                          <button onClick={() => sign.mutate(sg.id)} className="text-xs px-2 py-1 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center gap-1"><PenLine className="w-3.5 h-3.5" /> توقيع</button>
-                          <button onClick={() => decline.mutate(sg.id)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-rose-500"><X className="w-4 h-4" /></button>
-                        </>
-                      )}
-                      {canManage && <button onClick={() => window.confirm('حذف الطلب؟') && del.mutate(sg.id)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-300 hover:text-rose-500"><Trash2 className="w-4 h-4" /></button>}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {items.map((sg) => {
+                const myTurnToSign = sg.employee_id === user?.employee_id && sg.status === 'بانتظار التوقيع' && !sg.employee_signed_at
+                const myTurnToCountersign = sg.countersigner_id === user?.employee_id && sg.countersigner_status === 'بانتظار التوقيع'
+                return (
+                  <tr key={sg.id}>
+                    {canManage && (
+                      <td className="py-3"><div className="flex items-center gap-2"><Avatar name={sg.full_name} size="sm" /><span className="text-slate-700">{sg.full_name}</span></div></td>
+                    )}
+                    <td className="py-3">
+                      <div className="flex items-center gap-2 text-slate-700"><FileSignature className="w-4 h-4 text-slate-300" /> {sg.title}</div>
+                    </td>
+                    <td className="py-3 text-slate-500">{sg.doc_type}</td>
+                    <td className="py-3 text-slate-500">
+                      {sg.countersigner_name ? (
+                        <span className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-slate-300" /> {sg.countersigner_name}
+                          {sg.countersigner_status === 'موقّع' && <span className="badge bg-emerald-50 text-emerald-600 text-[10px]">وقّع</span>}
+                          {sg.countersigner_status === 'بانتظار التوقيع' && <span className="badge bg-amber-50 text-amber-600 text-[10px]">دوره الآن</span>}
+                          {sg.countersigner_status === 'بانتظار الموظف' && <span className="badge bg-slate-100 text-slate-400 text-[10px]">بانتظار الموظف</span>}
+                        </span>
+                      ) : '—'}
+                    </td>
+                    <td className="py-3 text-slate-500">{sg.signed_at ? formatDate(sg.signed_at) : '—'}</td>
+                    <td className="py-3"><Badge status={sg.status} /></td>
+                    <td className="py-3">
+                      <div className="flex gap-1 justify-end">
+                        {myTurnToSign && (
+                          <>
+                            <button onClick={() => sign.mutate(sg.id)} className="text-xs px-2 py-1 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center gap-1"><PenLine className="w-3.5 h-3.5" /> توقيع</button>
+                            <button onClick={() => decline.mutate(sg.id)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-rose-500"><X className="w-4 h-4" /></button>
+                          </>
+                        )}
+                        {myTurnToCountersign && (
+                          <>
+                            <button onClick={() => countersign.mutate(sg.id)} className="text-xs px-2 py-1 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center gap-1"><PenLine className="w-3.5 h-3.5" /> توقيع مساعد</button>
+                            <button onClick={() => decline.mutate(sg.id)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-rose-500"><X className="w-4 h-4" /></button>
+                          </>
+                        )}
+                        {canManage && <button onClick={() => window.confirm('حذف الطلب؟') && del.mutate(sg.id)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-300 hover:text-rose-500"><Trash2 className="w-4 h-4" /></button>}
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

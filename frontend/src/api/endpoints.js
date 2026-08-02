@@ -379,6 +379,7 @@ const realSignaturesApi = {
   list: (params) => api.get('/signatures', { params }).then((r) => r.data),
   create: (data) => api.post('/signatures', data).then((r) => r.data),
   sign: (id) => api.put(`/signatures/${id}/sign`).then((r) => r.data),
+  countersign: (id) => api.put(`/signatures/${id}/countersign`).then((r) => r.data),
   decline: (id) => api.put(`/signatures/${id}/decline`).then((r) => r.data),
   remove: (id) => api.delete(`/signatures/${id}`).then((r) => r.data),
 }
