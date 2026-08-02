@@ -161,9 +161,22 @@ const migrations = [
     body TEXT NOT NULL,
     audience TEXT DEFAULT 'الجميع',
     is_pinned INTEGER DEFAULT 0,
+    requires_acknowledgment INTEGER DEFAULT 0,
     created_by INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
+  // Per-employee read/acknowledgment receipts for an announcement — lets HR
+  // confirm a mandatory policy notice actually reached everyone.
+  `CREATE TABLE IF NOT EXISTS announcement_reads (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    announcement_id INTEGER NOT NULL,
+    employee_id INTEGER NOT NULL,
+    read_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(announcement_id, employee_id),
+    FOREIGN KEY (announcement_id) REFERENCES announcements(id) ON DELETE CASCADE,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
   )`,
 
   // Employee self-service requests table
@@ -1161,6 +1174,7 @@ function runMigrations() {
     `ALTER TABLE grievances ADD COLUMN assigned_to INTEGER REFERENCES employees(id)`,
     `ALTER TABLE surveys ADD COLUMN anonymous INTEGER DEFAULT 0`,
     `ALTER TABLE timesheets ADD COLUMN billable INTEGER DEFAULT 1`,
+    `ALTER TABLE announcements ADD COLUMN requires_acknowledgment INTEGER DEFAULT 0`,
   ];
   for (const stmt of columnAdditions) {
     try {

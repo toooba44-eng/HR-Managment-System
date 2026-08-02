@@ -183,14 +183,18 @@ function seedData() {
 
   // Announcements
   if (isEmpty('announcements')) {
-    const insertAnn = db.prepare(`INSERT INTO announcements (title, body, audience, is_pinned, created_by) VALUES (?, ?, ?, ?, ?)`);
-    const announcements = [
-      ['تحديث سياسة العمل عن بُعد', 'يسمح النظام الجديد بيومين عمل عن بُعد أسبوعياً بعد موافقة المدير المباشر. يُرجى تقديم الطلبات عبر بوابة الموظف.', 'الجميع', 1, 5],
-      ['موعد صرف رواتب الشهر', 'سيتم صرف رواتب هذا الشهر يوم 27 كالمعتاد. لأي استفسار يُرجى التواصل مع الموارد البشرية.', 'الجميع', 0, 5],
-      ['برنامج تدريبي جديد', 'انطلق التسجيل في برنامج تطوير المهارات القيادية. الأماكن محدودة — سارع بالتسجيل عبر بوابة الموظف.', 'الجميع', 0, 5],
-    ];
-    announcements.forEach(a => insertAnn.run(a));
+    const insertAnn = db.prepare(`INSERT INTO announcements (title, body, audience, is_pinned, requires_acknowledgment, created_by) VALUES (?, ?, ?, ?, ?, ?)`);
+    const policyId = insertAnn.run('تحديث سياسة العمل عن بُعد', 'يسمح النظام الجديد بيومين عمل عن بُعد أسبوعياً بعد موافقة المدير المباشر. يُرجى تقديم الطلبات عبر بوابة الموظف.', 'الجميع', 1, 1, 5).lastInsertRowid;
+    insertAnn.run('موعد صرف رواتب الشهر', 'سيتم صرف رواتب هذا الشهر يوم 27 كالمعتاد. لأي استفسار يُرجى التواصل مع الموارد البشرية.', 'الجميع', 0, 0, 5);
+    insertAnn.run('برنامج تدريبي جديد', 'انطلق التسجيل في برنامج تطوير المهارات القيادية. الأماكن محدودة — سارع بالتسجيل عبر بوابة الموظف.', 'الجميع', 0, 0, 5);
     console.log('✅ Announcements seeded');
+
+    if (isEmpty('announcement_reads')) {
+      const insertRead = db.prepare(`INSERT INTO announcement_reads (announcement_id, employee_id, read_at) VALUES (?, ?, ?)`);
+      insertRead.run(policyId, 6, addDaysStr(-1));
+      insertRead.run(policyId, 2, addDaysStr(-1));
+      console.log('✅ Announcement reads seeded');
+    }
   }
 
   // Requests

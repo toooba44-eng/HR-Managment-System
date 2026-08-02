@@ -73,6 +73,8 @@ const realLeavesApi = {
 const realAnnouncementsApi = {
   list: () => api.get('/announcements').then((r) => r.data),
   create: (data) => api.post('/announcements', data).then((r) => r.data),
+  markRead: (id) => api.post(`/announcements/${id}/read`).then((r) => r.data),
+  reads: (id) => api.get(`/announcements/${id}/reads`).then((r) => r.data),
   remove: (id) => api.delete(`/announcements/${id}`).then((r) => r.data),
 }
 
