@@ -16,6 +16,7 @@ const SUGGESTIONS = [
   'كم راتبي الصافي هذا الشهر؟',
   'هل سجّلت حضوري اليوم؟',
   'ما هي سياسة الإجازات؟',
+  'هل هناك إعلانات جديدة؟',
 ];
 
 function aiGate() {
@@ -33,15 +34,40 @@ function answerLeaveBalance(empId) {
   return `رصيدك الحالي: ${e.annual_leave_balance ?? 0} يوم إجازة سنوية، ${e.sick_leave_balance ?? 0} يوم مرضية، ${e.emergency_leave_balance ?? 0} يوم طارئة.`;
 }
 
+// Reads the same source of truth as the Payslips page: the latest payroll
+// run line item that has at least been approved (never a draft or a run
+// still under review), so the assistant never quotes a number that
+// disagrees with the employee's actual payslip.
 function answerPayslip(empId) {
-  const e = db.prepare('SELECT salary, allowances FROM employees WHERE id = ?').get(empId);
-  if (!e) return 'لم أجد بياناتك الوظيفية. تواصل مع الموارد البشرية.';
-  const basic = e.salary || 0;
-  const allowances = e.allowances || 0;
-  const gosi = Math.round(basic * 0.1);
-  const net = basic + allowances - gosi;
-  const now = new Date();
-  return `راتب ${AR_MONTHS[now.getMonth()]} ${now.getFullYear()} الصافي التقديري: ${net.toLocaleString('ar-SA')} ر.س (أساسي ${basic.toLocaleString('ar-SA')} + بدلات ${allowances.toLocaleString('ar-SA')} − تأمينات ${gosi.toLocaleString('ar-SA')}). للتفاصيل الكاملة راجع قسائم الراتب.`;
+  const row = db.prepare(`
+    SELECT i.*, r.month, r.year, r.status as run_status
+    FROM payroll_run_items i
+    JOIN payroll_runs r ON i.run_id = r.id
+    WHERE i.employee_id = ? AND r.status IN ('معتمد', 'مصروف')
+    ORDER BY r.year DESC, r.month DESC
+    LIMIT 1
+  `).get(empId);
+  if (!row) return 'لا توجد قسيمة راتب معتمدة بعد لعرضها. راجع قسم قسائم الرواتب لاحقاً.';
+  const label = row.run_status === 'مصروف' ? 'الصافي المصروف' : 'الصافي المعتمد (بانتظار الصرف)';
+  return `راتب ${AR_MONTHS[row.month - 1]} ${row.year} — ${label}: ${row.net.toLocaleString('ar-SA')} ر.س (أساسي ${row.basic.toLocaleString('ar-SA')} + بدلات ${row.allowances.toLocaleString('ar-SA')} − تأمينات ${row.deductions.toLocaleString('ar-SA')}). للتفاصيل الكاملة راجع قسائم الراتب.`;
+}
+
+// Highlights any recent announcement the employee hasn't acknowledged yet
+// when it requires acknowledgment — mirrors the read/reads tracking added
+// to the Announcements module.
+function answerAnnouncements(empId) {
+  const rows = db.prepare(`
+    SELECT a.id, a.title, a.requires_acknowledgment,
+           (SELECT COUNT(*) FROM announcement_reads r WHERE r.announcement_id = a.id AND r.employee_id = ?) as read_by_me
+    FROM announcements a
+    ORDER BY a.is_pinned DESC, a.created_at DESC
+    LIMIT 5
+  `).all(empId || 0);
+  if (!rows.length) return 'لا توجد إعلانات حالياً.';
+  const pendingAck = rows.filter((a) => a.requires_acknowledgment && !a.read_by_me);
+  const list = rows.map((a) => `- ${a.title}${a.requires_acknowledgment && !a.read_by_me ? ' (يتطلب إقرارك)' : ''}`).join('\n');
+  const note = pendingAck.length ? `\n\nلديك ${pendingAck.length} إعلان يتطلب إقرارك بالاطلاع — راجع قسم الإعلانات.` : '';
+  return `أحدث الإعلانات:\n${list}${note}`;
 }
 
 function answerAttendance(empId) {
@@ -77,6 +103,7 @@ function detectIntent(message) {
   if (/راتب|مرتب/.test(m)) return 'payslip';
   if (/رصيد|إجاز/.test(m)) return 'leave_balance';
   if (/حضور|دوام|بصمة|انصراف/.test(m)) return 'attendance';
+  if (/إعلان|تعميم/.test(m)) return 'announcements';
   return 'fallback';
 }
 
@@ -101,6 +128,9 @@ router.post('/ask', (req, res, next) => {
         break;
       case 'policies':
         answer = answerPolicies(message);
+        break;
+      case 'announcements':
+        answer = answerAnnouncements(empId);
         break;
       default:
         answer = `يمكنني الإجابة عن استفساراتك حول رصيد إجازتك، راتبك، حضورك، أو سياسات الشركة. جرّب أحد هذه الأسئلة:\n${SUGGESTIONS.join('\n')}`;
