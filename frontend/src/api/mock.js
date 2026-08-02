@@ -2435,6 +2435,15 @@ export const mockSkillsApi = {
       summary: { employees: rows.length, skills: skills.length, ratings: all.length, gaps: all.filter((l) => l <= 2).length, experts: all.filter((l) => l === 5).length },
     }
   },
+  async me() {
+    await delay()
+    const empId = currentUser()?.employee_id
+    const bag = (empId && employeeSkills[empId]) || {}
+    const skills = Object.entries(bag)
+      .map(([skill, level]) => ({ skill, level, label: SKILL_LEVELS[level] }))
+      .sort((a, b) => b.level - a.level || a.skill.localeCompare(b.skill, 'ar'))
+    return { skills, levels: SKILL_LEVELS, gaps: skills.filter((s) => s.level <= 2).length }
+  },
   async set(employeeId, data) {
     await delay()
     const name = (data.skill || '').trim()

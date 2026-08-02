@@ -300,6 +300,7 @@ const realTalentGridApi = {
 // ---------- Skills / competency matrix ----------
 const realSkillsApi = {
   matrix: () => api.get('/skills/matrix').then((r) => r.data),
+  me: () => api.get('/skills/me').then((r) => r.data),
   set: (employeeId, data) => api.put(`/skills/${employeeId}`, data).then((r) => r.data),
   remove: (employeeId, skill) => api.delete(`/skills/${employeeId}`, { params: { skill } }).then((r) => r.data),
 }

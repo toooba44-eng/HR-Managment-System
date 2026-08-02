@@ -4,12 +4,27 @@ const { authenticateToken, requireRole } = require('../middleware/auth');
 const router = express.Router();
 
 router.use(authenticateToken);
-router.use(requireRole('admin', 'hr_manager', 'super_admin', 'department_head'));
 
 // Proficiency scale (1-5) labels
 const LEVELS = {
   1: 'مبتدئ', 2: 'أساسي', 3: 'كفؤ', 4: 'متقدم', 5: 'خبير',
 };
+
+// Employee self-view: my own skill ratings — no manager role required,
+// registered before the requireRole gate below so it stays open to anyone.
+router.get('/me', (req, res, next) => {
+  try {
+    if (!req.user.employee_id) return res.status(400).json({ error: 'No employee associated with this account' });
+    const rows = db.prepare('SELECT skill, level, updated_at FROM employee_skills WHERE employee_id = ? ORDER BY level DESC, skill ASC').all(req.user.employee_id);
+    res.json({
+      skills: rows.map((r) => ({ ...r, label: LEVELS[r.level] })),
+      levels: LEVELS,
+      gaps: rows.filter((r) => r.level <= 2).length,
+    });
+  } catch (err) { next(err); }
+});
+
+router.use(requireRole('admin', 'hr_manager', 'super_admin', 'department_head'));
 
 // department_head is scoped to their own department; everyone else sees all
 function scope(req) {
