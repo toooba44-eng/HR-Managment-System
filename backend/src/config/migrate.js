@@ -259,6 +259,8 @@ const migrations = [
     description TEXT,
     status TEXT DEFAULT 'معلقة' CHECK(status IN ('معلقة', 'معتمدة', 'مرفوضة', 'مصروفة')),
     approved_by INTEGER,
+    settled_amount REAL,
+    settled_at DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
     FOREIGN KEY (approved_by) REFERENCES employees(id) ON DELETE SET NULL
@@ -898,6 +900,8 @@ function runMigrations() {
     `ALTER TABLE applications ADD COLUMN stage TEXT DEFAULT 'متقدم جديد'`,
     `ALTER TABLE applications ADD COLUMN source TEXT DEFAULT 'الموقع'`,
     `ALTER TABLE applications ADD COLUMN rating INTEGER`,
+    `ALTER TABLE expenses ADD COLUMN settled_amount REAL`,
+    `ALTER TABLE expenses ADD COLUMN settled_at DATETIME`,
   ];
   for (const stmt of columnAdditions) {
     try {

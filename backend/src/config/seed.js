@@ -289,12 +289,14 @@ function seedData() {
 
   // Expenses & advances
   if (isEmpty('expenses')) {
-    const insertExpense = db.prepare(`INSERT INTO expenses (employee_id, type, category, amount, description, status, approved_by) VALUES (?, ?, ?, ?, ?, ?, ?)`);
+    const insertExpense = db.prepare(`INSERT INTO expenses (employee_id, type, category, amount, description, status, approved_by, settled_amount, settled_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);
     const expenses = [
-      [6, 'مصروف', 'مواصلات', 350, 'أجرة مواصلات لزيارة عميل.', 'معلقة', null],
-      [6, 'سلفة', 'سلفة راتب', 3000, 'سلفة على راتب الشهر القادم.', 'معتمدة', 2],
-      [10, 'مصروف', 'قرطاسية', 180, 'شراء مستلزمات مكتبية.', 'مصروفة', 5],
-      [4, 'مصروف', 'ضيافة', 620, 'ضيافة اجتماع مبيعات.', 'معلقة', null],
+      [6, 'مصروف', 'مواصلات', 350, 'أجرة مواصلات لزيارة عميل.', 'معلقة', null, null, null],
+      [6, 'سلفة', 'سلفة راتب', 3000, 'سلفة على راتب الشهر القادم.', 'معتمدة', 2, null, null],
+      [10, 'مصروف', 'قرطاسية', 180, 'شراء مستلزمات مكتبية.', 'مصروفة', 5, null, null],
+      [4, 'مصروف', 'ضيافة', 620, 'ضيافة اجتماع مبيعات.', 'معلقة', null, null, null],
+      [3, 'سلفة', 'سفر', 5000, 'سلفة سفر لحضور مؤتمر في الرياض.', 'مصروفة', 2, null, null],
+      [5, 'سلفة', 'سفر', 4000, 'سلفة سفر — زيارة فرع جدة.', 'مصروفة', 2, 3450, addDaysStr(-2)],
     ];
     expenses.forEach(x => insertExpense.run(x));
     console.log('✅ Expenses seeded');

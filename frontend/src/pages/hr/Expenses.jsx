@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { Receipt, Plus, Check, X, Banknote, Wallet, Clock } from 'lucide-react'
+import { Receipt, Plus, Check, X, Banknote, Wallet, Clock, Scale, HandCoins } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { expensesApi } from '../../api/endpoints'
 import { useAuthStore } from '../../store/authStore'
@@ -50,11 +50,48 @@ function ExpenseForm({ open, onClose }) {
   )
 }
 
+function SettleModal({ advance, onClose }) {
+  const qc = useQueryClient()
+  const [spent, setSpent] = useState('')
+  const mutation = useMutation(() => expensesApi.settle(advance.id, Number(spent)), {
+    onSuccess: () => { toast.success('تمت تسوية السلفة'); qc.invalidateQueries('expenses'); onClose() },
+    onError: (err) => toast.error(err.response?.data?.error || 'فشل التسوية'),
+  })
+  const balance = spent === '' ? null : advance.amount - Number(spent)
+  return (
+    <Modal open onClose={onClose} title="تسوية سلفة">
+      <form onSubmit={(e) => { e.preventDefault(); mutation.mutate() }} className="space-y-4">
+        <div className="flex items-center justify-between rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
+          <span className="text-sm text-slate-500">مبلغ السلفة</span>
+          <span className="font-bold text-slate-800">{formatCurrency(advance.amount)}</span>
+        </div>
+        <Field label="المبلغ المصروف فعلياً (ر.س)" required>
+          <Input type="number" min="0" step="0.01" value={spent} onChange={(e) => setSpent(e.target.value)} required />
+        </Field>
+        {balance !== null && (
+          <div className={`rounded-xl px-4 py-3 text-sm border ${balance > 0 ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : balance < 0 ? 'bg-amber-50 border-amber-100 text-amber-700' : 'bg-slate-50 border-slate-100 text-slate-600'}`}>
+            {balance > 0
+              ? <>يُعيد الموظف للشركة <b>{formatCurrency(balance)}</b></>
+              : balance < 0
+                ? <>تصرف الشركة للموظف <b>{formatCurrency(Math.abs(balance))}</b> إضافية</>
+                : <>السلفة مطابقة تماماً — لا رصيد</>}
+          </div>
+        )}
+        <div className="flex justify-end gap-3 pt-2">
+          <Button type="button" variant="secondary" onClick={onClose}>إلغاء</Button>
+          <Button type="submit" loading={mutation.isLoading}>تأكيد التسوية</Button>
+        </div>
+      </form>
+    </Modal>
+  )
+}
+
 export default function Expenses() {
   const qc = useQueryClient()
   const { user } = useAuthStore()
   const canManage = MANAGE.includes(user?.role)
   const [showForm, setShowForm] = useState(false)
+  const [settling, setSettling] = useState(null)
 
   const { data, isLoading } = useQuery('expenses', () => expensesApi.list())
   const statusMutation = useMutation(({ id, status }) => expensesApi.setStatus(id, status), {
@@ -63,14 +100,15 @@ export default function Expenses() {
   })
 
   const items = data?.expenses || []
-  const s = data?.summary || { total: 0, pending: 0, approved: 0, count: 0 }
+  const s = data?.summary || { total: 0, pending: 0, approved: 0, count: 0, outstanding: 0 }
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard icon={Receipt} label="عدد المطالبات" value={s.count} tone="blue" />
         <StatCard icon={Clock} label="قيد الاعتماد" value={formatCurrency(s.pending)} tone="amber" />
         <StatCard icon={Check} label="معتمدة" value={formatCurrency(s.approved)} tone="green" />
+        <StatCard icon={HandCoins} label="سلف غير مُسوّاة" value={formatCurrency(s.outstanding)} tone="rose" />
         <StatCard icon={Banknote} label="الإجمالي" value={formatCurrency(s.total)} tone="violet" />
       </div>
 
@@ -99,6 +137,18 @@ export default function Expenses() {
                     {canManage && x.full_name ? `${x.full_name} · ` : ''}{formatDate(x.created_at)}
                   </p>
                   {x.description && <p className="text-sm text-slate-600 mt-1">{x.description}</p>}
+                  {x.type === 'سلفة' && x.settled_at && (
+                    <div className="flex items-center gap-2 mt-2 text-xs">
+                      <span className="badge bg-emerald-50 text-emerald-600 flex items-center gap-1"><Scale className="w-3 h-3" /> مُسوّاة</span>
+                      <span className="text-slate-500">صُرف فعلياً {formatCurrency(x.settled_amount)}</span>
+                      {(() => {
+                        const bal = x.amount - (x.settled_amount || 0)
+                        if (bal > 0) return <span className="text-emerald-600">· مُعاد {formatCurrency(bal)}</span>
+                        if (bal < 0) return <span className="text-amber-600">· صُرف إضافي {formatCurrency(Math.abs(bal))}</span>
+                        return null
+                      })()}
+                    </div>
+                  )}
                 </div>
               </div>
               {canManage && x.status === 'معلقة' && (
@@ -110,12 +160,16 @@ export default function Expenses() {
               {canManage && x.status === 'معتمدة' && (
                 <button onClick={() => statusMutation.mutate({ id: x.id, status: 'مصروفة' })} className="text-xs px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center gap-1"><Banknote className="w-3.5 h-3.5" /> صرف</button>
               )}
+              {x.type === 'سلفة' && x.status === 'مصروفة' && !x.settled_at && (
+                <button onClick={() => setSettling(x)} className="text-xs px-3 py-1.5 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 flex items-center gap-1"><Scale className="w-3.5 h-3.5" /> تسوية السلفة</button>
+              )}
             </div>
           ))}
         </div>
       )}
 
       <ExpenseForm open={showForm} onClose={() => setShowForm(false)} />
+      {settling && <SettleModal advance={settling} onClose={() => setSettling(null)} />}
     </div>
   )
 }

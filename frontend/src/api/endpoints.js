@@ -187,6 +187,7 @@ const realExpensesApi = {
   list: (params) => api.get('/expenses', { params }).then((r) => r.data),
   create: (data) => api.post('/expenses', data).then((r) => r.data),
   setStatus: (id, status) => api.put(`/expenses/${id}/status`, { status }).then((r) => r.data),
+  settle: (id, settled_amount) => api.put(`/expenses/${id}/settle`, { settled_amount }).then((r) => r.data),
 }
 
 // ---------- Assets & custody ----------

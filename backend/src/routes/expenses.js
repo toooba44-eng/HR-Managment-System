@@ -42,8 +42,12 @@ router.get('/', (req, res, next) => {
       s.total += r.amount;
       if (r.status === 'معلقة') s.pending += r.amount;
       if (r.status === 'معتمدة' || r.status === 'مصروفة') s.approved += r.amount;
+      // Disbursed advances still awaiting settlement
+      if (r.type === 'سلفة' && r.status === 'مصروفة' && r.settled_at == null) {
+        s.outstanding += r.amount;
+      }
       return s;
-    }, { count: 0, total: 0, pending: 0, approved: 0 });
+    }, { count: 0, total: 0, pending: 0, approved: 0, outstanding: 0 });
 
     res.json({ expenses: rows, summary });
   } catch (err) {
@@ -83,6 +87,34 @@ router.put('/:id/status', requireRole(...MANAGE), (req, res, next) => {
     db.prepare('UPDATE expenses SET status = ?, approved_by = ? WHERE id = ?')
       .run(status, req.user.employee_id || null, req.params.id);
     res.json({ message: 'Updated' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Settle a disbursed cash advance: record what was actually spent and
+// compute the balance (positive = employee refunds the company; negative =
+// company owes the employee an extra reimbursement). Owner or a manager.
+router.put('/:id/settle', (req, res, next) => {
+  try {
+    const settledAmount = Number(req.body.settled_amount);
+    if (!Number.isFinite(settledAmount) || settledAmount < 0) {
+      return res.status(400).json({ error: 'Valid settled amount is required' });
+    }
+    const row = db.prepare('SELECT * FROM expenses WHERE id = ?').get(req.params.id);
+    if (!row) return res.status(404).json({ error: 'Not found' });
+    if (row.type !== 'سلفة') return res.status(400).json({ error: 'Only advances can be settled' });
+    if (row.status !== 'مصروفة') return res.status(400).json({ error: 'Advance must be disbursed before settlement' });
+
+    const isOwner = req.user.employee_id === row.employee_id;
+    if (!isOwner && !MANAGE.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Not allowed' });
+    }
+
+    db.prepare("UPDATE expenses SET settled_amount = ?, settled_at = CURRENT_TIMESTAMP WHERE id = ?")
+      .run(settledAmount, req.params.id);
+
+    res.json({ message: 'Settled', balance: Number((row.amount - settledAmount).toFixed(2)) });
   } catch (err) {
     next(err);
   }
