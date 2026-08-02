@@ -425,6 +425,25 @@ function seedData() {
     console.log('✅ Talent reviews seeded');
   }
 
+  // Skills / competency matrix
+  if (isEmpty('employee_skills')) {
+    const ins = db.prepare(`INSERT INTO employee_skills (employee_id, skill, level, created_by) VALUES (?, ?, ?, ?)`);
+    const rows = [
+      // Tech (dept 1: emps 2, 6, 10)
+      [2, 'إدارة المشاريع', 5], [2, 'JavaScript', 4], [2, 'قواعد البيانات', 4], [2, 'القيادة', 4],
+      [6, 'JavaScript', 5], [6, 'قواعد البيانات', 3], [6, 'التواصل', 3], [6, 'إدارة المشاريع', 2],
+      [10, 'JavaScript', 3], [10, 'قواعد البيانات', 2], [10, 'التواصل', 4],
+      // Finance (emp 3)
+      [3, 'التحليل المالي', 5], [3, 'Excel المتقدم', 4], [3, 'إدارة المشاريع', 3], [3, 'القيادة', 3],
+      // HR (emp 5)
+      [5, 'التوظيف', 5], [5, 'التواصل', 5], [5, 'القيادة', 4], [5, 'إدارة المشاريع', 3],
+      // Sales (emp 4)
+      [4, 'التفاوض', 5], [4, 'التواصل', 4], [4, 'Excel المتقدم', 2],
+    ];
+    rows.forEach(([e, sk, lv]) => ins.run(e, sk, lv, 5));
+    console.log('✅ Employee skills seeded');
+  }
+
   // Organization profile + branches
   if (isEmpty('org_profile')) {
     db.prepare(`INSERT INTO org_profile (id, name, legal_name, cr_number, tax_number, industry, size, founded_year, about, phone, email, website, address, city, country)

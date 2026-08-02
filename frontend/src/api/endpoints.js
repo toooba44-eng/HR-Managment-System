@@ -269,6 +269,13 @@ const realTalentGridApi = {
   clear: (employeeId) => api.delete(`/talent-grid/${employeeId}`).then((r) => r.data),
 }
 
+// ---------- Skills / competency matrix ----------
+const realSkillsApi = {
+  matrix: () => api.get('/skills/matrix').then((r) => r.data),
+  set: (employeeId, data) => api.put(`/skills/${employeeId}`, data).then((r) => r.data),
+  remove: (employeeId, skill) => api.delete(`/skills/${employeeId}`, { params: { skill } }).then((r) => r.data),
+}
+
 // ---------- Talent & succession ----------
 const realSuccessionApi = {
   list: (params) => api.get('/succession', { params }).then((r) => r.data),
@@ -437,6 +444,7 @@ export const timesheetsApi = DEMO ? mock.mockTimesheetsApi : realTimesheetsApi
 export const compensationApi = DEMO ? mock.mockCompensationApi : realCompensationApi
 export const successionApi = DEMO ? mock.mockSuccessionApi : realSuccessionApi
 export const talentGridApi = DEMO ? mock.mockTalentGridApi : realTalentGridApi
+export const skillsApi = DEMO ? mock.mockSkillsApi : realSkillsApi
 export const companyApi = DEMO ? mock.mockCompanyApi : realCompanyApi
 export const settingsApi = DEMO ? mock.mockSettingsApi : realSettingsApi
 export const onboardingApi = DEMO ? mock.mockOnboardingApi : realOnboardingApi

@@ -437,6 +437,20 @@ const migrations = [
     FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
   )`,
 
+  // Skills / competency matrix: one proficiency rating (1-5) per (employee, skill)
+  `CREATE TABLE IF NOT EXISTS employee_skills (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    skill TEXT NOT NULL,
+    level INTEGER DEFAULT 1 CHECK(level IN (1, 2, 3, 4, 5)),
+    created_by INTEGER,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(employee_id, skill),
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
   // Talent & succession planning (critical positions + successors)
   `CREATE TABLE IF NOT EXISTS succession (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
