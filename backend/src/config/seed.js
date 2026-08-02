@@ -584,6 +584,14 @@ function seedData() {
     ins.run(10, 2, 2, 'أداء أساسي جيد', 5);
     ins.run(4, 3, 1, 'خبير موثوق في مجاله', 5);
     console.log('✅ Talent reviews seeded');
+
+    if (isEmpty('talent_review_history')) {
+      const insHist = db.prepare(`INSERT INTO talent_review_history (employee_id, performance, potential, notes, changed_by, created_at) VALUES (?, ?, ?, ?, ?, ?)`);
+      // Employee 6 moved up a box since the last review cycle.
+      insHist.run(6, 1, 2, 'أداء غير متسق — يحتاج متابعة', 5, addDaysStr(-90));
+      insHist.run(6, 2, 3, 'إمكانات عالية بحاجة لتطوير الأداء', 5, addDaysStr(-5));
+      console.log('✅ Talent review history seeded');
+    }
   }
 
   // Skills / competency matrix

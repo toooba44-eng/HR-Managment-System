@@ -2349,6 +2349,11 @@ const talentReviews = {
   10: { performance: 2, potential: 2, notes: 'أداء أساسي جيد' },
   4: { performance: 3, potential: 1, notes: 'خبير موثوق في مجاله' },
 }
+let talentHistSeq = 1
+const talentReviewHistory = [
+  { id: talentHistSeq++, employee_id: 6, performance: 1, potential: 2, notes: 'أداء غير متسق — يحتاج متابعة', changed_by: 5, created_at: addDays(-90) },
+  { id: talentHistSeq++, employee_id: 6, performance: 2, potential: 3, notes: 'إمكانات عالية بحاجة لتطوير الأداء', changed_by: 5, created_at: addDays(-5) },
+]
 export const mockTalentGridApi = {
   async get() {
     await delay()
@@ -2365,10 +2370,23 @@ export const mockTalentGridApi = {
   async set(employeeId, data) {
     await delay()
     if (![1, 2, 3].includes(data.performance) || ![1, 2, 3].includes(data.potential)) throw badReq('التقييم يجب أن يكون 1-3')
-    talentReviews[Number(employeeId)] = { performance: data.performance, potential: data.potential, notes: data.notes || null }
+    const id = Number(employeeId)
+    const existing = talentReviews[id]
+    const moved = !existing || existing.performance !== data.performance || existing.potential !== data.potential
+    talentReviews[id] = { performance: data.performance, potential: data.potential, notes: data.notes || null }
+    if (moved) {
+      talentReviewHistory.push({ id: talentHistSeq++, employee_id: id, performance: data.performance, potential: data.potential, notes: data.notes || null, changed_by: currentUser()?.employee_id || 5, created_at: nowIso() })
+    }
     return { message: 'تم' }
   },
   async clear(employeeId) { await delay(); delete talentReviews[Number(employeeId)]; return { message: 'تم' } },
+  async history(employeeId) {
+    await delay()
+    return talentReviewHistory
+      .filter((h) => h.employee_id === Number(employeeId))
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      .map((h) => ({ ...h, box: TALENT_BOXES[`${h.performance}-${h.potential}`], changed_by_name: empName(h.changed_by) }))
+  },
 }
 
 const SKILL_LEVELS = { 1: 'مبتدئ', 2: 'أساسي', 3: 'كفؤ', 4: 'متقدم', 5: 'خبير' }

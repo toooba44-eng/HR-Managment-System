@@ -294,6 +294,7 @@ const realTalentGridApi = {
   get: () => api.get('/talent-grid').then((r) => r.data),
   set: (employeeId, data) => api.put(`/talent-grid/${employeeId}`, data).then((r) => r.data),
   clear: (employeeId) => api.delete(`/talent-grid/${employeeId}`).then((r) => r.data),
+  history: (employeeId) => api.get(`/talent-grid/${employeeId}/history`).then((r) => r.data),
 }
 
 // ---------- Skills / competency matrix ----------
