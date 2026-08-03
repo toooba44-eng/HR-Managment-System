@@ -253,8 +253,20 @@ router.put('/:id', employeeValidation.update, (req, res, next) => {
     const { id } = req.params;
 
     // Check permissions
+    if (req.user.role === 'candidate') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
     if (req.user.role === 'employee' && parseInt(id) !== req.user.employee_id) {
       return res.status(403).json({ error: 'Access denied' });
+    }
+    // A department head may edit their own profile, or an employee's basic
+    // fields within their own department — not org-wide.
+    if (req.user.role === 'department_head' && parseInt(id) !== req.user.employee_id) {
+      const dept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(req.user.employee_id);
+      const targetDept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(id);
+      if (!dept || !targetDept || dept.department_id !== targetDept.department_id) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
     }
 
     const allowedFields = [
