@@ -177,6 +177,17 @@ router.put('/:id/approve', requireRole('admin', 'hr_manager', 'department_head')
       return res.status(404).json({ error: 'Leave request not found' });
     }
 
+    // A department head may only act on leave requests within their own
+    // department — the list endpoint already scopes this way; enforce it
+    // here too so the action can't be reached directly by ID.
+    if (req.user.role === 'department_head') {
+      const dept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(req.user.employee_id);
+      const empDept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(leave.employee_id);
+      if (!dept || !empDept || dept.department_id !== empDept.department_id) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+    }
+
     if (leave.status !== 'معلقة') {
       return res.status(400).json({ error: 'Leave request has already been processed' });
     }

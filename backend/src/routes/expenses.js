@@ -81,8 +81,19 @@ router.put('/:id/status', requireRole(...MANAGE), (req, res, next) => {
     if (!['معتمدة', 'مرفوضة', 'مصروفة'].includes(status)) {
       return res.status(400).json({ error: 'Invalid status' });
     }
-    const exists = db.prepare('SELECT id FROM expenses WHERE id = ?').get(req.params.id);
+    const exists = db.prepare('SELECT * FROM expenses WHERE id = ?').get(req.params.id);
     if (!exists) return res.status(404).json({ error: 'Not found' });
+
+    // A department head may only act on claims within their own department —
+    // the list endpoint already scopes this way; enforce it here too so the
+    // action can't be reached directly by ID.
+    if (req.user.role === 'department_head') {
+      const dept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(req.user.employee_id);
+      const empDept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(exists.employee_id);
+      if (!dept || !empDept || dept.department_id !== empDept.department_id) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+    }
 
     db.prepare('UPDATE expenses SET status = ?, approved_by = ? WHERE id = ?')
       .run(status, req.user.employee_id || null, req.params.id);

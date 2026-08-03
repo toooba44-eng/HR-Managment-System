@@ -704,6 +704,10 @@ export const mockAttendanceApi = {
     await delay()
     const c = attendanceCorrections.find((x) => x.id === Number(id))
     if (!c) throw notFound()
+    const u = currentUser()
+    if (u?.role === 'department_head' && employees.find((e) => e.id === c.employee_id)?.department_id !== myDept()) {
+      throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    }
     c.status = status
     c.reviewed_by = currentUser()?.employee_id || 5
     if (status === 'موافق عليه') {
@@ -756,7 +760,13 @@ export const mockLeavesApi = {
   async approve(id, { status }) {
     await delay()
     const l = leaves.find((x) => x.id === Number(id))
-    if (l) { l.status = status; l.approved_by = 1 }
+    if (!l) return { message: 'تم تحديث الطلب (وضع تجريبي)' }
+    const u = currentUser()
+    if (u?.role === 'department_head' && employees.find((e) => e.id === l.employee_id)?.department_id !== myDept()) {
+      throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    }
+    l.status = status
+    l.approved_by = u?.employee_id || 1
     return { message: 'تم تحديث الطلب (وضع تجريبي)' }
   },
   async cancel(id) {
@@ -926,6 +936,8 @@ export const mockRequestsApi = {
     let rows = requests
     if (u && ['employee', 'candidate'].includes(u.role)) {
       rows = rows.filter((r) => r.employee_id === u.employee_id)
+    } else if (u?.role === 'department_head') {
+      rows = rows.filter((r) => employees.find((e) => e.id === r.employee_id)?.department_id === myDept())
     }
     if (type) rows = rows.filter((r) => r.type === type)
     if (status) rows = rows.filter((r) => r.status === status)
@@ -951,7 +963,12 @@ export const mockRequestsApi = {
   async resolve(id, { status, response }) {
     await delay()
     const r = requests.find((x) => x.id === Number(id))
-    if (r) { r.status = status; r.response = response || null; r.resolved_by = currentUser()?.employee_id || 5; r.resolved_at = nowIso() }
+    if (!r) return { message: 'تم تحديث الطلب' }
+    const u = currentUser()
+    if (u?.role === 'department_head' && employees.find((e) => e.id === r.employee_id)?.department_id !== myDept()) {
+      throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    }
+    r.status = status; r.response = response || null; r.resolved_by = u?.employee_id || 5; r.resolved_at = nowIso()
     return { message: 'تم تحديث الطلب' }
   },
   async remove(id) {
@@ -1723,7 +1740,13 @@ export const mockExpensesApi = {
   async setStatus(id, status) {
     await delay()
     const x = expenses.find((e) => e.id === Number(id))
-    if (x) { x.status = status; x.approved_by = currentUser()?.employee_id || 5 }
+    if (!x) return { message: 'تم التحديث' }
+    const u = currentUser()
+    if (u?.role === 'department_head' && employees.find((e) => e.id === x.employee_id)?.department_id !== myDept()) {
+      throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    }
+    x.status = status
+    x.approved_by = u?.employee_id || 5
     return { message: 'تم التحديث' }
   },
   async settle(id, settledAmount) {
