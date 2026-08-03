@@ -24,9 +24,31 @@ function withProgress(plan) {
   return { ...plan, tasks_total: total, tasks_done: done, progress: total ? Math.round((done / total) * 100) : 0 };
 }
 
+// Keeps "متأخر" in sync with reality: a plan moves there once it has an
+// incomplete task past its due date, and moves back to "قيد التنفيذ" once
+// it no longer does — the same auto-promotion pattern used for overdue
+// invoices in billing.js. Never touches a completed or cancelled plan.
+function syncOverdueStatuses() {
+  const hasOverdueTask = (planId) => !!db.prepare(`
+    SELECT 1 FROM onboarding_tasks
+    WHERE onboarding_id = ? AND is_done = 0 AND due_date IS NOT NULL AND due_date < date('now')
+    LIMIT 1
+  `).get(planId);
+
+  const inProgress = db.prepare(`SELECT id FROM onboarding WHERE status = 'قيد التنفيذ'`).all();
+  for (const p of inProgress) {
+    if (hasOverdueTask(p.id)) db.prepare(`UPDATE onboarding SET status = 'متأخر' WHERE id = ?`).run(p.id);
+  }
+  const overdue = db.prepare(`SELECT id FROM onboarding WHERE status = 'متأخر'`).all();
+  for (const p of overdue) {
+    if (!hasOverdueTask(p.id)) db.prepare(`UPDATE onboarding SET status = 'قيد التنفيذ' WHERE id = ?`).run(p.id);
+  }
+}
+
 // List onboarding plans (role-scoped) with progress + summary
 router.get('/', (req, res, next) => {
   try {
+    syncOverdueStatuses();
     let where = 'WHERE 1=1';
     const params = [];
     if (req.query.status) { where += ' AND o.status = ?'; params.push(req.query.status); }
@@ -69,6 +91,7 @@ router.get('/', (req, res, next) => {
 // Get one plan with its checklist
 router.get('/:id', (req, res, next) => {
   try {
+    syncOverdueStatuses();
     const plan = db.prepare(`
       SELECT o.*, e.full_name, e.job_title, e.profile_picture, d.name as department_name,
              b.full_name as buddy_name

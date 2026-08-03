@@ -2869,10 +2869,22 @@ function findTask(taskId) {
   }
   return {}
 }
+// Keeps "متأخر" in sync with reality, mirroring the backend: a plan moves
+// there once it has an incomplete task past its due date, and moves back
+// to "قيد التنفيذ" once it no longer does.
+function obSyncOverdueStatuses() {
+  const today = addDays(0)
+  const hasOverdueTask = (p) => p.tasks.some((t) => !t.is_done && t.due_date && t.due_date < today)
+  for (const p of onboarding) {
+    if (p.status === 'قيد التنفيذ' && hasOverdueTask(p)) p.status = 'متأخر'
+    else if (p.status === 'متأخر' && !hasOverdueTask(p)) p.status = 'قيد التنفيذ'
+  }
+}
 
 export const mockOnboardingApi = {
   async list({ status } = {}) {
     await delay()
+    obSyncOverdueStatuses()
     let rows = scopeByRole(onboarding)
     if (status) rows = rows.filter((p) => p.status === status)
     const plans = rows
@@ -2890,6 +2902,7 @@ export const mockOnboardingApi = {
   },
   async get(id) {
     await delay()
+    obSyncOverdueStatuses()
     const p = onboarding.find((x) => x.id === Number(id))
     if (!p) throw notFound()
     return { ...obProgress(p), tasks: p.tasks.slice() }
