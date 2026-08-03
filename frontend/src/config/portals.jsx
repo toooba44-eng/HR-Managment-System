@@ -24,6 +24,7 @@ import Requests from '../pages/employee/Requests'
 import Payslips from '../pages/employee/Payslips'
 import MySkills from '../pages/employee/MySkills'
 import MyGrievances from '../pages/employee/MyGrievances'
+import ReportIncident from '../pages/employee/ReportIncident'
 import MyAssetRequests from '../pages/employee/MyAssetRequests'
 import Policies from '../pages/hr/Policies'
 import Payroll from '../pages/hr/Payroll'
@@ -260,6 +261,7 @@ export const PORTALS = {
       { section: 'الطلبات والخدمات', to: '/ess/my-cases', label: 'حالاتي لدى الموارد البشرية', icon: ShieldAlert, element: <MyGrievances /> },
       { section: 'الطلبات والخدمات', to: '/ess/asset-requests', label: 'طلب أصول', icon: Package, element: <MyAssetRequests /> },
       { section: 'الطلبات والخدمات', to: '/ess/help-desk', label: 'مكتب المساعدة', icon: LifeBuoy, element: <HelpDesk /> },
+      { section: 'الطلبات والخدمات', to: '/ess/report-incident', label: 'الإبلاغ عن حادث سلامة', icon: ShieldPlus, element: <ReportIncident /> },
 
       { section: 'التواصل والمعرفة', to: '/assistant', label: 'المساعد الذكي', icon: Bot, element: <Assistant /> },
       { section: 'التواصل والمعرفة', to: '/ess/announcements', label: 'الإعلانات', icon: Megaphone, element: <Announcements /> },

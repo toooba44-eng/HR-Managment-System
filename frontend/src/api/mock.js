@@ -277,6 +277,7 @@ let incSeq = 1
 const incidents = [
   { id: incSeq++, title: 'انزلاق في الممر', type: 'حادث', employee_id: 6, location: 'الطابق الثاني - الممر', severity: 'منخفضة', description: 'أرضية مبللة دون لافتة تحذير.', status: 'مغلق', incident_date: addDays(-10), reported_by: 5, created_at: nowIso() },
   { id: incSeq++, title: 'فحص طفايات الحريق', type: 'ملاحظة سلامة', employee_id: null, location: 'المبنى الرئيسي', severity: 'متوسطة', description: 'حان موعد الفحص الدوري لطفايات الحريق.', status: 'مفتوح', incident_date: addDays(-2), reported_by: 5, created_at: nowIso() },
+  { id: incSeq++, title: 'سلك كهرباء مكشوف قرب المطبخ', type: 'ملاحظة سلامة', employee_id: null, location: 'الطابق الأول - المطبخ', severity: 'عالية', description: 'لاحظت سلكاً كهربائياً مكشوفاً بجانب مدخل المطبخ.', status: 'قيد المعالجة', incident_date: addDays(-1), reported_by: 6, created_at: addDays(-1) },
 ]
 
 let incidentActionSeq = 1
@@ -2253,6 +2254,14 @@ export const mockIncidentsApi = {
         openActions: list.reduce((s, r) => s + r.open_actions_count, 0),
       },
     }
+  },
+  async mine() {
+    await delay()
+    const myId = currentUser()?.employee_id
+    return incidents
+      .filter((i) => i.reported_by === myId)
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      .map((i) => ({ id: i.id, title: i.title, type: i.type, severity: i.severity, status: i.status, incident_date: i.incident_date, created_at: i.created_at }))
   },
   async create(data) { await delay(); const i = { id: incSeq++, type: data.type || 'ملاحظة سلامة', severity: data.severity || 'متوسطة', status: 'مفتوح', incident_date: data.incident_date || addDays(0), reported_by: currentUser()?.employee_id || 5, created_at: nowIso(), ...data }; incidents.unshift(i); return { message: 'تم', incident: i } },
   async update(id, data) { await delay(); const i = incidents.find((x) => x.id === Number(id)); if (i) Object.assign(i, data); return { message: 'تم التحديث' } },
