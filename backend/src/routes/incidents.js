@@ -4,6 +4,37 @@ const { authenticateToken, requireRole } = require('../middleware/auth');
 const router = express.Router();
 
 router.use(authenticateToken);
+
+// Self-service: any employee can report a safety incident/hazard they
+// witnessed or were involved in — "see something, say something". The
+// reporter is always the logged-in user (never trusted from the body), so
+// opening this up carries no privilege-escalation risk. Registered before
+// the HR/admin gate below so it stays open to anyone.
+router.post('/', (req, res, next) => {
+  try {
+    if (!req.user.employee_id) return res.status(400).json({ error: 'No employee associated with this account' });
+    const { title, type, employee_id, location, severity, description, incident_date } = req.body;
+    if (!title) return res.status(400).json({ error: 'Title is required' });
+    const r = db.prepare(`INSERT INTO incidents (title, type, employee_id, location, severity, description, incident_date, reported_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+      .run(title, type || 'ملاحظة سلامة', employee_id || null, location || null, severity || 'متوسطة', description || null,
+        incident_date || new Date().toISOString().split('T')[0], req.user.employee_id);
+    res.status(201).json({ message: 'Created', incident: { id: r.lastInsertRowid } });
+  } catch (err) { next(err); }
+});
+
+// Employee self-view: status of incidents I reported — no investigation
+// detail or CAPA actions, just enough to track that it was received.
+router.get('/mine', (req, res, next) => {
+  try {
+    if (!req.user.employee_id) return res.status(400).json({ error: 'No employee associated with this account' });
+    const rows = db.prepare(`
+      SELECT id, title, type, severity, status, incident_date, created_at
+      FROM incidents WHERE reported_by = ? ORDER BY created_at DESC
+    `).all(req.user.employee_id);
+    res.json(rows);
+  } catch (err) { next(err); }
+});
+
 router.use(requireRole('admin', 'hr_manager', 'super_admin'));
 
 router.get('/', (req, res, next) => {
@@ -25,17 +56,6 @@ router.get('/', (req, res, next) => {
       openActions: rows.reduce((s, r) => s + r.open_actions_count, 0),
     };
     res.json({ incidents: rows, summary });
-  } catch (err) { next(err); }
-});
-
-router.post('/', (req, res, next) => {
-  try {
-    const { title, type, employee_id, location, severity, description, incident_date } = req.body;
-    if (!title) return res.status(400).json({ error: 'Title is required' });
-    const r = db.prepare(`INSERT INTO incidents (title, type, employee_id, location, severity, description, incident_date, reported_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
-      .run(title, type || 'ملاحظة سلامة', employee_id || null, location || null, severity || 'متوسطة', description || null,
-        incident_date || new Date().toISOString().split('T')[0], req.user.employee_id || null);
-    res.status(201).json({ message: 'Created', incident: { id: r.lastInsertRowid } });
   } catch (err) { next(err); }
 });
 

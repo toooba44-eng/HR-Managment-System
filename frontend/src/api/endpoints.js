@@ -265,6 +265,7 @@ const realApprovalsApi = {
 // ---------- Health & safety incidents ----------
 const realIncidentsApi = {
   list: () => api.get('/incidents').then((r) => r.data),
+  mine: () => api.get('/incidents/mine').then((r) => r.data),
   create: (data) => api.post('/incidents', data).then((r) => r.data),
   update: (id, data) => api.put(`/incidents/${id}`, data).then((r) => r.data),
   remove: (id) => api.delete(`/incidents/${id}`).then((r) => r.data),
