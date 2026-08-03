@@ -1865,7 +1865,16 @@ export const mockGoalsApi = {
   },
   async create(data) {
     await delay()
-    const g = { id: goalSeq++, weight: data.weight || 100, progress: 0, status: 'لم تبدأ', created_by: currentUser()?.employee_id || null, ...data }
+    const u = currentUser()
+    const isManager = ['admin', 'hr_manager', 'department_head', 'super_admin'].includes(u?.role)
+    const employee_id = isManager && data.employee_id ? Number(data.employee_id) : u?.employee_id
+    if (!employee_id) throw badReq('Employee is required')
+    if (!data.title) throw badReq('Employee and title are required')
+    const g = {
+      id: goalSeq++, employee_id, title: data.title, description: data.description || null,
+      weight: data.weight || 100, target_date: data.target_date || null,
+      progress: 0, status: 'لم تبدأ', created_by: u?.employee_id || null, created_at: nowIso(),
+    }
     goals.unshift(g)
     return { message: 'تم إنشاء الهدف', goal: g }
   },
@@ -1883,6 +1892,14 @@ export const mockGoalsApi = {
   },
   async remove(id) {
     await delay()
+    const g = goals.find((x) => x.id === Number(id))
+    if (!g) throw notFound()
+    const u = currentUser()
+    const isManager = ['admin', 'hr_manager', 'department_head', 'super_admin'].includes(u?.role)
+    if (!isManager) {
+      if (g.employee_id !== u?.employee_id) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+      if (g.status !== 'لم تبدأ') throw badReq('لا يمكن حذف هدف بدأ العمل عليه')
+    }
     const i = goals.findIndex((x) => x.id === Number(id))
     if (i > -1) goals.splice(i, 1)
     return { message: 'تم الحذف' }

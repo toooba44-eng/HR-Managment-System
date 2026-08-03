@@ -15,25 +15,31 @@ import { formatDate } from '../../lib/utils'
 
 const MANAGE = ['admin', 'hr_manager', 'department_head', 'super_admin']
 
-function GoalForm({ open, onClose }) {
+function GoalForm({ open, onClose, forSelf }) {
   const qc = useQueryClient()
-  const { data: emps } = useQuery('employees-for-goals', () => employeesApi.list({ limit: 100 }), { enabled: open })
+  const { data: emps } = useQuery('employees-for-goals', () => employeesApi.list({ limit: 100 }), { enabled: open && !forSelf })
   const [form, setForm] = useState({ employee_id: '', title: '', description: '', weight: 100, target_date: '' })
-  const mutation = useMutation((data) => goalsApi.create({ ...data, employee_id: Number(data.employee_id), weight: Number(data.weight) }), {
-    onSuccess: () => { toast.success('تم إسناد الهدف'); qc.invalidateQueries('goals'); onClose() },
-    onError: (err) => toast.error(err.response?.data?.error || 'فشل الإسناد'),
+  const mutation = useMutation((data) => goalsApi.create({
+    ...data,
+    employee_id: forSelf ? undefined : Number(data.employee_id),
+    weight: Number(data.weight),
+  }), {
+    onSuccess: () => { toast.success(forSelf ? 'تم إضافة هدفك' : 'تم إسناد الهدف'); qc.invalidateQueries('goals'); onClose() },
+    onError: (err) => toast.error(err.response?.data?.error || 'فشلت العملية'),
   })
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
   const employees = emps?.employees || []
   return (
-    <Modal open={open} onClose={onClose} title="إسناد هدف">
+    <Modal open={open} onClose={onClose} title={forSelf ? 'إضافة هدف لنفسي' : 'إسناد هدف'}>
       <form onSubmit={(e) => { e.preventDefault(); mutation.mutate(form) }} className="space-y-4">
-        <Field label="الموظف" required>
-          <Select value={form.employee_id} onChange={set('employee_id')} required>
-            <option value="">اختر</option>
-            {employees.map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}
-          </Select>
-        </Field>
+        {!forSelf && (
+          <Field label="الموظف" required>
+            <Select value={form.employee_id} onChange={set('employee_id')} required>
+              <option value="">اختر</option>
+              {employees.map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}
+            </Select>
+          </Field>
+        )}
         <Field label="عنوان الهدف" required><Input value={form.title} onChange={set('title')} required /></Field>
         <Field label="الوصف"><Textarea value={form.description} onChange={set('description')} rows={2} /></Field>
         <div className="grid grid-cols-2 gap-4">
@@ -42,7 +48,7 @@ function GoalForm({ open, onClose }) {
         </div>
         <div className="flex justify-end gap-3 pt-2">
           <Button type="button" variant="secondary" onClick={onClose}>إلغاء</Button>
-          <Button type="submit" loading={mutation.isLoading}>إسناد</Button>
+          <Button type="submit" loading={mutation.isLoading}>{forSelf ? 'إضافة' : 'إسناد'}</Button>
         </div>
       </form>
     </Modal>
@@ -78,11 +84,9 @@ export default function Performance() {
         <StatCard icon={TrendingUp} label="متوسط الإنجاز" value={`${s.avgProgress ?? 0}%`} tone="violet" />
       </div>
 
-      {canManage && (
-        <div className="flex justify-end">
-          <Button onClick={() => setShowForm(true)}><Plus className="w-5 h-5" /> إسناد هدف</Button>
-        </div>
-      )}
+      <div className="flex justify-end">
+        <Button onClick={() => setShowForm(true)}><Plus className="w-5 h-5" /> {canManage ? 'إسناد هدف' : 'إضافة هدف لنفسي'}</Button>
+      </div>
 
       {goals.length === 0 ? (
         <div className="card"><EmptyState icon={Target} title="لا توجد أهداف" /></div>
@@ -103,7 +107,7 @@ export default function Performance() {
                     {g.target_date && <span>الاستحقاق: {formatDate(g.target_date)}</span>}
                   </div>
                 </div>
-                {canManage && (
+                {(canManage || (g.employee_id === user?.employee_id && g.status === 'لم تبدأ')) && (
                   <button onClick={() => window.confirm('حذف الهدف؟') && removeMutation.mutate(g.id)} className="text-slate-300 hover:text-rose-500 shrink-0"><Trash2 className="w-4 h-4" /></button>
                 )}
               </div>
@@ -133,7 +137,7 @@ export default function Performance() {
         </div>
       )}
 
-      <GoalForm open={showForm} onClose={() => setShowForm(false)} />
+      <GoalForm open={showForm} onClose={() => setShowForm(false)} forSelf={!canManage} />
     </div>
   )
 }
