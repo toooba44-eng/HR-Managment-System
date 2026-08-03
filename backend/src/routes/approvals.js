@@ -16,6 +16,25 @@ function deptOf(employeeId) {
   return row ? row.department_id : null;
 }
 
+// A department head's `pending()` list is already scoped to their own
+// department, but the actual approve/reject write below is a separate code
+// path (this file never calls back into the source route) — without this
+// check a department head who knows or guesses a record ID from another
+// department could still approve/reject it directly via this endpoint.
+function sameDept(user, employeeId) {
+  if (user.role !== 'department_head') return true;
+  const d = deptOf(user.employee_id);
+  return d != null && d === deptOf(employeeId);
+}
+// Same guard for shift swaps, which involve two employees — either one
+// being in the department head's department is enough (matches `pending()`).
+function sameDeptEither(user, employeeIdA, employeeIdB) {
+  if (user.role !== 'department_head') return true;
+  const d = deptOf(user.employee_id);
+  if (d == null) return false;
+  return deptOf(employeeIdA) === d || deptOf(employeeIdB) === d;
+}
+
 const DAY_MS = 86400000;
 const daysSince = (dateStr) => Math.floor((Date.now() - new Date(dateStr).getTime()) / DAY_MS);
 
@@ -60,6 +79,7 @@ const SOURCES = {
     approve(id, user) {
       const leave = db.prepare('SELECT * FROM leaves WHERE id = ?').get(id);
       if (!leave || leave.status !== 'معلقة') return false;
+      if (!sameDept(user, leave.employee_id)) return false;
       db.prepare(`UPDATE leaves SET status = 'موافقة', approved_by = ?, approved_at = CURRENT_TIMESTAMP WHERE id = ?`).run(user.employee_id || null, id);
       const balanceField = { سنوية: 'annual_leave_balance', مرضية: 'sick_leave_balance', طارئة: 'emergency_leave_balance' }[leave.type];
       if (balanceField) db.prepare(`UPDATE employees SET ${balanceField} = ${balanceField} - ? WHERE id = ?`).run(leave.days_count, leave.employee_id);
@@ -68,6 +88,7 @@ const SOURCES = {
     reject(id, user) {
       const leave = db.prepare('SELECT * FROM leaves WHERE id = ?').get(id);
       if (!leave || leave.status !== 'معلقة') return false;
+      if (!sameDept(user, leave.employee_id)) return false;
       db.prepare(`UPDATE leaves SET status = 'مرفوضة', approved_by = ?, approved_at = CURRENT_TIMESTAMP WHERE id = ?`).run(user.employee_id || null, id);
       return true;
     },
@@ -90,6 +111,7 @@ const SOURCES = {
     approve(id, user) {
       const c = db.prepare('SELECT * FROM attendance_corrections WHERE id = ?').get(id);
       if (!c || c.status !== 'معلق') return false;
+      if (!sameDept(user, c.employee_id)) return false;
       db.prepare(`UPDATE attendance_corrections SET status = 'موافق عليه', reviewed_by = ? WHERE id = ?`).run(user.employee_id || null, id);
       const checkIn = c.requested_check_in ? `${c.date} ${c.requested_check_in}` : null;
       const checkOut = c.requested_check_out ? `${c.date} ${c.requested_check_out}` : null;
@@ -107,8 +129,9 @@ const SOURCES = {
       return true;
     },
     reject(id, user) {
-      const c = db.prepare('SELECT status FROM attendance_corrections WHERE id = ?').get(id);
+      const c = db.prepare('SELECT * FROM attendance_corrections WHERE id = ?').get(id);
       if (!c || c.status !== 'معلق') return false;
+      if (!sameDept(user, c.employee_id)) return false;
       db.prepare(`UPDATE attendance_corrections SET status = 'مرفوض', reviewed_by = ? WHERE id = ?`).run(user.employee_id || null, id);
       return true;
     },
@@ -150,8 +173,8 @@ const SOURCES = {
     eligible: (u) => ['admin', 'hr_manager', 'department_head', 'super_admin'].includes(u.role),
     pending: (user) => pendingExpensesByType(user, 'مصروف'),
     normalize: (r) => ({ title: r.category || 'مصروف', subtitle: r.description || '', amount: r.amount }),
-    approve: (id, user) => setStatus('expenses', id, 'معتمدة', user, 'معلقة', 'approved_by'),
-    reject: (id, user) => setStatus('expenses', id, 'مرفوضة', user, 'معلقة', 'approved_by'),
+    approve: (id, user) => expenseInDept(id, user) && setStatus('expenses', id, 'معتمدة', user, 'معلقة', 'approved_by'),
+    reject: (id, user) => expenseInDept(id, user) && setStatus('expenses', id, 'مرفوضة', user, 'معلقة', 'approved_by'),
   },
   advance: {
     label: 'سلفة',
@@ -159,8 +182,8 @@ const SOURCES = {
     eligible: (u) => ['admin', 'hr_manager', 'department_head', 'super_admin'].includes(u.role),
     pending: (user) => pendingExpensesByType(user, 'سلفة'),
     normalize: (r) => ({ title: 'طلب سلفة', subtitle: r.description || '', amount: r.amount }),
-    approve: (id, user) => setStatus('expenses', id, 'معتمدة', user, 'معلقة', 'approved_by'),
-    reject: (id, user) => setStatus('expenses', id, 'مرفوضة', user, 'معلقة', 'approved_by'),
+    approve: (id, user) => expenseInDept(id, user) && setStatus('expenses', id, 'معتمدة', user, 'معلقة', 'approved_by'),
+    reject: (id, user) => expenseInDept(id, user) && setStatus('expenses', id, 'مرفوضة', user, 'معلقة', 'approved_by'),
   },
   payroll: {
     label: 'مسير رواتب',
@@ -276,6 +299,7 @@ const SOURCES = {
     approve(id, user) {
       const swap = db.prepare('SELECT * FROM shift_swap_requests WHERE id = ?').get(id);
       if (!swap || swap.status !== 'بانتظار اعتماد المدير') return false;
+      if (!sameDeptEither(user, swap.requester_id, swap.target_id)) return false;
       const run = db.transaction(() => {
         db.prepare('UPDATE shifts SET employee_id = ? WHERE id = ?').run(swap.target_id, swap.shift_a_id);
         db.prepare('UPDATE shifts SET employee_id = ? WHERE id = ?').run(swap.requester_id, swap.shift_b_id);
@@ -284,9 +308,10 @@ const SOURCES = {
       run();
       return true;
     },
-    reject(id) {
-      const swap = db.prepare('SELECT status FROM shift_swap_requests WHERE id = ?').get(id);
+    reject(id, user) {
+      const swap = db.prepare('SELECT * FROM shift_swap_requests WHERE id = ?').get(id);
       if (!swap || swap.status !== 'بانتظار اعتماد المدير') return false;
+      if (!sameDeptEither(user, swap.requester_id, swap.target_id)) return false;
       db.prepare(`UPDATE shift_swap_requests SET status = 'مرفوض' WHERE id = ?`).run(id);
       return true;
     },
@@ -306,8 +331,8 @@ const SOURCES = {
       `).all(...params);
     },
     normalize: (r) => ({ title: `جدول ساعات: ${r.project}`, subtitle: `${r.date} · ${r.hours} ساعة${r.task ? ' · ' + r.task : ''}`, amount: null }),
-    approve: (id, user) => setStatus('timesheets', id, 'معتمد', user, 'مقدّم', 'approved_by'),
-    reject: (id, user) => setStatus('timesheets', id, 'مرفوض', user, 'مقدّم', 'approved_by'),
+    approve: (id, user) => timesheetInDept(id, user) && setStatus('timesheets', id, 'معتمد', user, 'مقدّم', 'approved_by'),
+    reject: (id, user) => timesheetInDept(id, user) && setStatus('timesheets', id, 'مرفوض', user, 'مقدّم', 'approved_by'),
   },
   // Every other type in the generic `requests` table (شهادة، خطاب، تحديث
   // بيانات، شكوى/استفسار، أخرى...) — everything that isn't already claimed
@@ -344,10 +369,21 @@ function pendingRequestsByType(user, type) {
   `).all(...params);
 }
 function resolveRequest(id, status, user) {
-  const r = db.prepare('SELECT status FROM requests WHERE id = ?').get(id);
+  const r = db.prepare('SELECT * FROM requests WHERE id = ?').get(id);
   if (!r || r.status !== 'معلقة') return false;
+  if (!sameDept(user, r.employee_id)) return false;
   db.prepare('UPDATE requests SET status = ?, resolved_by = ?, resolved_at = CURRENT_TIMESTAMP WHERE id = ?').run(status, user.employee_id || null, id);
   return true;
+}
+
+function expenseInDept(id, user) {
+  const row = db.prepare('SELECT employee_id FROM expenses WHERE id = ?').get(id);
+  return !row || sameDept(user, row.employee_id);
+}
+
+function timesheetInDept(id, user) {
+  const row = db.prepare('SELECT employee_id FROM timesheets WHERE id = ?').get(id);
+  return !row || sameDept(user, row.employee_id);
 }
 
 function pendingExpensesByType(user, type) {

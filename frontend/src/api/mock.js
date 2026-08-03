@@ -3419,6 +3419,22 @@ const myDept = () => {
 }
 const isReviewer = () => ['admin', 'hr_manager', 'super_admin'].includes(currentUser()?.role)
 
+// A department head's approval-inbox `pending()` list is already scoped to
+// their own department, but approve/reject is a separate code path here —
+// without this guard a department head who knows an ID from another
+// department could still approve/reject it directly.
+const sameDeptAsMe = (u, employeeId) => {
+  if (u.role !== 'department_head') return true
+  const d = myDept()
+  return d != null && employees.find((e) => e.id === employeeId)?.department_id === d
+}
+const sameDeptEitherAsMe = (u, employeeIdA, employeeIdB) => {
+  if (u.role !== 'department_head') return true
+  const d = myDept()
+  if (d == null) return false
+  return employees.find((e) => e.id === employeeIdA)?.department_id === d || employees.find((e) => e.id === employeeIdB)?.department_id === d
+}
+
 let hireSeq = 1
 const hiringRequests = [
   { id: hireSeq++, requested_by: 2, department_id: 1, job_title: 'مطوّر واجهات أمامية', headcount: 2, employment_type: 'دوام كامل', urgency: 'عاجل', justification: 'توسّع فريق المنتج ومشاريع جديدة', status: 'معلق', reviewed_by: null, created_at: nowIso() },
@@ -3935,6 +3951,7 @@ const APPROVAL_SOURCES = {
     approve(id, u) {
       const l = leaves.find((x) => x.id === Number(id))
       if (!l || l.status !== 'معلقة') return false
+      if (!sameDeptAsMe(u, l.employee_id)) return false
       l.status = 'موافقة'; l.approved_by = u.employee_id || null; l.approved_at = nowIso()
       const emp = employees.find((e) => e.id === l.employee_id)
       const balanceField = { سنوية: 'annual_leave_balance', مرضية: 'sick_leave_balance', طارئة: 'emergency_leave_balance' }[l.type]
@@ -3944,6 +3961,7 @@ const APPROVAL_SOURCES = {
     reject(id, u) {
       const l = leaves.find((x) => x.id === Number(id))
       if (!l || l.status !== 'معلقة') return false
+      if (!sameDeptAsMe(u, l.employee_id)) return false
       l.status = 'مرفوضة'; l.approved_by = u.employee_id || null; l.approved_at = nowIso()
       return true
     },
@@ -3960,12 +3978,14 @@ const APPROVAL_SOURCES = {
     approve(id, u) {
       const c = attendanceCorrections.find((x) => x.id === Number(id))
       if (!c || c.status !== 'معلق') return false
+      if (!sameDeptAsMe(u, c.employee_id)) return false
       c.status = 'موافق عليه'; c.reviewed_by = u.employee_id || null
       return true
     },
     reject(id, u) {
       const c = attendanceCorrections.find((x) => x.id === Number(id))
       if (!c || c.status !== 'معلق') return false
+      if (!sameDeptAsMe(u, c.employee_id)) return false
       c.status = 'مرفوض'; c.reviewed_by = u.employee_id || null
       return true
     },
@@ -3999,16 +4019,16 @@ const APPROVAL_SOURCES = {
     eligible: (u) => ['admin', 'hr_manager', 'department_head', 'super_admin'].includes(u.role),
     pending: (u) => approvalPendingExpenses(u, 'مصروف'),
     normalize: (r) => ({ title: r.category || 'مصروف', subtitle: r.description || '', amount: r.amount }),
-    approve: (id, u) => approvalSetStatus(expenses, id, 'معتمدة', u, 'معلقة', 'approved_by'),
-    reject: (id, u) => approvalSetStatus(expenses, id, 'مرفوضة', u, 'معلقة', 'approved_by'),
+    approve: (id, u) => expenseInMyDept(id, u) && approvalSetStatus(expenses, id, 'معتمدة', u, 'معلقة', 'approved_by'),
+    reject: (id, u) => expenseInMyDept(id, u) && approvalSetStatus(expenses, id, 'مرفوضة', u, 'معلقة', 'approved_by'),
   },
   advance: {
     label: 'سلفة',
     eligible: (u) => ['admin', 'hr_manager', 'department_head', 'super_admin'].includes(u.role),
     pending: (u) => approvalPendingExpenses(u, 'سلفة'),
     normalize: (r) => ({ title: 'طلب سلفة', subtitle: r.description || '', amount: r.amount }),
-    approve: (id, u) => approvalSetStatus(expenses, id, 'معتمدة', u, 'معلقة', 'approved_by'),
-    reject: (id, u) => approvalSetStatus(expenses, id, 'مرفوضة', u, 'معلقة', 'approved_by'),
+    approve: (id, u) => expenseInMyDept(id, u) && approvalSetStatus(expenses, id, 'معتمدة', u, 'معلقة', 'approved_by'),
+    reject: (id, u) => expenseInMyDept(id, u) && approvalSetStatus(expenses, id, 'مرفوضة', u, 'معلقة', 'approved_by'),
   },
   payroll: {
     label: 'مسير رواتب',
@@ -4123,6 +4143,7 @@ const APPROVAL_SOURCES = {
     approve(id, u) {
       const swap = shiftSwapRequests.find((x) => x.id === Number(id))
       if (!swap || swap.status !== 'بانتظار اعتماد المدير') return false
+      if (!sameDeptEitherAsMe(u, swap.requester_id, swap.target_id)) return false
       const shiftA = shifts.find((s) => s.id === swap.shift_a_id)
       const shiftB = shifts.find((s) => s.id === swap.shift_b_id)
       if (shiftA) shiftA.employee_id = swap.target_id
@@ -4130,9 +4151,10 @@ const APPROVAL_SOURCES = {
       swap.status = 'معتمد'; swap.approved_by = u.employee_id || null; swap.approved_at = nowIso()
       return true
     },
-    reject(id) {
+    reject(id, u) {
       const swap = shiftSwapRequests.find((x) => x.id === Number(id))
       if (!swap || swap.status !== 'بانتظار اعتماد المدير') return false
+      if (!sameDeptEitherAsMe(u, swap.requester_id, swap.target_id)) return false
       swap.status = 'مرفوض'
       return true
     },
@@ -4146,8 +4168,8 @@ const APPROVAL_SOURCES = {
       return rows
     },
     normalize: (r) => ({ title: `جدول ساعات: ${r.project}`, subtitle: `${r.date} · ${r.hours} ساعة${r.task ? ' · ' + r.task : ''}`, amount: null }),
-    approve: (id, u) => approvalSetStatus(timesheets, id, 'معتمد', u, 'مقدّم', 'approved_by'),
-    reject: (id, u) => approvalSetStatus(timesheets, id, 'مرفوض', u, 'مقدّم', 'approved_by'),
+    approve: (id, u) => timesheetInMyDept(id, u) && approvalSetStatus(timesheets, id, 'معتمد', u, 'مقدّم', 'approved_by'),
+    reject: (id, u) => timesheetInMyDept(id, u) && approvalSetStatus(timesheets, id, 'مرفوض', u, 'مقدّم', 'approved_by'),
   },
   service_request: {
     label: 'طلب موظف',
@@ -4171,6 +4193,7 @@ function approvalPendingRequests(u, type) {
 function approvalResolveRequest(id, status, u) {
   const r = requests.find((x) => x.id === Number(id))
   if (!r || r.status !== 'معلقة') return false
+  if (!sameDeptAsMe(u, r.employee_id)) return false
   r.status = status; r.resolved_by = u.employee_id || null; r.resolved_at = nowIso()
   return true
 }
@@ -4178,6 +4201,14 @@ function approvalPendingExpenses(u, type) {
   let rows = expenses.filter((x) => x.status === 'معلقة' && x.type === type)
   if (u.role === 'department_head') rows = rows.filter((x) => employees.find((e) => e.id === x.employee_id)?.department_id === myDept())
   return rows
+}
+function expenseInMyDept(id, u) {
+  const x = expenses.find((e) => e.id === Number(id))
+  return !x || sameDeptAsMe(u, x.employee_id)
+}
+function timesheetInMyDept(id, u) {
+  const t = timesheets.find((x) => x.id === Number(id))
+  return !t || sameDeptAsMe(u, t.employee_id)
 }
 function approvalApprovePromotion(id, u) {
   const p = promotions.find((x) => x.id === Number(id))
