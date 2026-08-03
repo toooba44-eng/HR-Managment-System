@@ -28,7 +28,7 @@ const employees = [
   { id: 7, full_name: 'ليلى محمد الشمري', email: 'laila.marketing@quant.com', phone: '+966 50 678 9012', national_id: '1000000007', date_of_birth: '1991-09-05', nationality: 'سعودية', marital_status: 'متزوجة', address: 'الدمام، حي الفيصلية', employee_number: 'EMP-007', job_title: 'مديرة تسويق', department_id: 6, manager_id: 1, hire_date: '2020-11-15', employment_type: 'دوام كامل', work_location: 'الدمام - فرع الدمام', status: 'نشط', salary: 21000, allowances: 2800, bank_name: 'بنك الرياض', bank_account: 'SA0020007', contract_type: 'غير محدد', annual_leave_balance: 30, sick_leave_balance: 10, emergency_leave_balance: 5, profile_picture: null },
   { id: 8, full_name: 'فهد عبدالعزيز', email: 'fahd.legal@quant.com', phone: '+966 50 789 0123', national_id: '1000000008', date_of_birth: '1987-04-22', nationality: 'سعودي', marital_status: 'متزوج', address: 'الرياض، حي الصحافة', employee_number: 'EMP-008', job_title: 'مدير قانوني', department_id: 7, manager_id: 1, hire_date: '2017-02-01', employment_type: 'دوام كامل', work_location: 'الرياض - المقر الرئيسي', status: 'نشط', salary: 24000, allowances: 3500, bank_name: 'البنك الأهلي', bank_account: 'SA0010008', contract_type: 'غير محدد', annual_leave_balance: 30, sick_leave_balance: 10, emergency_leave_balance: 5, profile_picture: null },
   { id: 9, full_name: 'ريم عبدالله العتيبي', email: 'reem.ops@quant.com', phone: '+966 50 890 1234', national_id: '1000000009', date_of_birth: '1995-12-10', nationality: 'سعودية', marital_status: 'أعزب', address: 'الرياض، حي النرجس', employee_number: 'EMP-009', job_title: 'مديرة عمليات', department_id: 8, manager_id: 1, hire_date: '2023-01-05', employment_type: 'دوام كامل', work_location: 'الرياض - المقر الرئيسي', status: 'نشط', salary: 19000, allowances: 2200, bank_name: 'بنك الرياض', bank_account: 'SA0020009', contract_type: 'محدد', annual_leave_balance: 30, sick_leave_balance: 10, emergency_leave_balance: 5, profile_picture: null },
-  { id: 10, full_name: 'عبدالرحمن سليمان', email: 'abdulrahman.dev@quant.com', phone: '+966 50 901 2345', national_id: '1000000010', date_of_birth: '1996-03-18', nationality: 'سعودي', marital_status: 'أعزب', address: 'جدة، حي الشاطئ', employee_number: 'EMP-010', job_title: 'مطور واجهات أمامية', department_id: 3, manager_id: 2, hire_date: '2023-06-01', employment_type: 'دوام كامل', work_location: 'جدة - فرع جدة', status: 'نشط', salary: 14000, allowances: 1500, bank_name: 'البنك الأهلي', bank_account: 'SA0010010', contract_type: 'محدد', annual_leave_balance: 30, sick_leave_balance: 10, emergency_leave_balance: 5, profile_picture: null },
+  { id: 10, full_name: 'عبدالرحمن سليمان', email: 'abdulrahman.dev@quant.com', phone: '+966 50 901 2345', national_id: '1000000010', date_of_birth: '1996-03-18', nationality: 'سعودي', marital_status: 'أعزب', address: 'جدة، حي الشاطئ', employee_number: 'EMP-010', job_title: 'مطور واجهات أمامية', department_id: 3, manager_id: 2, hire_date: '2023-06-01', employment_type: 'دوام كامل', work_location: 'جدة - فرع جدة', status: 'نشط', salary: 14000, allowances: 1500, bank_name: 'البنك الأهلي', bank_account: 'SA0010010', contract_type: 'محدد', contract_end: addDays(45), annual_leave_balance: 30, sick_leave_balance: 10, emergency_leave_balance: 5, profile_picture: null },
 ]
 
 // email -> auth mapping
@@ -469,6 +469,7 @@ export const mockDashboardApi = {
     const pendingRequests = (typeof requests !== 'undefined' ? requests : []).filter((r) => r.status === 'معلق').length
     const pendingExpenses = (typeof expenses !== 'undefined' ? expenses : []).filter((x) => x.status === 'معلقة').length
     const expiringDocs = (typeof documents !== 'undefined' ? documents : []).filter((d) => d.expiry_date && daysSince(d.expiry_date) <= 0 && daysSince(d.expiry_date) >= -30).length
+    const expiringContracts = employees.filter((e) => e.contract_end && daysSince(e.contract_end) <= 0 && daysSince(e.contract_end) >= -60).length
     const openJobs = (typeof jobs !== 'undefined' ? jobs : []).filter((j) => j.status === 'مفتوحة').length
     const todayInterviews = (typeof interviews !== 'undefined' ? interviews : []).filter((i) => String(i.scheduled_at || '').slice(0, 10) === day && i.status === 'مجدولة').length
     const overdueReviews = (typeof goals !== 'undefined' ? goals : []).filter((g) => g.target_date && g.target_date < day && g.status !== 'مكتملة').length
@@ -484,10 +485,11 @@ export const mockDashboardApi = {
     departments.forEach((d) => { deptColors[d.name] = { color: d.color } })
     const pendingApprovals = pendingLeaves + pendingRequests + pendingExpenses
     const alerts = []
-    if (expiringDocs > 0) alerts.push({ severity: 'تحذير', text: `${expiringDocs} مستند/هوية قارب على الانتهاء` })
-    if (pendingApprovals > 0) alerts.push({ severity: 'معلومة', text: `${pendingApprovals} طلب بانتظار الموافقة` })
-    if (overdueReviews > 0) alerts.push({ severity: 'تحذير', text: `${overdueReviews} تقييم أداء متأخر` })
-    if (attSum('غائب') > 0) alerts.push({ severity: 'معلومة', text: `${attSum('غائب')} موظف غائب اليوم` })
+    if (expiringDocs > 0) alerts.push({ severity: 'تحذير', text: `${expiringDocs} مستند/هوية قارب على الانتهاء`, to: '/hr/documents' })
+    if (expiringContracts > 0) alerts.push({ severity: 'تحذير', text: `${expiringContracts} عقد قارب على الانتهاء`, to: '/employees?contract_expiring=1' })
+    if (pendingApprovals > 0) alerts.push({ severity: 'معلومة', text: `${pendingApprovals} طلب بانتظار الموافقة`, to: '/approvals' })
+    if (overdueReviews > 0) alerts.push({ severity: 'تحذير', text: `${overdueReviews} تقييم أداء متأخر`, to: '/hr/performance' })
+    if (attSum('غائب') > 0) alerts.push({ severity: 'معلومة', text: `${attSum('غائب')} موظف غائب اليوم`, to: '/attendance' })
 
     return {
       workforce: {
@@ -500,7 +502,7 @@ export const mockDashboardApi = {
         turnover: total ? Math.round((leavers / total) * 1000) / 10 : 0,
       },
       attendanceToday: { present: attSum('حاضر'), late: attSum('تأخر'), absent: attSum('غائب'), remote: attSum('عمل عن بعد'), onLeave: employees.filter((e) => e.status === 'إجازة').length },
-      actions: { pendingApprovals, pendingLeaves, pendingRequests, pendingExpenses, expiringContracts: 0, expiringDocs, openJobs, todayInterviews, overdueReviews },
+      actions: { pendingApprovals, pendingLeaves, pendingRequests, pendingExpenses, expiringContracts, expiringDocs, openJobs, todayInterviews, overdueReviews },
       celebrations: {
         birthdays: active.filter((e) => String(e.date_of_birth || '').slice(5, 7) === curMonth).map((e) => ({ full_name: e.full_name, profile_picture: null, date_of_birth: e.date_of_birth })),
         anniversaries: active.filter((e) => String(e.hire_date || '').slice(5, 7) === curMonth && daysSince(e.hire_date) > 330).map((e) => ({ full_name: e.full_name, profile_picture: null, hire_date: e.hire_date, years: now.getFullYear() - new Date(e.hire_date).getFullYear() })),
@@ -519,7 +521,7 @@ export const mockDashboardApi = {
 }
 
 export const mockEmployeesApi = {
-  async list({ search = '', status = '', department_id = '', page = 1, limit = 12 } = {}) {
+  async list({ search = '', status = '', department_id = '', contract_expiring = '', page = 1, limit = 12 } = {}) {
     await delay()
     let rows = employees.map(withDept)
     if (search) {
@@ -528,6 +530,11 @@ export const mockEmployeesApi = {
     }
     if (status) rows = rows.filter((e) => e.status === status)
     if (department_id) rows = rows.filter((e) => e.department_id === Number(department_id))
+    if (contract_expiring) {
+      const now = Date.now(), horizon = now + 60 * 86400000
+      rows = rows.filter((e) => e.contract_end && new Date(e.contract_end).getTime() >= now && new Date(e.contract_end).getTime() <= horizon)
+      rows.sort((a, b) => new Date(a.contract_end) - new Date(b.contract_end))
+    }
     const total = rows.length
     const start = (page - 1) * limit
     return { employees: rows.slice(start, start + limit), pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / limit) } }

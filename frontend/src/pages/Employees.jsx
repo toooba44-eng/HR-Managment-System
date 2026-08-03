@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { Search, Plus, Users } from 'lucide-react'
+import { Search, Plus, Users, FileWarning } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { employeesApi, departmentsApi } from '../api/endpoints'
 import { useAuthStore } from '../store/authStore'
@@ -95,23 +95,36 @@ function EmployeeForm({ open, onClose }) {
 export default function Employees() {
   const navigate = useNavigate()
   const { isHR } = useAuthStore()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
   const [departmentId, setDepartmentId] = useState('')
   const [page, setPage] = useState(1)
   const [showForm, setShowForm] = useState(false)
+  const contractExpiring = searchParams.get('contract_expiring') === '1'
 
   const { data: departments = [] } = useQuery('departments', departmentsApi.list)
   const { data, isLoading } = useQuery(
-    ['employees', { search, status, departmentId, page }],
-    () => employeesApi.list({ search, status, department_id: departmentId, page, limit: 12 }),
+    ['employees', { search, status, departmentId, contractExpiring, page }],
+    () => employeesApi.list({ search, status, department_id: departmentId, contract_expiring: contractExpiring ? 1 : undefined, page, limit: 12 }),
     { keepPreviousData: true }
   )
 
   const employees = data?.employees || []
+  const clearContractFilter = () => { setSearchParams({}); setPage(1) }
 
   return (
     <div className="space-y-6">
+      {contractExpiring && (
+        <div className="card border-r-4 border-amber-400 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-sm text-amber-700">
+            <FileWarning className="w-5 h-5" />
+            عقود العمل التي تنتهي خلال 60 يوماً — رتّب التجديد أو إنهاء الخدمة قبل الموعد.
+          </div>
+          <Button variant="secondary" className="!py-1.5 !px-3 text-xs shrink-0" onClick={clearContractFilter}>إزالة الفلتر</Button>
+        </div>
+      )}
+
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
@@ -179,6 +192,12 @@ export default function Employees() {
                   <p className="text-slate-400">الرقم الوظيفي</p>
                   <p className="text-slate-600 font-medium truncate">{emp.employee_number || '—'}</p>
                 </div>
+                {contractExpiring && emp.contract_end && (
+                  <div className="col-span-2">
+                    <p className="text-slate-400">نهاية العقد</p>
+                    <p className="text-amber-600 font-medium">{formatDate(emp.contract_end)}</p>
+                  </div>
+                )}
               </div>
             </button>
           ))}

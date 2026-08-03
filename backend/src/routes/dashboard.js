@@ -205,13 +205,14 @@ router.get('/hr-overview', requireRole('admin', 'hr_manager', 'super_admin', 'de
       months.push({ month: ym, hired, resigned });
     }
 
-    // Alerts
+    // Alerts — each links straight to the screen that lets HR act on it,
+    // instead of leaving the count as a dead-end badge.
     const alerts = [];
-    if (expiringDocs > 0) alerts.push({ severity: 'تحذير', text: `${expiringDocs} مستند/هوية قارب على الانتهاء` });
-    if (expiringContracts > 0) alerts.push({ severity: 'تحذير', text: `${expiringContracts} عقد قارب على الانتهاء` });
-    if (pendingApprovals > 0) alerts.push({ severity: 'معلومة', text: `${pendingApprovals} طلب بانتظار الموافقة` });
-    if (overdueReviews > 0) alerts.push({ severity: 'تحذير', text: `${overdueReviews} تقييم أداء متأخر` });
-    if ((att.absent || 0) > 0) alerts.push({ severity: 'معلومة', text: `${att.absent || 0} موظف غائب اليوم` });
+    if (expiringDocs > 0) alerts.push({ severity: 'تحذير', text: `${expiringDocs} مستند/هوية قارب على الانتهاء`, to: '/hr/documents' });
+    if (expiringContracts > 0) alerts.push({ severity: 'تحذير', text: `${expiringContracts} عقد قارب على الانتهاء`, to: '/employees?contract_expiring=1' });
+    if (pendingApprovals > 0) alerts.push({ severity: 'معلومة', text: `${pendingApprovals} طلب بانتظار الموافقة`, to: '/approvals' });
+    if (overdueReviews > 0) alerts.push({ severity: 'تحذير', text: `${overdueReviews} تقييم أداء متأخر`, to: '/hr/performance' });
+    if ((att.absent || 0) > 0) alerts.push({ severity: 'معلومة', text: `${att.absent || 0} موظف غائب اليوم`, to: '/attendance' });
 
     res.json({
       workforce: { total, active, onLeave, leavers, newHires30, newHires90, probation, turnover },
