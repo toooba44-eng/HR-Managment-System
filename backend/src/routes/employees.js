@@ -10,7 +10,7 @@ router.use(authenticateToken);
 // Get all employees (with filters)
 router.get('/', (req, res, next) => {
   try {
-    const { department_id, status, search, page = 1, limit = 20 } = req.query;
+    const { department_id, status, search, contract_expiring, page = 1, limit = 20 } = req.query;
     const offset = (page - 1) * limit;
 
     let whereClause = 'WHERE 1=1';
@@ -27,6 +27,11 @@ router.get('/', (req, res, next) => {
     if (search) {
       whereClause += ` AND (e.full_name LIKE ? OR e.email LIKE ? OR e.job_title LIKE ?)`;
       params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    }
+    // Contracts expiring within 60 days — same window as the dashboard alert,
+    // so clicking through shows exactly the employees it's counting.
+    if (contract_expiring) {
+      whereClause += ` AND e.contract_end IS NOT NULL AND e.contract_end BETWEEN date('now') AND date('now', '+60 days')`;
     }
 
     // Role-based filtering
@@ -50,7 +55,7 @@ router.get('/', (req, res, next) => {
       LEFT JOIN departments d ON e.department_id = d.id
       LEFT JOIN employees m ON e.manager_id = m.id
       ${whereClause}
-      ORDER BY e.created_at DESC
+      ORDER BY ${contract_expiring ? 'e.contract_end ASC' : 'e.created_at DESC'}
       LIMIT ? OFFSET ?
     `);
 

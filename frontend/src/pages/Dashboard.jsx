@@ -97,9 +97,14 @@ function HrDashboard() {
         <div className="card border-r-4 border-amber-400">
           <div className="flex items-center gap-2 mb-2"><AlertTriangle className="w-5 h-5 text-amber-500" /><h3 className="font-bold text-slate-800">تنبيهات مهمة</h3></div>
           <div className="flex flex-wrap gap-2">
-            {alerts.map((al, i) => (
-              <span key={i} className={`badge ${al.severity === 'تحذير' ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700'}`}>{al.text}</span>
-            ))}
+            {alerts.map((al, i) => {
+              const tone = al.severity === 'تحذير' ? 'bg-amber-50 text-amber-700 hover:bg-amber-100' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+              return al.to ? (
+                <Link key={i} to={al.to} className={`badge ${tone} transition-colors`}>{al.text}</Link>
+              ) : (
+                <span key={i} className={`badge ${tone}`}>{al.text}</span>
+              )
+            })}
           </div>
         </div>
       )}
