@@ -136,6 +136,20 @@ router.put('/offer/:id', (req, res, next) => {
     if (!['مقبول', 'مرفوض'].includes(status)) return res.status(400).json({ error: 'Invalid status' });
     if (offer.status !== 'معلّق') return res.status(400).json({ error: 'Already responded' });
     db.prepare('UPDATE job_offers SET status = ?, responded_at = ? WHERE id = ?').run(status, new Date().toISOString(), req.params.id);
+
+    // Reflect the candidate's decision on the matching pipeline application
+    // (matched by email + job title) so HR sees it move to "تم التوظيف" or
+    // "مرفوض" without a separate manual step.
+    const app = db.prepare(`
+      SELECT a.id FROM applications a JOIN jobs j ON a.job_id = j.id
+      WHERE a.candidate_email = ? AND j.title = ? AND a.stage = 'عرض وظيفي'
+      ORDER BY a.id DESC LIMIT 1
+    `).get(req.user.email, offer.job_title);
+    if (app) {
+      const nextStage = status === 'مقبول' ? 'تم التوظيف' : 'مرفوض';
+      db.prepare('UPDATE applications SET stage = ?, status = ? WHERE id = ?').run(nextStage, status, app.id);
+    }
+
     res.json({ message: 'Updated' });
   } catch (err) { next(err); }
 });

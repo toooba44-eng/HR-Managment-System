@@ -1353,6 +1353,43 @@ export const mockApplicationsApi = {
     a.rating = Number(rating)
     return { message: 'تم' }
   },
+  async getOffer(id) {
+    await delay()
+    const a = applications.find((x) => x.id === Number(id))
+    if (!a) throw notFound()
+    const mine = jobOffers.filter((o) => o.email === a.candidate_email).sort((x, y) => y.id - x.id)
+    return { offer: mine[0] ? { ...mine[0] } : null }
+  },
+  async createOffer(id, data) {
+    await delay()
+    const a = applications.find((x) => x.id === Number(id))
+    if (!a) throw notFound()
+    if (!data?.job_title) throw badReq('المسمى الوظيفي مطلوب')
+    const offer = {
+      id: offerSeq++,
+      email: a.candidate_email,
+      job_title: data.job_title,
+      department: data.department || null,
+      salary: data.salary != null && data.salary !== '' ? Number(data.salary) : null,
+      start_date: data.start_date || null,
+      details: data.details || null,
+      status: 'معلّق',
+      responded_at: null,
+    }
+    jobOffers.push(offer)
+    a.stage = 'عرض وظيفي'
+    a.status = 'مقابلة'
+    return { message: 'تم الإنشاء', offer }
+  },
+  async withdrawOffer(offerId) {
+    await delay()
+    const offer = jobOffers.find((o) => o.id === Number(offerId))
+    if (!offer) throw notFound()
+    if (offer.status !== 'معلّق') throw badReq('لا يمكن سحب عرض تم الرد عليه')
+    const i = jobOffers.indexOf(offer)
+    jobOffers.splice(i, 1)
+    return { message: 'تم السحب' }
+  },
 }
 
 function companiesSummary() {
@@ -3705,14 +3742,31 @@ export const mockCandidateApi = {
     form.submitted_at = nowIso()
     return { message: 'تم' }
   },
-  async offer() { await delay(); return { offer: candOffer.id ? { ...candOffer } : null } },
+  async offer() {
+    await delay()
+    const email = currentUser()?.email
+    const mine = jobOffers.filter((o) => o.email === email).sort((a, b) => b.id - a.id)
+    return { offer: mine[0] ? { ...mine[0] } : null }
+  },
   async respondOffer(id, status) {
     await delay()
-    if (candOffer.id !== Number(id)) throw notFound()
+    const email = currentUser()?.email
+    const offer = jobOffers.find((o) => o.id === Number(id) && o.email === email)
+    if (!offer) throw notFound()
     if (!['مقبول', 'مرفوض'].includes(status)) throw badReq('حالة غير صالحة')
-    if (candOffer.status !== 'معلّق') throw badReq('تمت الاستجابة مسبقاً')
-    candOffer.status = status
-    candOffer.responded_at = nowIso()
+    if (offer.status !== 'معلّق') throw badReq('تمت الاستجابة مسبقاً')
+    offer.status = status
+    offer.responded_at = nowIso()
+
+    const app = applications
+      .filter((a) => a.candidate_email === email && a.stage === 'عرض وظيفي')
+      .map((a) => ({ a, j: jobs.find((x) => x.id === a.job_id) }))
+      .filter(({ j }) => j?.title === offer.job_title)
+      .sort((x, y) => y.a.id - x.a.id)[0]?.a
+    if (app) {
+      app.stage = status === 'مقبول' ? 'تم التوظيف' : 'مرفوض'
+      app.status = status
+    }
     return { message: 'تم' }
   },
   async messages() { await delay(); return { messages: candMessages.slice() } },
@@ -3744,7 +3798,10 @@ const candForms = [
   { id: candFormSeq++, email: candidateProfile.email, title: 'إقرار خلو السوابق', description: 'إقرار بعدم وجود سوابق جنائية', status: 'مطلوب', response: null, submitted_at: null },
   { id: candFormSeq++, email: candidateProfile.email, title: 'نموذج المعلومات البنكية', description: 'بيانات الحساب البنكي لصرف الراتب', status: 'مطلوب', response: null, submitted_at: null },
 ]
-const candOffer = { id: 1, email: candidateProfile.email, job_title: 'مطوّر واجهات أمامية', department: 'التقنية', salary: 14000, start_date: addDays(30), details: 'عقد دوام كامل، فترة تجربة 3 أشهر، تأمين طبي شامل، 30 يوم إجازة سنوية.', status: 'معلّق', responded_at: null }
+let offerSeq = 2
+const jobOffers = [
+  { id: 1, email: candidateProfile.email, job_title: 'مطوّر واجهات أمامية', department: 'التقنية', salary: 14000, start_date: addDays(30), details: 'عقد دوام كامل، فترة تجربة 3 أشهر، تأمين طبي شامل، 30 يوم إجازة سنوية.', status: 'معلّق', responded_at: null },
+]
 let candMsgSeq = 1
 const candMessages = [
   { id: candMsgSeq++, email: candidateProfile.email, sender: 'hr', body: 'مرحباً بك! نشكر اهتمامك بالانضمام إلينا. هل لديك أي استفسار؟', created_at: addDays(-3) },

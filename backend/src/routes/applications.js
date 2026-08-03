@@ -138,6 +138,47 @@ router.post('/', (req, res, next) => {
   }
 });
 
+/* ------------------------- Job offers ------------------------- */
+
+// Get the latest offer extended to this application's candidate (if any)
+router.get('/:id/offer', requireRole(...MANAGE), (req, res, next) => {
+  try {
+    const app = db.prepare('SELECT candidate_email FROM applications WHERE id = ?').get(req.params.id);
+    if (!app) return res.status(404).json({ error: 'Not found' });
+    const offer = db.prepare('SELECT * FROM job_offers WHERE email = ? ORDER BY id DESC LIMIT 1').get(app.candidate_email);
+    res.json({ offer: offer || null });
+  } catch (err) { next(err); }
+});
+
+// Extend a formal job offer — also advances the pipeline to "عرض وظيفي"
+router.post('/:id/offer', requireRole(...MANAGE), (req, res, next) => {
+  try {
+    const app = db.prepare('SELECT * FROM applications WHERE id = ?').get(req.params.id);
+    if (!app) return res.status(404).json({ error: 'Application not found' });
+    const { job_title, department, salary, start_date, details } = req.body;
+    if (!job_title) return res.status(400).json({ error: 'Job title is required' });
+
+    const result = db.prepare(`
+      INSERT INTO job_offers (email, job_title, department, salary, start_date, details)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(app.candidate_email, job_title, department || null, salary || null, start_date || null, details || null);
+
+    db.prepare('UPDATE applications SET stage = ?, status = ? WHERE id = ?').run('عرض وظيفي', 'مقابلة', req.params.id);
+    res.status(201).json({ message: 'Created', offer: { id: result.lastInsertRowid } });
+  } catch (err) { next(err); }
+});
+
+// Withdraw a still-pending offer
+router.delete('/offers/:offerId', requireRole(...MANAGE), (req, res, next) => {
+  try {
+    const offer = db.prepare('SELECT * FROM job_offers WHERE id = ?').get(req.params.offerId);
+    if (!offer) return res.status(404).json({ error: 'Not found' });
+    if (offer.status !== 'معلّق') return res.status(400).json({ error: 'لا يمكن سحب عرض تم الرد عليه' });
+    db.prepare('DELETE FROM job_offers WHERE id = ?').run(req.params.offerId);
+    res.json({ message: 'Withdrawn' });
+  } catch (err) { next(err); }
+});
+
 // HR: update application status
 router.put('/:id/status', requireRole(...MANAGE), (req, res, next) => {
   try {
