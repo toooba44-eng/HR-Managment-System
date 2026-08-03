@@ -51,11 +51,21 @@ router.get('/', (req, res, next) => {
   }
 });
 
+// A department head may only create/edit/delete succession plans within
+// their own department — the list endpoint already scopes this way;
+// enforce it here too.
+function inManagedScope(user, departmentId) {
+  if (user.role !== 'department_head') return true;
+  const dept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(user.employee_id);
+  return !!dept && departmentId != null && dept.department_id === Number(departmentId);
+}
+
 // Create a succession plan (managers & HR)
 router.post('/', requireRole(...MANAGE), (req, res, next) => {
   try {
     const b = req.body;
     if (!b.position_title) return res.status(400).json({ error: 'Position title is required' });
+    if (!inManagedScope(req.user, b.department_id)) return res.status(403).json({ error: 'Access denied' });
     if (b.successor_id && b.incumbent_id && Number(b.successor_id) === Number(b.incumbent_id)) {
       return res.status(400).json({ error: 'لا يمكن أن يكون الموظف خليفة لنفسه' });
     }
@@ -79,7 +89,11 @@ router.put('/:id', requireRole(...MANAGE), (req, res, next) => {
   try {
     const existing = db.prepare('SELECT * FROM succession WHERE id = ?').get(req.params.id);
     if (!existing) return res.status(404).json({ error: 'Not found' });
+    if (!inManagedScope(req.user, existing.department_id)) return res.status(403).json({ error: 'Access denied' });
     const b = req.body;
+    if (b.department_id !== undefined && !inManagedScope(req.user, b.department_id)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
     const nextIncumbent = b.incumbent_id !== undefined ? b.incumbent_id : existing.incumbent_id;
     const nextSuccessor = b.successor_id !== undefined ? b.successor_id : existing.successor_id;
     if (nextSuccessor && nextIncumbent && Number(nextSuccessor) === Number(nextIncumbent)) {
@@ -111,6 +125,9 @@ router.put('/:id', requireRole(...MANAGE), (req, res, next) => {
 // Delete a succession plan (managers & HR)
 router.delete('/:id', requireRole(...MANAGE), (req, res, next) => {
   try {
+    const existing = db.prepare('SELECT department_id FROM succession WHERE id = ?').get(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Not found' });
+    if (!inManagedScope(req.user, existing.department_id)) return res.status(403).json({ error: 'Access denied' });
     const result = db.prepare('DELETE FROM succession WHERE id = ?').run(req.params.id);
     if (result.changes === 0) return res.status(404).json({ error: 'Not found' });
     res.json({ message: 'Deleted' });

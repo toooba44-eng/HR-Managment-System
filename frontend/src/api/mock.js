@@ -2422,9 +2422,31 @@ export const mockShiftsApi = {
     if (to) rows = rows.filter((s) => s.date <= to)
     return [...rows].sort((a, b) => b.date.localeCompare(a.date)).map((s) => ({ ...s, full_name: empName(s.employee_id), job_title: employees.find((e) => e.id === s.employee_id)?.job_title, profile_picture: null }))
   },
-  async create(data) { await delay(); const s = { id: shiftSeq++, shift_type: data.shift_type || 'صباحية', location: data.location || 'المقر الرئيسي', created_by: currentUser()?.employee_id || 5, ...data }; shifts.unshift(s); return { message: 'تم', shift: s } },
-  async update(id, data) { await delay(); const s = shifts.find((x) => x.id === Number(id)); if (s) Object.assign(s, data); return { message: 'تم التحديث' } },
-  async remove(id) { await delay(); const i = shifts.findIndex((x) => x.id === Number(id)); if (i > -1) shifts.splice(i, 1); return { message: 'تم الحذف' } },
+  async create(data) {
+    await delay()
+    const u = currentUser()
+    if (!sameDeptAsMe(u, data.employee_id)) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    const s = { id: shiftSeq++, shift_type: data.shift_type || 'صباحية', location: data.location || 'المقر الرئيسي', created_by: u?.employee_id || 5, ...data }
+    shifts.unshift(s)
+    return { message: 'تم', shift: s }
+  },
+  async update(id, data) {
+    await delay()
+    const s = shifts.find((x) => x.id === Number(id))
+    if (!s) return { message: 'تم التحديث' }
+    if (!sameDeptAsMe(currentUser(), s.employee_id)) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    Object.assign(s, data)
+    return { message: 'تم التحديث' }
+  },
+  async remove(id) {
+    await delay()
+    const s = shifts.find((x) => x.id === Number(id))
+    if (!s) throw notFound()
+    if (!sameDeptAsMe(currentUser(), s.employee_id)) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    const i = shifts.findIndex((x) => x.id === Number(id))
+    if (i > -1) shifts.splice(i, 1)
+    return { message: 'تم الحذف' }
+  },
   async swapRequests() {
     await delay()
     const u = currentUser()
@@ -2472,6 +2494,7 @@ export const mockShiftsApi = {
     await delay()
     const r = shiftSwapRequests.find((x) => x.id === Number(id))
     if (!r) throw notFound()
+    if (!sameDeptEitherAsMe(currentUser(), r.requester_id, r.target_id)) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
     if (r.status !== 'بانتظار اعتماد المدير') throw badReq('يجب موافقة الزميل أولاً')
     const shiftA = shifts.find((s) => s.id === r.shift_a_id)
     const shiftB = shifts.find((s) => s.id === r.shift_b_id)
@@ -2486,6 +2509,7 @@ export const mockShiftsApi = {
     await delay()
     const r = shiftSwapRequests.find((x) => x.id === Number(id))
     if (!r) throw notFound()
+    if (!sameDeptEitherAsMe(currentUser(), r.requester_id, r.target_id)) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
     if (r.status === 'معتمد') throw badReq('تم الاعتماد مسبقاً')
     r.status = 'مرفوض'
     return { message: 'تم الرفض' }
@@ -2659,7 +2683,10 @@ const talentReviewHistory = [
 export const mockTalentGridApi = {
   async get() {
     await delay()
-    const rows = employees.filter((e) => e.status === 'نشط').map((e) => ({
+    const u = currentUser()
+    let pool = employees.filter((e) => e.status === 'نشط')
+    if (u?.role === 'department_head') pool = pool.filter((e) => e.department_id === myDept())
+    const rows = pool.map((e) => ({
       id: e.id, full_name: e.full_name, job_title: e.job_title, profile_picture: null, department_name: deptName(e.department_id),
       performance: talentReviews[e.id]?.performance || null, potential: talentReviews[e.id]?.potential || null, notes: talentReviews[e.id]?.notes || null,
     }))
@@ -2672,6 +2699,7 @@ export const mockTalentGridApi = {
   async set(employeeId, data) {
     await delay()
     if (![1, 2, 3].includes(data.performance) || ![1, 2, 3].includes(data.potential)) throw badReq('التقييم يجب أن يكون 1-3')
+    if (!sameDeptAsMe(currentUser(), Number(employeeId))) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
     const id = Number(employeeId)
     const existing = talentReviews[id]
     const moved = !existing || existing.performance !== data.performance || existing.potential !== data.potential
@@ -2681,9 +2709,15 @@ export const mockTalentGridApi = {
     }
     return { message: 'تم' }
   },
-  async clear(employeeId) { await delay(); delete talentReviews[Number(employeeId)]; return { message: 'تم' } },
+  async clear(employeeId) {
+    await delay()
+    if (!sameDeptAsMe(currentUser(), Number(employeeId))) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    delete talentReviews[Number(employeeId)]
+    return { message: 'تم' }
+  },
   async history(employeeId) {
     await delay()
+    if (!sameDeptAsMe(currentUser(), Number(employeeId))) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
     return talentReviewHistory
       .filter((h) => h.employee_id === Number(employeeId))
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
@@ -2743,11 +2777,13 @@ export const mockSkillsApi = {
     const name = (data.skill || '').trim()
     if (!name) throw badReq('المهارة مطلوبة')
     if (![1, 2, 3, 4, 5].includes(data.level)) throw badReq('المستوى يجب أن يكون 1-5')
+    if (!sameDeptAsMe(currentUser(), Number(employeeId))) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
     ;(employeeSkills[Number(employeeId)] ||= {})[name] = data.level
     return { message: 'تم' }
   },
   async remove(employeeId, skill) {
     await delay()
+    if (!sameDeptAsMe(currentUser(), Number(employeeId))) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
     const bag = employeeSkills[Number(employeeId)]
     if (bag) delete bag[(skill || '').trim()]
     return { message: 'تم' }
@@ -2843,8 +2879,10 @@ export const mockSuccessionApi = {
   },
   async create(data) {
     await delay()
+    const u = currentUser()
+    if (!deptIdInMyScope(u, data.department_id)) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
     if (data.successor_id && data.incumbent_id && Number(data.successor_id) === Number(data.incumbent_id)) throw badReq('لا يمكن أن يكون الموظف خليفة لنفسه')
-    const s = { id: succSeq++, readiness: 'خلال سنة', risk_level: 'متوسط', potential: 'أداء عالٍ', status: 'نشط', notes: null, created_by: currentUser()?.employee_id || 5, ...data, department_id: data.department_id ? Number(data.department_id) : null, incumbent_id: data.incumbent_id ? Number(data.incumbent_id) : null, successor_id: data.successor_id ? Number(data.successor_id) : null }
+    const s = { id: succSeq++, readiness: 'خلال سنة', risk_level: 'متوسط', potential: 'أداء عالٍ', status: 'نشط', notes: null, created_by: u?.employee_id || 5, ...data, department_id: data.department_id ? Number(data.department_id) : null, incumbent_id: data.incumbent_id ? Number(data.incumbent_id) : null, successor_id: data.successor_id ? Number(data.successor_id) : null }
     succession.unshift(s)
     return { message: 'تم', succession: s }
   },
@@ -2852,13 +2890,24 @@ export const mockSuccessionApi = {
     await delay()
     const s = succession.find((x) => x.id === Number(id))
     if (!s) throw notFound()
+    const u = currentUser()
+    if (!deptIdInMyScope(u, s.department_id)) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    if (data.department_id !== undefined && !deptIdInMyScope(u, data.department_id)) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
     const nextIncumbent = data.incumbent_id !== undefined ? data.incumbent_id : s.incumbent_id
     const nextSuccessor = data.successor_id !== undefined ? data.successor_id : s.successor_id
     if (nextSuccessor && nextIncumbent && Number(nextSuccessor) === Number(nextIncumbent)) throw badReq('لا يمكن أن يكون الموظف خليفة لنفسه')
     Object.assign(s, data)
     return { message: 'تم التحديث' }
   },
-  async remove(id) { await delay(); const i = succession.findIndex((x) => x.id === Number(id)); if (i > -1) succession.splice(i, 1); return { message: 'تم الحذف' } },
+  async remove(id) {
+    await delay()
+    const s = succession.find((x) => x.id === Number(id))
+    if (!s) throw notFound()
+    if (!deptIdInMyScope(currentUser(), s.department_id)) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    const i = succession.findIndex((x) => x.id === Number(id))
+    if (i > -1) succession.splice(i, 1)
+    return { message: 'تم الحذف' }
+  },
 }
 
 const orgProfile = {
@@ -3050,11 +3099,13 @@ export const mockOnboardingApi = {
   },
   async create(data) {
     await delay()
+    const u = currentUser()
+    if (!sameDeptAsMe(u, Number(data.employee_id))) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
     const list = Array.isArray(data.tasks) && data.tasks.length ? data.tasks : OB_DEFAULT_TASKS
     const p = {
       id: obSeq++, employee_id: Number(data.employee_id), start_date: data.start_date || null,
       buddy_id: data.buddy_id ? Number(data.buddy_id) : null, status: 'قيد التنفيذ', notes: data.notes || null,
-      created_by: currentUser()?.employee_id || 5,
+      created_by: u?.employee_id || 5,
       tasks: list.map((t) => ({ id: obTaskSeq++, title: t.title, category: t.category || 'أخرى', owner: t.owner || 'الموارد البشرية', due_date: t.due_date || data.start_date || null, is_done: 0 })),
     }
     onboarding.unshift(p)
@@ -3063,11 +3114,16 @@ export const mockOnboardingApi = {
   async update(id, data) {
     await delay()
     const p = onboarding.find((x) => x.id === Number(id))
-    if (p) { if (data.start_date !== undefined) p.start_date = data.start_date; if (data.buddy_id !== undefined) p.buddy_id = data.buddy_id ? Number(data.buddy_id) : null; if (data.status !== undefined) p.status = data.status; if (data.notes !== undefined) p.notes = data.notes }
+    if (!p) return { message: 'تم التحديث' }
+    if (!sameDeptAsMe(currentUser(), p.employee_id)) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    if (data.start_date !== undefined) p.start_date = data.start_date; if (data.buddy_id !== undefined) p.buddy_id = data.buddy_id ? Number(data.buddy_id) : null; if (data.status !== undefined) p.status = data.status; if (data.notes !== undefined) p.notes = data.notes
     return { message: 'تم التحديث' }
   },
   async remove(id) {
     await delay()
+    const p = onboarding.find((x) => x.id === Number(id))
+    if (!p) throw notFound()
+    if (!sameDeptAsMe(currentUser(), p.employee_id)) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
     const i = onboarding.findIndex((x) => x.id === Number(id))
     if (i > -1) onboarding.splice(i, 1)
     return { message: 'تم الحذف' }
@@ -3076,6 +3132,7 @@ export const mockOnboardingApi = {
     await delay()
     const p = onboarding.find((x) => x.id === Number(id))
     if (!p) throw notFound()
+    if (!sameDeptAsMe(currentUser(), p.employee_id)) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
     const t = { id: obTaskSeq++, title: data.title, category: data.category || 'أخرى', owner: data.owner || 'الموارد البشرية', due_date: data.due_date || null, is_done: 0 }
     p.tasks.push(t)
     return { message: 'تم', task: { id: t.id } }
@@ -3084,6 +3141,7 @@ export const mockOnboardingApi = {
     await delay()
     const { plan, task } = findTask(taskId)
     if (!task) throw notFound()
+    if (!sameDeptAsMe(currentUser(), plan?.employee_id)) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
     if (data.title !== undefined) task.title = data.title
     if (data.category !== undefined) task.category = data.category
     if (data.owner !== undefined) task.owner = data.owner
@@ -3099,7 +3157,9 @@ export const mockOnboardingApi = {
   async removeTask(taskId) {
     await delay()
     const { plan } = findTask(taskId)
-    if (plan) plan.tasks = plan.tasks.filter((t) => t.id !== Number(taskId))
+    if (!plan) throw notFound()
+    if (!sameDeptAsMe(currentUser(), plan.employee_id)) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    plan.tasks = plan.tasks.filter((t) => t.id !== Number(taskId))
     return { message: 'تم الحذف' }
   },
 }
@@ -3455,6 +3515,13 @@ const sameDeptEitherAsMe = (u, employeeIdA, employeeIdB) => {
   const d = myDept()
   if (d == null) return false
   return employees.find((e) => e.id === employeeIdA)?.department_id === d || employees.find((e) => e.id === employeeIdB)?.department_id === d
+}
+// For records (like succession plans) that carry a department_id directly
+// rather than via an employee lookup.
+const deptIdInMyScope = (u, departmentId) => {
+  if (u.role !== 'department_head') return true
+  const d = myDept()
+  return d != null && departmentId != null && d === Number(departmentId)
 }
 
 let hireSeq = 1

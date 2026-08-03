@@ -7,6 +7,17 @@ router.use(authenticateToken);
 
 const MANAGE = ['admin', 'hr_manager', 'department_head', 'super_admin'];
 
+// A department head may only act on onboarding plans within their own
+// department — the list endpoint already scopes this way; enforce it here
+// too so these actions can't be reached directly by ID for someone else's
+// department.
+function inManagedScope(user, employeeId) {
+  if (user.role !== 'department_head') return true;
+  const dept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(user.employee_id);
+  const empDept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(employeeId);
+  return !!dept && !!empDept && dept.department_id === empDept.department_id;
+}
+
 // Default checklist generated for a new onboarding plan
 const DEFAULT_TASKS = [
   { title: 'استكمال العقد والمستندات الرسمية', category: 'مستندات', owner: 'الموارد البشرية' },
@@ -121,6 +132,7 @@ router.post('/', requireRole(...MANAGE), (req, res, next) => {
     if (!employee_id) return res.status(400).json({ error: 'Employee is required' });
     const emp = db.prepare('SELECT id FROM employees WHERE id = ?').get(employee_id);
     if (!emp) return res.status(404).json({ error: 'Employee not found' });
+    if (!inManagedScope(req.user, employee_id)) return res.status(403).json({ error: 'Access denied' });
 
     const result = db.prepare(`
       INSERT INTO onboarding (employee_id, start_date, buddy_id, notes, created_by)
@@ -144,6 +156,7 @@ router.put('/:id', requireRole(...MANAGE), (req, res, next) => {
   try {
     const existing = db.prepare('SELECT * FROM onboarding WHERE id = ?').get(req.params.id);
     if (!existing) return res.status(404).json({ error: 'Not found' });
+    if (!inManagedScope(req.user, existing.employee_id)) return res.status(403).json({ error: 'Access denied' });
     const b = req.body;
     db.prepare('UPDATE onboarding SET start_date = ?, buddy_id = ?, status = ?, notes = ? WHERE id = ?')
       .run(
@@ -162,6 +175,9 @@ router.put('/:id', requireRole(...MANAGE), (req, res, next) => {
 // Delete plan (managers & HR)
 router.delete('/:id', requireRole(...MANAGE), (req, res, next) => {
   try {
+    const existing = db.prepare('SELECT employee_id FROM onboarding WHERE id = ?').get(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Not found' });
+    if (!inManagedScope(req.user, existing.employee_id)) return res.status(403).json({ error: 'Access denied' });
     const result = db.prepare('DELETE FROM onboarding WHERE id = ?').run(req.params.id);
     if (result.changes === 0) return res.status(404).json({ error: 'Not found' });
     res.json({ message: 'Deleted' });
@@ -173,8 +189,9 @@ router.delete('/:id', requireRole(...MANAGE), (req, res, next) => {
 // Add a checklist task (managers & HR)
 router.post('/:id/tasks', requireRole(...MANAGE), (req, res, next) => {
   try {
-    const plan = db.prepare('SELECT id FROM onboarding WHERE id = ?').get(req.params.id);
+    const plan = db.prepare('SELECT id, employee_id FROM onboarding WHERE id = ?').get(req.params.id);
     if (!plan) return res.status(404).json({ error: 'Not found' });
+    if (!inManagedScope(req.user, plan.employee_id)) return res.status(403).json({ error: 'Access denied' });
     const { title, category, owner, due_date } = req.body;
     if (!title) return res.status(400).json({ error: 'Title is required' });
     const result = db.prepare('INSERT INTO onboarding_tasks (onboarding_id, title, category, owner, due_date) VALUES (?, ?, ?, ?, ?)')
@@ -190,6 +207,8 @@ router.put('/tasks/:taskId', requireRole(...MANAGE), (req, res, next) => {
   try {
     const task = db.prepare('SELECT * FROM onboarding_tasks WHERE id = ?').get(req.params.taskId);
     if (!task) return res.status(404).json({ error: 'Not found' });
+    const owningPlan = db.prepare('SELECT employee_id FROM onboarding WHERE id = ?').get(task.onboarding_id);
+    if (!inManagedScope(req.user, owningPlan?.employee_id)) return res.status(403).json({ error: 'Access denied' });
     const b = req.body;
     db.prepare('UPDATE onboarding_tasks SET title = ?, category = ?, owner = ?, due_date = ?, is_done = ? WHERE id = ?')
       .run(
@@ -218,6 +237,10 @@ router.put('/tasks/:taskId', requireRole(...MANAGE), (req, res, next) => {
 // Delete a checklist task (managers & HR)
 router.delete('/tasks/:taskId', requireRole(...MANAGE), (req, res, next) => {
   try {
+    const task = db.prepare('SELECT onboarding_id FROM onboarding_tasks WHERE id = ?').get(req.params.taskId);
+    if (!task) return res.status(404).json({ error: 'Not found' });
+    const owningPlan = db.prepare('SELECT employee_id FROM onboarding WHERE id = ?').get(task.onboarding_id);
+    if (!inManagedScope(req.user, owningPlan?.employee_id)) return res.status(403).json({ error: 'Access denied' });
     const result = db.prepare('DELETE FROM onboarding_tasks WHERE id = ?').run(req.params.taskId);
     if (result.changes === 0) return res.status(404).json({ error: 'Not found' });
     res.json({ message: 'Deleted' });
