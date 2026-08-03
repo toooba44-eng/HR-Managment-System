@@ -660,6 +660,26 @@ const migrations = [
     FOREIGN KEY (reviewed_by) REFERENCES employees(id) ON DELETE SET NULL
   )`,
 
+  // Approvals Inbox audit log — every decision made through the unified
+  // مركز الموافقات, across every source it aggregates. Kept independent of
+  // each source's own table so "reject with reason" always has somewhere to
+  // record the reason even for sources with no native note column, and so
+  // approval history survives regardless of what happens to the underlying
+  // record afterward.
+  `CREATE TABLE IF NOT EXISTS approval_actions_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source TEXT NOT NULL,
+    record_id INTEGER NOT NULL,
+    action TEXT NOT NULL CHECK(action IN ('approve', 'reject')),
+    reason TEXT,
+    title TEXT,
+    employee_id INTEGER,
+    actor_id INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL,
+    FOREIGN KEY (actor_id) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
   // Payroll runs: a monthly batch that snapshots each active employee's pay
   // figures at creation time, then moves through a review/approval/payment
   // lifecycle. Snapshotting keeps historical runs stable even if an
