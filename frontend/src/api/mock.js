@@ -3773,3 +3773,316 @@ export const mockWorkforceApi = {
     return { message: 'تم' }
   },
 }
+
+// ---------- Approvals Inbox (مركز الموافقات) ----------
+// Mirrors the real backend's facade: each source keeps its own mock array
+// and status enum; this only aggregates + replicates the same
+// approve/reject writes the source's own mock API already performs.
+
+const daysSinceMock = (dateStr) => Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000)
+const APPROVAL_OVERDUE_DAYS = 5
+function approvalPriority(days, forceHigh) {
+  if (forceHigh || days > 7) return 'مرتفعة'
+  if (days > 3) return 'متوسطة'
+  return 'عادية'
+}
+
+let approvalLogSeq = 1
+const approvalActionsLog = []
+
+const APPROVAL_SOURCES = {
+  leave: {
+    label: 'إجازة',
+    eligible: (u) => ['admin', 'hr_manager', 'department_head'].includes(u.role),
+    pending(u) {
+      let rows = leaves.filter((l) => l.status === 'معلقة')
+      if (u.role === 'department_head') rows = rows.filter((l) => employees.find((e) => e.id === l.employee_id)?.department_id === myDept())
+      return rows
+    },
+    normalize: (r) => ({ title: `طلب إجازة ${r.type}`, subtitle: `${r.days_count} يوم · ${r.start_date} إلى ${r.end_date}`, amount: null }),
+    approve(id, u) {
+      const l = leaves.find((x) => x.id === Number(id))
+      if (!l || l.status !== 'معلقة') return false
+      l.status = 'موافقة'; l.approved_by = u.employee_id || null; l.approved_at = nowIso()
+      const emp = employees.find((e) => e.id === l.employee_id)
+      const balanceField = { سنوية: 'annual_leave_balance', مرضية: 'sick_leave_balance', طارئة: 'emergency_leave_balance' }[l.type]
+      if (emp && balanceField) emp[balanceField] -= l.days_count
+      return true
+    },
+    reject(id, u) {
+      const l = leaves.find((x) => x.id === Number(id))
+      if (!l || l.status !== 'معلقة') return false
+      l.status = 'مرفوضة'; l.approved_by = u.employee_id || null; l.approved_at = nowIso()
+      return true
+    },
+  },
+  attendance: {
+    label: 'تصحيح حضور',
+    eligible: (u) => ['admin', 'hr_manager', 'department_head', 'super_admin'].includes(u.role),
+    pending(u) {
+      let rows = attendanceCorrections.filter((c) => c.status === 'معلق')
+      if (u.role === 'department_head') rows = rows.filter((c) => employees.find((e) => e.id === c.employee_id)?.department_id === myDept())
+      return rows
+    },
+    normalize: (r) => ({ title: 'تصحيح حضور', subtitle: `${r.date} · ${r.requested_check_in || '—'} إلى ${r.requested_check_out || '—'}`, amount: null }),
+    approve(id, u) {
+      const c = attendanceCorrections.find((x) => x.id === Number(id))
+      if (!c || c.status !== 'معلق') return false
+      c.status = 'موافق عليه'; c.reviewed_by = u.employee_id || null
+      return true
+    },
+    reject(id, u) {
+      const c = attendanceCorrections.find((x) => x.id === Number(id))
+      if (!c || c.status !== 'معلق') return false
+      c.status = 'مرفوض'; c.reviewed_by = u.employee_id || null
+      return true
+    },
+  },
+  overtime: {
+    label: 'عمل إضافي',
+    eligible: (u) => ['admin', 'hr_manager', 'department_head', 'super_admin'].includes(u.role),
+    pending: (u) => approvalPendingRequests(u, 'عمل إضافي'),
+    normalize: (r) => ({ title: 'طلب عمل إضافي', subtitle: r.subject, amount: null }),
+    approve: (id, u) => approvalResolveRequest(id, 'مقبولة', u),
+    reject: (id, u) => approvalResolveRequest(id, 'مرفوضة', u),
+  },
+  remote: {
+    label: 'عمل عن بُعد',
+    eligible: (u) => ['admin', 'hr_manager', 'department_head', 'super_admin'].includes(u.role),
+    pending: (u) => approvalPendingRequests(u, 'عمل عن بعد'),
+    normalize: (r) => ({ title: 'طلب عمل عن بُعد', subtitle: r.subject, amount: null }),
+    approve: (id, u) => approvalResolveRequest(id, 'مقبولة', u),
+    reject: (id, u) => approvalResolveRequest(id, 'مرفوضة', u),
+  },
+  hiring: {
+    label: 'طلب توظيف',
+    eligible: (u) => ['admin', 'hr_manager', 'super_admin'].includes(u.role),
+    pending: () => hiringRequests.filter((h) => h.status === 'معلق'),
+    normalize: (r) => ({ title: `طلب توظيف: ${r.job_title}`, subtitle: `${deptName(r.department_id) || ''} · ${r.headcount} شاغر`, amount: null, forceHigh: r.urgency === 'عاجل' }),
+    approve: (id, u) => approvalSetStatus(hiringRequests, id, 'موافق عليه', u, 'معلق'),
+    reject: (id, u) => approvalSetStatus(hiringRequests, id, 'مرفوض', u, 'معلق'),
+  },
+  expense: {
+    label: 'مصروف',
+    eligible: (u) => ['admin', 'hr_manager', 'department_head', 'super_admin'].includes(u.role),
+    pending: (u) => approvalPendingExpenses(u, 'مصروف'),
+    normalize: (r) => ({ title: r.category || 'مصروف', subtitle: r.description || '', amount: r.amount }),
+    approve: (id, u) => approvalSetStatus(expenses, id, 'معتمدة', u, 'معلقة', 'approved_by'),
+    reject: (id, u) => approvalSetStatus(expenses, id, 'مرفوضة', u, 'معلقة', 'approved_by'),
+  },
+  advance: {
+    label: 'سلفة',
+    eligible: (u) => ['admin', 'hr_manager', 'department_head', 'super_admin'].includes(u.role),
+    pending: (u) => approvalPendingExpenses(u, 'سلفة'),
+    normalize: (r) => ({ title: 'طلب سلفة', subtitle: r.description || '', amount: r.amount }),
+    approve: (id, u) => approvalSetStatus(expenses, id, 'معتمدة', u, 'معلقة', 'approved_by'),
+    reject: (id, u) => approvalSetStatus(expenses, id, 'مرفوضة', u, 'معلقة', 'approved_by'),
+  },
+  payroll: {
+    label: 'مسير رواتب',
+    eligible: (u) => ['super_admin', 'admin', 'hr_manager'].includes(u.role),
+    pending: () => payrollRuns.filter((r) => r.status === 'قيد المراجعة'),
+    normalize: (r) => ({ title: `مسير رواتب ${r.month}/${r.year}`, subtitle: `${r.employee_count} موظف`, amount: r.total_net, noReject: true }),
+    approve(id, u) {
+      const r = payrollRuns.find((x) => x.id === Number(id))
+      if (!r || r.status !== 'قيد المراجعة') return false
+      r.status = 'معتمد'; r.approved_by = u.employee_id || null; r.approved_at = nowIso()
+      return true
+    },
+    reject: () => false,
+  },
+  promotion: {
+    label: 'ترقية',
+    eligible: (u) => ['admin', 'hr_manager', 'super_admin'].includes(u.role),
+    pending: () => promotions.filter((p) => p.status === 'معلق' && p.type === 'ترقية'),
+    normalize: (r) => ({ title: `ترقية: ${r.current_title || ''} ← ${r.new_title || ''}`, subtitle: r.justification || '', amount: null }),
+    approve: (id, u) => approvalApprovePromotion(id, u),
+    reject: (id, u) => approvalSetStatus(promotions, id, 'مرفوض', u, 'معلق'),
+  },
+  transfer: {
+    label: 'نقل',
+    eligible: (u) => ['admin', 'hr_manager', 'super_admin'].includes(u.role),
+    pending: () => promotions.filter((p) => p.status === 'معلق' && p.type === 'نقل'),
+    normalize: (r) => ({ title: `نقل${r.new_department_id ? ' إلى ' + (deptName(r.new_department_id) || '') : ''}`, subtitle: r.justification || '', amount: null }),
+    approve: (id, u) => approvalApprovePromotion(id, u),
+    reject: (id, u) => approvalSetStatus(promotions, id, 'مرفوض', u, 'معلق'),
+  },
+  document: {
+    label: 'مستند للتوقيع',
+    eligible: () => true,
+    pending: (u) => signatures.filter((s) => s.countersigner_id === u.employee_id && s.countersigner_status === 'بانتظار التوقيع'),
+    normalize: (r) => ({ title: r.title, subtitle: `${r.doc_type} · بعد توقيع الموظف`, amount: null }),
+    approve(id, u) {
+      const s = signatures.find((x) => x.id === Number(id))
+      if (!s || s.countersigner_id !== u.employee_id || s.countersigner_status !== 'بانتظار التوقيع') return false
+      s.countersigner_status = 'موقّع'; s.countersigned_at = nowIso(); s.status = 'موقّع'; s.signed_at = nowIso()
+      return true
+    },
+    reject(id, u) {
+      const s = signatures.find((x) => x.id === Number(id))
+      if (!s || s.countersigner_id !== u.employee_id || s.countersigner_status !== 'بانتظار التوقيع') return false
+      s.status = 'مرفوض'; s.countersigner_status = 'مرفوض'
+      return true
+    },
+  },
+  raise: {
+    label: 'زيادة راتب',
+    eligible: (u) => ['admin', 'hr_manager', 'super_admin'].includes(u.role),
+    pending: () => compensationRequests.filter((r) => r.status === 'معلق'),
+    normalize: (r) => ({ title: 'طلب زيادة راتب', subtitle: `${r.current_base_salary} ← ${r.requested_base_salary}`, amount: r.requested_base_salary - r.current_base_salary }),
+    approve(id, u) {
+      const r = compensationRequests.find((x) => x.id === Number(id))
+      if (!r || r.status !== 'معلق') return false
+      r.status = 'معتمد'; r.reviewed_by = u.employee_id || null; r.reviewed_at = nowIso()
+      const pkg = r.compensation_id ? compensation.find((c) => c.id === r.compensation_id) : null
+      if (pkg) {
+        const oldTotal = compTotal(pkg)
+        const oldBase = pkg.base_salary
+        pkg.base_salary = r.requested_base_salary
+        const newTotal = compTotal(pkg)
+        if (newTotal !== oldTotal) {
+          compensationHistory.unshift({ id: compHistSeq++, compensation_id: pkg.id, employee_id: r.employee_id, old_total: oldTotal, new_total: newTotal, old_base_salary: oldBase, new_base_salary: r.requested_base_salary, reason: r.reason, changed_by: u.employee_id || 5, created_at: nowIso() })
+        }
+      } else {
+        compensation.unshift({ id: compSeq++, employee_id: r.employee_id, grade: 'الدرجة الأولى', base_salary: r.requested_base_salary, housing_allowance: 0, transport_allowance: 0, other_allowances: 0, bonus: 0, insurance_class: 'الفئة أ', status: 'نشط', notes: r.reason, created_by: u.employee_id || 5 })
+      }
+      return true
+    },
+    reject: (id, u) => approvalSetStatus(compensationRequests, id, 'مرفوض', u, 'معلق', 'reviewed_by', 'reviewed_at'),
+  },
+  asset: {
+    label: 'شراء أصل',
+    eligible: (u) => ['admin', 'hr_manager', 'super_admin'].includes(u.role),
+    pending: () => assetRequests.filter((r) => r.status === 'معلق'),
+    normalize: (r) => ({ title: r.item_name, subtitle: r.justification || '', amount: r.estimated_cost }),
+    approve: (id, u) => approvalSetStatus(assetRequests, id, 'معتمد', u, 'معلق', 'reviewed_by', 'reviewed_at'),
+    reject: (id, u) => approvalSetStatus(assetRequests, id, 'مرفوض', u, 'معلق', 'reviewed_by', 'reviewed_at'),
+  },
+}
+
+function approvalPendingRequests(u, type) {
+  let rows = requests.filter((r) => r.status === 'معلقة' && r.type === type)
+  if (u.role === 'department_head') rows = rows.filter((r) => employees.find((e) => e.id === r.employee_id)?.department_id === myDept())
+  return rows
+}
+function approvalResolveRequest(id, status, u) {
+  const r = requests.find((x) => x.id === Number(id))
+  if (!r || r.status !== 'معلقة') return false
+  r.status = status; r.resolved_by = u.employee_id || null; r.resolved_at = nowIso()
+  return true
+}
+function approvalPendingExpenses(u, type) {
+  let rows = expenses.filter((x) => x.status === 'معلقة' && x.type === type)
+  if (u.role === 'department_head') rows = rows.filter((x) => employees.find((e) => e.id === x.employee_id)?.department_id === myDept())
+  return rows
+}
+function approvalApprovePromotion(id, u) {
+  const p = promotions.find((x) => x.id === Number(id))
+  if (!p || p.status !== 'معلق') return false
+  p.status = 'موافق عليه'; p.reviewed_by = u.employee_id || null
+  const emp = employees.find((e) => e.id === p.employee_id)
+  if (emp) {
+    if (p.new_title) emp.job_title = p.new_title
+    if (p.new_department_id) emp.department_id = p.new_department_id
+  }
+  return true
+}
+function approvalSetStatus(arr, id, newStatus, u, expectedStatus, reviewerField = 'reviewed_by', reviewedAtField = null) {
+  const row = arr.find((x) => x.id === Number(id))
+  if (!row || row.status !== expectedStatus) return false
+  row.status = newStatus
+  row[reviewerField] = u.employee_id || null
+  if (reviewedAtField) row[reviewedAtField] = nowIso()
+  return true
+}
+
+function approvalBuildItem(source, row) {
+  const cfg = APPROVAL_SOURCES[source]
+  const extra = cfg.normalize(row)
+  const days = daysSinceMock(row.created_at)
+  return {
+    key: `${source}:${row.id}`,
+    source,
+    source_label: cfg.label,
+    id: row.id,
+    title: extra.title,
+    subtitle: extra.subtitle,
+    amount: extra.amount ?? null,
+    employee_name: empName(row.employee_id),
+    employee_job_title: employees.find((e) => e.id === row.employee_id)?.job_title || null,
+    employee_picture: null,
+    created_at: row.created_at,
+    days_pending: days,
+    priority: approvalPriority(days, extra.forceHigh),
+    overdue: days > APPROVAL_OVERDUE_DAYS,
+    can_reject: !extra.noReject,
+  }
+}
+
+function approvalLogDecision(source, id, decision, reason, u) {
+  const cfg = APPROVAL_SOURCES[source]
+  const arrByTable = {
+    leave: leaves, attendance: attendanceCorrections, overtime: requests, remote: requests,
+    hiring: hiringRequests, expense: expenses, advance: expenses, payroll: payrollRuns,
+    promotion: promotions, transfer: promotions, document: signatures, raise: compensationRequests, asset: assetRequests,
+  }
+  const row = arrByTable[source]?.find((x) => x.id === Number(id))
+  if (!row) return
+  approvalActionsLog.unshift({
+    id: approvalLogSeq++, source, record_id: Number(id), action: decision, reason: reason || null,
+    title: cfg.normalize(row).title, employee_id: row.employee_id || null, actor_id: u.employee_id || null, created_at: nowIso(),
+  })
+}
+
+export const mockApprovalsApi = {
+  async mine() {
+    await delay()
+    const u = currentUser()
+    if (!u) return { items: [], summary: { total: 0, overdue: 0, highPriority: 0, bySource: {} } }
+    const items = []
+    for (const [source, cfg] of Object.entries(APPROVAL_SOURCES)) {
+      if (!cfg.eligible(u)) continue
+      for (const row of cfg.pending(u)) items.push(approvalBuildItem(source, row))
+    }
+    items.sort((a, b) => (b.priority === 'مرتفعة') - (a.priority === 'مرتفعة') || b.days_pending - a.days_pending)
+    const summary = items.reduce((s, i) => {
+      s.total += 1
+      if (i.overdue) s.overdue += 1
+      if (i.priority === 'مرتفعة') s.highPriority += 1
+      s.bySource[i.source] = (s.bySource[i.source] || 0) + 1
+      return s
+    }, { total: 0, overdue: 0, highPriority: 0, bySource: {} })
+    return { items, summary }
+  },
+  async decide(source, id, decision, reason) {
+    await delay()
+    const u = currentUser()
+    const cfg = APPROVAL_SOURCES[source]
+    if (!cfg) throw notFound()
+    if (!u || !cfg.eligible(u)) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    if (!['approve', 'reject'].includes(decision)) throw badReq('Invalid decision')
+    const trimmedReason = (reason || '').trim()
+    if (decision === 'reject' && !trimmedReason) throw badReq('سبب الرفض مطلوب')
+    const ok = decision === 'approve' ? cfg.approve(id, u) : cfg.reject(id, u)
+    if (!ok) throw badReq('لا يمكن تنفيذ هذا الإجراء — قد يكون الطلب غير موجود أو تم البت فيه بالفعل، أو لا يدعم هذا النوع الرفض')
+    approvalLogDecision(source, id, decision, trimmedReason, u)
+    return { message: 'تم' }
+  },
+  async bulkApprove(items) {
+    await delay()
+    const u = currentUser()
+    const list = Array.isArray(items) ? items : []
+    const results = list.map(({ source, id }) => {
+      const cfg = APPROVAL_SOURCES[source]
+      if (!cfg || !u || !cfg.eligible(u)) return { source, id, ok: false }
+      const ok = cfg.approve(id, u)
+      if (ok) approvalLogDecision(source, id, 'approve', '', u)
+      return { source, id, ok }
+    })
+    return { succeeded: results.filter((r) => r.ok).length, failed: results.filter((r) => !r.ok), results }
+  },
+  async history() {
+    await delay()
+    return approvalActionsLog.slice(0, 100).map((h) => ({ ...h, employee_name: empName(h.employee_id), actor_name: empName(h.actor_id), source_label: APPROVAL_SOURCES[h.source]?.label || h.source }))
+  },
+}
