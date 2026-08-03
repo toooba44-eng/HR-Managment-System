@@ -2194,9 +2194,33 @@ export const mockGrievancesApi = {
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
       .map((g) => ({ id: g.id, type: g.type, category: g.category, status: g.status, action: g.action, created_at: g.created_at }))
   },
-  async create(data) { await delay(); const g = { id: grvSeq++, type: data.type || 'شكوى', category: data.category || 'أخرى', severity: data.severity || 'متوسطة', status: 'مفتوحة', action: null, assigned_to: null, created_by: currentUser()?.employee_id || 5, created_at: nowIso(), ...data }; grievances.unshift(g); return { message: 'تم', grievance: g } },
+  async create(data) {
+    await delay()
+    const u = currentUser()
+    const hr = ['admin', 'hr_manager', 'super_admin'].includes(u?.role)
+    const employee_id = hr ? Number(data.employee_id) : u?.employee_id
+    if (!employee_id) throw badReq('Employee is required')
+    const type = hr ? (data.type || 'شكوى') : 'شكوى'
+    const severity = hr ? (data.severity || 'متوسطة') : 'متوسطة'
+    const g = { id: grvSeq++, employee_id, type, category: data.category || 'أخرى', description: data.description || null, severity, status: 'مفتوحة', action: null, assigned_to: null, created_by: u?.employee_id || 5, created_at: nowIso() }
+    grievances.unshift(g)
+    return { message: 'تم', grievance: g }
+  },
   async update(id, data) { await delay(); const g = grievances.find((x) => x.id === Number(id)); if (g) Object.assign(g, data); return { message: 'تم التحديث' } },
-  async remove(id) { await delay(); const i = grievances.findIndex((x) => x.id === Number(id)); if (i > -1) grievances.splice(i, 1); return { message: 'تم الحذف' } },
+  async remove(id) {
+    await delay()
+    const g = grievances.find((x) => x.id === Number(id))
+    if (!g) throw notFound()
+    const u = currentUser()
+    const hr = ['admin', 'hr_manager', 'super_admin'].includes(u?.role)
+    if (!hr) {
+      if (g.employee_id !== u?.employee_id) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+      if (g.status !== 'مفتوحة') throw badReq('لا يمكن سحب الشكوى بعد بدء معالجتها')
+    }
+    const i = grievances.findIndex((x) => x.id === Number(id))
+    if (i > -1) grievances.splice(i, 1)
+    return { message: 'تم الحذف' }
+  },
   async notes(id) {
     await delay()
     return grievanceNotes.filter((n) => n.grievance_id === Number(id)).map((n) => ({ ...n, author_name: empName(n.author_id), author_picture: null }))
