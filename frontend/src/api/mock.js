@@ -113,6 +113,7 @@ const requests = [
   { id: reqSeq++, employee_id: 6, type: 'خطاب', subject: 'خطاب تعريف بالراتب', details: 'مطلوب لغرض فتح حساب بنكي.', status: 'مكتملة', response: 'تم إصدار الخطاب.', resolved_by: 5, created_at: nowIso() },
   { id: reqSeq++, employee_id: 6, type: 'عمل عن بعد', subject: 'طلب عمل عن بُعد ليوم الخميس', details: 'لظرف عائلي.', status: 'معلقة', response: null, resolved_by: null, created_at: nowIso() },
   { id: reqSeq++, employee_id: 10, type: 'عمل إضافي', subject: 'عمل إضافي لإنهاء مشروع', details: 'ساعتان إضافيتان.', status: 'مقبولة', response: 'تمت الموافقة.', resolved_by: 2, created_at: nowIso() },
+  { id: reqSeq++, employee_id: 10, type: 'تحديث بيانات', subject: 'تحديث رقم الجوال والعنوان', details: 'الرجاء تحديث رقم الجوال والعنوان الوطني في السجل.', status: 'معلقة', response: null, resolved_by: null, created_at: addDays(-1) },
 ]
 
 let polSeq = 1
@@ -4055,6 +4056,18 @@ const APPROVAL_SOURCES = {
     approve: (id, u) => approvalSetStatus(timesheets, id, 'معتمد', u, 'مقدّم', 'approved_by'),
     reject: (id, u) => approvalSetStatus(timesheets, id, 'مرفوض', u, 'مقدّم', 'approved_by'),
   },
+  service_request: {
+    label: 'طلب موظف',
+    eligible: (u) => ['admin', 'hr_manager', 'department_head', 'super_admin'].includes(u.role),
+    pending(u) {
+      let rows = requests.filter((r) => r.status === 'معلقة' && !['عمل إضافي', 'عمل عن بعد'].includes(r.type))
+      if (u.role === 'department_head') rows = rows.filter((r) => employees.find((e) => e.id === r.employee_id)?.department_id === myDept())
+      return rows
+    },
+    normalize: (r) => ({ title: `${r.type}: ${r.subject}`, subtitle: r.details || '', amount: null }),
+    approve: (id, u) => approvalResolveRequest(id, 'مقبولة', u),
+    reject: (id, u) => approvalResolveRequest(id, 'مرفوضة', u),
+  },
 }
 
 function approvalPendingRequests(u, type) {
@@ -4122,7 +4135,7 @@ function approvalLogDecision(source, id, decision, reason, u) {
     leave: leaves, attendance: attendanceCorrections, overtime: requests, remote: requests,
     hiring: hiringRequests, expense: expenses, advance: expenses, payroll: payrollRuns,
     promotion: promotions, transfer: promotions, document: signatures, raise: compensationRequests, asset: assetRequests,
-    shift_swap: shiftSwapRequests, timesheet: timesheets,
+    shift_swap: shiftSwapRequests, timesheet: timesheets, service_request: requests,
   }
   const row = arrByTable[source]?.find((x) => x.id === Number(id))
   if (!row) return
