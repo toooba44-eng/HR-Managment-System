@@ -150,8 +150,8 @@ const SOURCES = {
     eligible: (u) => ['admin', 'hr_manager', 'department_head', 'super_admin'].includes(u.role),
     pending: (user) => pendingExpensesByType(user, 'مصروف'),
     normalize: (r) => ({ title: r.category || 'مصروف', subtitle: r.description || '', amount: r.amount }),
-    approve: (id, user) => setStatus('expenses', id, 'معتمدة', user, 'معلقة'),
-    reject: (id, user) => setStatus('expenses', id, 'مرفوضة', user, 'معلقة'),
+    approve: (id, user) => setStatus('expenses', id, 'معتمدة', user, 'معلقة', 'approved_by'),
+    reject: (id, user) => setStatus('expenses', id, 'مرفوضة', user, 'معلقة', 'approved_by'),
   },
   advance: {
     label: 'سلفة',
@@ -159,8 +159,8 @@ const SOURCES = {
     eligible: (u) => ['admin', 'hr_manager', 'department_head', 'super_admin'].includes(u.role),
     pending: (user) => pendingExpensesByType(user, 'سلفة'),
     normalize: (r) => ({ title: 'طلب سلفة', subtitle: r.description || '', amount: r.amount }),
-    approve: (id, user) => setStatus('expenses', id, 'معتمدة', user, 'معلقة'),
-    reject: (id, user) => setStatus('expenses', id, 'مرفوضة', user, 'معلقة'),
+    approve: (id, user) => setStatus('expenses', id, 'معتمدة', user, 'معلقة', 'approved_by'),
+    reject: (id, user) => setStatus('expenses', id, 'مرفوضة', user, 'معلقة', 'approved_by'),
   },
   payroll: {
     label: 'مسير رواتب',
