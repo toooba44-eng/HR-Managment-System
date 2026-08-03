@@ -125,6 +125,12 @@ const policies = [
   { id: polSeq++, title: 'سياسة استخدام الأجهزة', category: 'تقنية', body: 'أجهزة الشركة مخصّصة للعمل. يُمنع تثبيت برامج غير مرخّصة، ويجب حماية بيانات الدخول وعدم مشاركتها.', created_by: 2 },
 ]
 
+let polAckSeq = 1
+const policyAcknowledgments = [
+  { id: polAckSeq++, policy_id: 4, employee_id: 6, acknowledged_at: addDays(-3) },
+  { id: polAckSeq++, policy_id: 4, employee_id: 2, acknowledged_at: addDays(-2) },
+]
+
 let taskSeq = 1
 const tasks = [
   { id: taskSeq++, title: 'إنهاء وحدة تسجيل الدخول', description: 'استكمال اختبارات وحدة المصادقة وتوثيقها.', employee_id: 6, assigned_by: 2, status: 'قيد التنفيذ', priority: 'عالية', due_date: addDays(3), created_at: nowIso() },
@@ -985,9 +991,15 @@ export const mockPayslipsApi = {
 export const mockPoliciesApi = {
   async list() {
     await delay()
+    const myId = currentUser()?.employee_id
     return [...policies]
       .sort((a, b) => a.category.localeCompare(b.category) || a.title.localeCompare(b.title))
-      .map((p) => ({ ...p, created_by_name: empName(p.created_by) }))
+      .map((p) => ({
+        ...p,
+        created_by_name: empName(p.created_by),
+        ack_count: policyAcknowledgments.filter((a) => a.policy_id === p.id).length,
+        acked_by_me: policyAcknowledgments.some((a) => a.policy_id === p.id && a.employee_id === myId),
+      }))
   },
   async create(data) {
     await delay()
@@ -1000,6 +1012,31 @@ export const mockPoliciesApi = {
     const p = policies.find((x) => x.id === Number(id))
     if (p) Object.assign(p, data)
     return { message: 'تم التحديث' }
+  },
+  async acknowledge(id) {
+    await delay()
+    const employee_id = currentUser()?.employee_id
+    if (!employee_id) throw badReq('No employee associated with this account')
+    const p = policies.find((x) => x.id === Number(id))
+    if (!p) throw notFound()
+    if (!policyAcknowledgments.some((a) => a.policy_id === Number(id) && a.employee_id === employee_id)) {
+      policyAcknowledgments.push({ id: polAckSeq++, policy_id: Number(id), employee_id, acknowledged_at: nowIso() })
+    }
+    return { message: 'Acknowledged' }
+  },
+  async acknowledgments(id) {
+    await delay()
+    const p = policies.find((x) => x.id === Number(id))
+    if (!p) throw notFound()
+    const ackers = policyAcknowledgments
+      .filter((a) => a.policy_id === Number(id))
+      .sort((x, y) => new Date(x.acknowledged_at) - new Date(y.acknowledged_at))
+      .map((a) => ({ acknowledged_at: a.acknowledged_at, employee_id: a.employee_id, full_name: empName(a.employee_id), job_title: employees.find((e) => e.id === a.employee_id)?.job_title, profile_picture: null }))
+    const ackedIds = new Set(ackers.map((a) => a.employee_id))
+    const notAcked = employees
+      .filter((e) => e.status === 'نشط' && !ackedIds.has(e.id))
+      .map((e) => ({ employee_id: e.id, full_name: e.full_name, job_title: e.job_title, profile_picture: null }))
+    return { policy: p, ackers, notAcked, total: ackers.length + notAcked.length }
   },
   async remove(id) {
     await delay()

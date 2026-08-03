@@ -1212,6 +1212,19 @@ const migrations = [
     two_factor_required INTEGER DEFAULT 0,
     self_service_enabled INTEGER DEFAULT 1,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`,
+
+  // Compliance tracking: which employee has acknowledged which policy —
+  // mirrors announcement_reads, so HR can audit who has (and hasn't) read
+  // mandatory policies like the code of conduct or safety policy.
+  `CREATE TABLE IF NOT EXISTS policy_acknowledgments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    policy_id INTEGER NOT NULL,
+    employee_id INTEGER NOT NULL,
+    acknowledged_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(policy_id, employee_id),
+    FOREIGN KEY (policy_id) REFERENCES policies(id) ON DELETE CASCADE,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
   )`
 ];
 

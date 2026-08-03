@@ -97,6 +97,8 @@ const realPoliciesApi = {
   create: (data) => api.post('/policies', data).then((r) => r.data),
   update: (id, data) => api.put(`/policies/${id}`, data).then((r) => r.data),
   remove: (id) => api.delete(`/policies/${id}`).then((r) => r.data),
+  acknowledge: (id) => api.post(`/policies/${id}/acknowledge`).then((r) => r.data),
+  acknowledgments: (id) => api.get(`/policies/${id}/acknowledgments`).then((r) => r.data),
 }
 
 // ---------- Payroll ----------
