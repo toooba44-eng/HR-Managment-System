@@ -1208,18 +1208,34 @@ export const mockTasksApi = {
   },
   async create(data) {
     await delay()
-    const t = { id: taskSeq++, status: 'جديدة', priority: data.priority || 'متوسطة', assigned_by: currentUser()?.employee_id || null, created_at: nowIso(), ...data }
+    const u = currentUser()
+    const isManager = ['admin', 'hr_manager', 'department_head', 'super_admin'].includes(u?.role)
+    if (!isManager) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    if (!sameDeptAsMe(u, data.employee_id)) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    const t = { id: taskSeq++, status: 'جديدة', priority: data.priority || 'متوسطة', assigned_by: u?.employee_id || null, created_at: nowIso(), ...data }
     tasks.unshift(t)
     return { message: 'تم إنشاء المهمة', task: t }
   },
   async setStatus(id, status) {
     await delay()
     const t = tasks.find((x) => x.id === Number(id))
-    if (t) t.status = status
+    if (!t) return { message: 'تم التحديث' }
+    const u = currentUser()
+    const isOwner = t.employee_id === u?.employee_id
+    const isManager = ['admin', 'hr_manager', 'department_head', 'super_admin'].includes(u?.role)
+    if (!isOwner && !isManager) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    if (!isOwner && !sameDeptAsMe(u, t.employee_id)) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    t.status = status
     return { message: 'تم التحديث' }
   },
   async remove(id) {
     await delay()
+    const t = tasks.find((x) => x.id === Number(id))
+    if (!t) throw notFound()
+    const u = currentUser()
+    const isManager = ['admin', 'hr_manager', 'department_head', 'super_admin'].includes(u?.role)
+    if (!isManager) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    if (!sameDeptAsMe(u, t.employee_id)) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
     const i = tasks.findIndex((x) => x.id === Number(id))
     if (i > -1) tasks.splice(i, 1)
     return { message: 'تم الحذف' }
