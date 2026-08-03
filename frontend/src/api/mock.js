@@ -299,6 +299,7 @@ const shifts = [
 let swapSeq = 1
 const shiftSwapRequests = [
   { id: swapSeq++, requester_id: 6, shift_a_id: 6, target_id: 10, shift_b_id: 5, reason: 'لدي موعد شخصي في ذلك اليوم وأودّ التبديل.', status: 'بانتظار موافقة الزميل', approved_by: null, approved_at: null, created_at: nowIso() },
+  { id: swapSeq++, requester_id: 4, shift_a_id: 4, target_id: 10, shift_b_id: 3, reason: 'تعارض مع موعد طبي.', status: 'بانتظار اعتماد المدير', approved_by: null, approved_at: null, created_at: addDays(-2) },
 ]
 
 let tsSeq = 1
@@ -3971,6 +3972,53 @@ const APPROVAL_SOURCES = {
     approve: (id, u) => approvalSetStatus(assetRequests, id, 'معتمد', u, 'معلق', 'reviewed_by', 'reviewed_at'),
     reject: (id, u) => approvalSetStatus(assetRequests, id, 'مرفوض', u, 'معلق', 'reviewed_by', 'reviewed_at'),
   },
+  shift_swap: {
+    label: 'تبديل وردية',
+    eligible: (u) => ['admin', 'hr_manager', 'department_head', 'super_admin'].includes(u.role),
+    pending(u) {
+      let rows = shiftSwapRequests.filter((r) => r.status === 'بانتظار اعتماد المدير')
+      if (u.role === 'department_head') {
+        const d = myDept()
+        rows = rows.filter((r) => employees.find((e) => e.id === r.requester_id)?.department_id === d || employees.find((e) => e.id === r.target_id)?.department_id === d)
+      }
+      return rows.map((r) => {
+        const req = employees.find((e) => e.id === r.requester_id)
+        const tgt = employees.find((e) => e.id === r.target_id)
+        const shiftA = shifts.find((s) => s.id === r.shift_a_id)
+        const shiftB = shifts.find((s) => s.id === r.shift_b_id)
+        return {
+          ...r,
+          requester_name: req?.full_name || null,
+          requester_job_title: req?.job_title || null,
+          requester_picture: req?.profile_picture || null,
+          target_name: tgt?.full_name || null,
+          shift_a_date: shiftA?.date || null,
+          shift_b_date: shiftB?.date || null,
+        }
+      })
+    },
+    normalize: (r) => ({
+      title: 'طلب تبديل وردية',
+      subtitle: r.requester_name && r.target_name ? `${r.requester_name} ↔ ${r.target_name} · ${r.shift_a_date || ''} إلى ${r.shift_b_date || ''}` : '',
+      amount: null,
+    }),
+    approve(id, u) {
+      const swap = shiftSwapRequests.find((x) => x.id === Number(id))
+      if (!swap || swap.status !== 'بانتظار اعتماد المدير') return false
+      const shiftA = shifts.find((s) => s.id === swap.shift_a_id)
+      const shiftB = shifts.find((s) => s.id === swap.shift_b_id)
+      if (shiftA) shiftA.employee_id = swap.target_id
+      if (shiftB) shiftB.employee_id = swap.requester_id
+      swap.status = 'معتمد'; swap.approved_by = u.employee_id || null; swap.approved_at = nowIso()
+      return true
+    },
+    reject(id) {
+      const swap = shiftSwapRequests.find((x) => x.id === Number(id))
+      if (!swap || swap.status !== 'بانتظار اعتماد المدير') return false
+      swap.status = 'مرفوض'
+      return true
+    },
+  },
 }
 
 function approvalPendingRequests(u, type) {
@@ -4021,9 +4069,9 @@ function approvalBuildItem(source, row) {
     title: extra.title,
     subtitle: extra.subtitle,
     amount: extra.amount ?? null,
-    employee_name: empName(row.employee_id),
-    employee_job_title: employees.find((e) => e.id === row.employee_id)?.job_title || null,
-    employee_picture: null,
+    employee_name: empName(row.employee_id) || row.requester_name || null,
+    employee_job_title: employees.find((e) => e.id === row.employee_id)?.job_title || row.requester_job_title || null,
+    employee_picture: row.requester_picture || null,
     created_at: row.created_at,
     days_pending: days,
     priority: approvalPriority(days, extra.forceHigh),
@@ -4038,12 +4086,13 @@ function approvalLogDecision(source, id, decision, reason, u) {
     leave: leaves, attendance: attendanceCorrections, overtime: requests, remote: requests,
     hiring: hiringRequests, expense: expenses, advance: expenses, payroll: payrollRuns,
     promotion: promotions, transfer: promotions, document: signatures, raise: compensationRequests, asset: assetRequests,
+    shift_swap: shiftSwapRequests,
   }
   const row = arrByTable[source]?.find((x) => x.id === Number(id))
   if (!row) return
   approvalActionsLog.unshift({
     id: approvalLogSeq++, source, record_id: Number(id), action: decision, reason: reason || null,
-    title: cfg.normalize(row).title, employee_id: row.employee_id || null, actor_id: u.employee_id || null, created_at: nowIso(),
+    title: cfg.normalize(row).title, employee_id: row.employee_id || row.requester_id || null, actor_id: u.employee_id || null, created_at: nowIso(),
   })
 }
 

@@ -243,6 +243,54 @@ const SOURCES = {
     approve: (id, user) => setStatus('asset_requests', id, 'معتمد', user, 'معلق', 'reviewed_by', 'reviewed_at'),
     reject: (id, user) => setStatus('asset_requests', id, 'مرفوض', user, 'معلق', 'reviewed_by', 'reviewed_at'),
   },
+  shift_swap: {
+    label: 'تبديل وردية',
+    table: 'shift_swap_requests',
+    eligible: (u) => ['admin', 'hr_manager', 'department_head', 'super_admin'].includes(u.role),
+    pending(user) {
+      let where = "WHERE r.status = 'بانتظار اعتماد المدير'";
+      const params = [];
+      if (user.role === 'department_head') {
+        where += ' AND (req_emp.department_id = ? OR tgt_emp.department_id = ?)';
+        const d = deptOf(user.employee_id);
+        params.push(d, d);
+      }
+      return db.prepare(`
+        SELECT r.*, req_emp.full_name as requester_name, req_emp.job_title as requester_job_title, req_emp.profile_picture as requester_picture,
+               tgt_emp.full_name as target_name,
+               sa.date as shift_a_date, sa.shift_type as shift_a_type,
+               sb.date as shift_b_date, sb.shift_type as shift_b_type
+        FROM shift_swap_requests r
+        JOIN employees req_emp ON r.requester_id = req_emp.id
+        JOIN employees tgt_emp ON r.target_id = tgt_emp.id
+        JOIN shifts sa ON r.shift_a_id = sa.id
+        JOIN shifts sb ON r.shift_b_id = sb.id
+        ${where} ORDER BY r.created_at ASC
+      `).all(...params);
+    },
+    normalize: (r) => ({
+      title: 'طلب تبديل وردية',
+      subtitle: r.requester_name && r.target_name ? `${r.requester_name} ↔ ${r.target_name} · ${r.shift_a_date || ''} إلى ${r.shift_b_date || ''}` : '',
+      amount: null,
+    }),
+    approve(id, user) {
+      const swap = db.prepare('SELECT * FROM shift_swap_requests WHERE id = ?').get(id);
+      if (!swap || swap.status !== 'بانتظار اعتماد المدير') return false;
+      const run = db.transaction(() => {
+        db.prepare('UPDATE shifts SET employee_id = ? WHERE id = ?').run(swap.target_id, swap.shift_a_id);
+        db.prepare('UPDATE shifts SET employee_id = ? WHERE id = ?').run(swap.requester_id, swap.shift_b_id);
+        db.prepare(`UPDATE shift_swap_requests SET status = 'معتمد', approved_by = ?, approved_at = CURRENT_TIMESTAMP WHERE id = ?`).run(user.employee_id || null, id);
+      });
+      run();
+      return true;
+    },
+    reject(id) {
+      const swap = db.prepare('SELECT status FROM shift_swap_requests WHERE id = ?').get(id);
+      if (!swap || swap.status !== 'بانتظار اعتماد المدير') return false;
+      db.prepare(`UPDATE shift_swap_requests SET status = 'مرفوض' WHERE id = ?`).run(id);
+      return true;
+    },
+  },
 };
 
 function pendingRequestsByType(user, type) {
@@ -339,9 +387,9 @@ function buildItem(source, row) {
     title: extra.title,
     subtitle: extra.subtitle,
     amount: extra.amount ?? null,
-    employee_name: row.full_name || null,
-    employee_job_title: row.job_title || null,
-    employee_picture: row.profile_picture || null,
+    employee_name: row.full_name || row.requester_name || null,
+    employee_job_title: row.job_title || row.requester_job_title || null,
+    employee_picture: row.profile_picture || row.requester_picture || null,
     created_at: row.created_at,
     days_pending: days,
     priority: priorityOf(days, extra.forceHigh),
