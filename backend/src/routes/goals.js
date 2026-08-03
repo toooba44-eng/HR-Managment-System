@@ -7,6 +7,17 @@ router.use(authenticateToken);
 
 const MANAGE = ['admin', 'hr_manager', 'department_head', 'super_admin'];
 
+// A department head may only act on goals within their own department —
+// the list endpoint already scopes this way; enforce it here too so the
+// update/delete actions can't be reached directly by ID for someone else's
+// department.
+function inManagedScope(user, employeeId) {
+  if (user.role !== 'department_head') return true;
+  const dept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(user.employee_id);
+  const empDept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(employeeId);
+  return !!dept && !!empDept && dept.department_id === empDept.department_id;
+}
+
 // List goals (role-scoped)
 router.get('/', (req, res, next) => {
   try {
@@ -84,6 +95,9 @@ router.put('/:id', (req, res, next) => {
     if (!isOwner && !MANAGE.includes(req.user.role)) {
       return res.status(403).json({ error: 'Access denied' });
     }
+    if (!isOwner && !inManagedScope(req.user, goal.employee_id)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
 
     let nextProgress = progress === undefined ? goal.progress : Math.max(0, Math.min(100, parseInt(progress, 10)));
     let nextStatus = status || goal.status;
@@ -110,6 +124,8 @@ router.delete('/:id', (req, res, next) => {
     if (!MANAGE.includes(req.user.role)) {
       if (goal.employee_id !== req.user.employee_id) return res.status(403).json({ error: 'Access denied' });
       if (goal.status !== 'لم تبدأ') return res.status(400).json({ error: 'لا يمكن حذف هدف بدأ العمل عليه' });
+    } else if (!inManagedScope(req.user, goal.employee_id)) {
+      return res.status(403).json({ error: 'Access denied' });
     }
     db.prepare('DELETE FROM goals WHERE id = ?').run(req.params.id);
     res.json({ message: 'Deleted' });
