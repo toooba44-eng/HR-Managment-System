@@ -254,6 +254,14 @@ const realGrievancesApi = {
   addNote: (id, note) => api.post(`/grievances/${id}/notes`, { note }).then((r) => r.data),
 }
 
+// ---------- Approvals Inbox (مركز الموافقات) ----------
+const realApprovalsApi = {
+  mine: () => api.get('/approvals/mine').then((r) => r.data),
+  history: () => api.get('/approvals/history').then((r) => r.data),
+  decide: (source, id, decision, reason) => api.post(`/approvals/${source}/${id}/${decision}`, { reason }).then((r) => r.data),
+  bulkApprove: (items) => api.post('/approvals/bulk-approve', { items }).then((r) => r.data),
+}
+
 // ---------- Health & safety incidents ----------
 const realIncidentsApi = {
   list: () => api.get('/incidents').then((r) => r.data),
@@ -520,6 +528,7 @@ export const assistantApi = DEMO ? mock.mockAssistantApi : realAssistantApi
 export const helpdeskApi = DEMO ? mock.mockHelpdeskApi : realHelpdeskApi
 export const workforceApi = DEMO ? mock.mockWorkforceApi : realWorkforceApi
 export const grievancesApi = DEMO ? mock.mockGrievancesApi : realGrievancesApi
+export const approvalsApi = DEMO ? mock.mockApprovalsApi : realApprovalsApi
 export const incidentsApi = DEMO ? mock.mockIncidentsApi : realIncidentsApi
 export const shiftsApi = DEMO ? mock.mockShiftsApi : realShiftsApi
 export const timesheetsApi = DEMO ? mock.mockTimesheetsApi : realTimesheetsApi

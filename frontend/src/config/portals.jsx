@@ -16,6 +16,7 @@ import Attendance from '../pages/Attendance'
 import Leaves from '../pages/Leaves'
 import Profile from '../pages/Profile'
 import Assistant from '../pages/Assistant'
+import ApprovalsInbox from '../pages/ApprovalsInbox'
 import SuperAdminHome from '../pages/portals/SuperAdminHome'
 import CandidateHome from '../pages/portals/CandidateHome'
 import Announcements from '../pages/employee/Announcements'
@@ -115,6 +116,7 @@ export const PORTALS = {
       { section: 'التحكم والحدود', to: '/sa/limits', label: 'حدود المستخدمين والتخزين', icon: HardDrive, element: <Limits /> },
       { section: 'التحكم والحدود', to: '/sa/impersonate', label: 'الدخول بالنيابة', icon: UserCog, element: <Impersonate /> },
 
+      { section: 'المراقبة والتشغيل', to: '/sa/approvals', label: 'مركز الموافقات', icon: ClipboardCheck, element: <ApprovalsInbox /> },
       { section: 'المراقبة والتشغيل', to: '/sa/usage', label: 'مراقبة الاستخدام', icon: Activity, element: <Usage /> },
       { section: 'المراقبة والتشغيل', to: '/sa/performance', label: 'أداء النظام', icon: Gauge, element: <SystemPerformance /> },
       { section: 'المراقبة والتشغيل', to: '/sa/api', label: 'مراقبة تكاملات API', icon: Plug, element: <ApiMonitor /> },
@@ -140,6 +142,7 @@ export const PORTALS = {
     home: '/',
     nav: [
       { to: '/', label: 'الصفحة الرئيسية', icon: LayoutDashboard, element: <Dashboard />, exact: true },
+      { to: '/approvals', label: 'مركز الموافقات', icon: ClipboardCheck, element: <ApprovalsInbox /> },
       { to: '/assistant', label: 'المساعد الذكي', icon: Bot, element: <Assistant /> },
 
       { section: 'المؤسسة', to: '/hr/company', label: 'مؤسستي', icon: Building2, element: <Company /> },
@@ -204,6 +207,7 @@ export const PORTALS = {
       { section: 'إدارة الفريق', to: '/attendance', label: 'حضور الفريق', icon: CalendarCheck, element: <Attendance /> },
       { section: 'إدارة الفريق', to: '/mgr/schedule', label: 'جداول الفريق', icon: Clock, element: <Shifts /> },
 
+      { section: 'الموافقات', to: '/mgr/approvals', label: 'مركز الموافقات', icon: ClipboardCheck, element: <ApprovalsInbox /> },
       { section: 'الموافقات', to: '/leaves', label: 'الموافقة على الإجازات', icon: CalendarDays, element: <Leaves /> },
       { section: 'الموافقات', to: '/mgr/leave-calendar', label: 'تقويم إجازات الفريق', icon: CalendarRange, element: <LeaveCalendar /> },
       { section: 'الموافقات', to: '/mgr/requests', label: 'طلبات الفريق', icon: Inbox, element: <Requests title="طلبات الفريق" description="راجع واعتمد طلبات أعضاء فريقك." /> },
