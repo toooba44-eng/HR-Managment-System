@@ -7,6 +7,25 @@ router.use(authenticateToken);
 
 const MANAGE = ['admin', 'hr_manager', 'department_head', 'super_admin'];
 
+// A department head may only act on shifts/swaps within their own
+// department — the list endpoints already scope this way; enforce it here
+// too so these actions can't be reached directly by ID for someone else's
+// department.
+function inManagedScope(user, employeeId) {
+  if (user.role !== 'department_head') return true;
+  const dept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(user.employee_id);
+  const empDept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(employeeId);
+  return !!dept && !!empDept && dept.department_id === empDept.department_id;
+}
+function inManagedScopeEither(user, employeeIdA, employeeIdB) {
+  if (user.role !== 'department_head') return true;
+  const dept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(user.employee_id);
+  if (!dept) return false;
+  const a = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(employeeIdA);
+  const b = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(employeeIdB);
+  return (a && a.department_id === dept.department_id) || (b && b.department_id === dept.department_id);
+}
+
 // List shifts (role-scoped). Optional ?from&to date range.
 router.get('/', (req, res, next) => {
   try {
@@ -39,6 +58,7 @@ router.post('/', requireRole(...MANAGE), (req, res, next) => {
   try {
     const { employee_id, date, shift_type, start_time, end_time, location, notes } = req.body;
     if (!employee_id || !date) return res.status(400).json({ error: 'Employee and date are required' });
+    if (!inManagedScope(req.user, employee_id)) return res.status(403).json({ error: 'Access denied' });
     const r = db.prepare(`INSERT INTO shifts (employee_id, date, shift_type, start_time, end_time, location, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
       .run(employee_id, date, shift_type || 'صباحية', start_time || null, end_time || null, location || 'المقر الرئيسي', notes || null, req.user.employee_id || null);
     res.status(201).json({ message: 'Created', shift: { id: r.lastInsertRowid } });
@@ -49,6 +69,7 @@ router.put('/:id', requireRole(...MANAGE), (req, res, next) => {
   try {
     const s = db.prepare('SELECT * FROM shifts WHERE id = ?').get(req.params.id);
     if (!s) return res.status(404).json({ error: 'Not found' });
+    if (!inManagedScope(req.user, s.employee_id)) return res.status(403).json({ error: 'Access denied' });
     const { date, shift_type, start_time, end_time, location, notes } = req.body;
     db.prepare(`UPDATE shifts SET date = ?, shift_type = ?, start_time = ?, end_time = ?, location = ?, notes = ? WHERE id = ?`)
       .run(date ?? s.date, shift_type ?? s.shift_type, start_time ?? s.start_time, end_time ?? s.end_time, location ?? s.location, notes ?? s.notes, req.params.id);
@@ -57,8 +78,13 @@ router.put('/:id', requireRole(...MANAGE), (req, res, next) => {
 });
 
 router.delete('/:id', requireRole(...MANAGE), (req, res, next) => {
-  try { db.prepare('DELETE FROM shifts WHERE id = ?').run(req.params.id); res.json({ message: 'Deleted' }); }
-  catch (err) { next(err); }
+  try {
+    const s = db.prepare('SELECT * FROM shifts WHERE id = ?').get(req.params.id);
+    if (!s) return res.status(404).json({ error: 'Not found' });
+    if (!inManagedScope(req.user, s.employee_id)) return res.status(403).json({ error: 'Access denied' });
+    db.prepare('DELETE FROM shifts WHERE id = ?').run(req.params.id);
+    res.json({ message: 'Deleted' });
+  } catch (err) { next(err); }
 });
 
 // List swap requests: an employee sees ones where they are requester or
@@ -135,6 +161,7 @@ router.put('/swap-requests/:id/approve', requireRole(...MANAGE), (req, res, next
   try {
     const swap = db.prepare('SELECT * FROM shift_swap_requests WHERE id = ?').get(req.params.id);
     if (!swap) return res.status(404).json({ error: 'Not found' });
+    if (!inManagedScopeEither(req.user, swap.requester_id, swap.target_id)) return res.status(403).json({ error: 'Access denied' });
     if (swap.status !== 'بانتظار اعتماد المدير') return res.status(400).json({ error: 'Swap must be accepted by the colleague first' });
 
     const swapShifts = db.transaction(() => {
@@ -153,6 +180,7 @@ router.put('/swap-requests/:id/reject', requireRole(...MANAGE), (req, res, next)
   try {
     const swap = db.prepare('SELECT * FROM shift_swap_requests WHERE id = ?').get(req.params.id);
     if (!swap) return res.status(404).json({ error: 'Not found' });
+    if (!inManagedScopeEither(req.user, swap.requester_id, swap.target_id)) return res.status(403).json({ error: 'Access denied' });
     if (swap.status === 'معتمد') return res.status(400).json({ error: 'Already approved' });
     db.prepare(`UPDATE shift_swap_requests SET status = 'مرفوض' WHERE id = ?`).run(req.params.id);
     res.json({ message: 'Rejected' });

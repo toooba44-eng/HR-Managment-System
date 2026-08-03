@@ -35,6 +35,17 @@ function scope(req) {
   return { where: '', param: null };
 }
 
+// A department head may only rate/remove skills within their own
+// department — the matrix endpoint already scopes this way; enforce it
+// here too so it can't be reached directly by ID for someone else's
+// department.
+function inManagedScope(user, employeeId) {
+  if (user.role !== 'department_head') return true;
+  const dept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(user.employee_id);
+  const empDept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(employeeId);
+  return !!dept && !!empDept && dept.department_id === empDept.department_id;
+}
+
 // Competency matrix: active employees x distinct skills, with per-skill stats
 router.get('/matrix', (req, res, next) => {
   try {
@@ -99,6 +110,7 @@ router.put('/:employeeId', (req, res, next) => {
     if (![1, 2, 3, 4, 5].includes(level)) return res.status(400).json({ error: 'Level must be 1-5' });
     const emp = db.prepare('SELECT id FROM employees WHERE id = ?').get(req.params.employeeId);
     if (!emp) return res.status(404).json({ error: 'Employee not found' });
+    if (!inManagedScope(req.user, req.params.employeeId)) return res.status(403).json({ error: 'Access denied' });
     db.prepare(`
       INSERT INTO employee_skills (employee_id, skill, level, created_by)
       VALUES (?, ?, ?, ?)
@@ -113,6 +125,7 @@ router.delete('/:employeeId', (req, res, next) => {
   try {
     const name = (req.query.skill || '').trim();
     if (!name) return res.status(400).json({ error: 'Skill is required' });
+    if (!inManagedScope(req.user, req.params.employeeId)) return res.status(403).json({ error: 'Access denied' });
     db.prepare('DELETE FROM employee_skills WHERE employee_id = ? AND skill = ?').run(req.params.employeeId, name);
     res.json({ message: 'Removed' });
   } catch (err) { next(err); }

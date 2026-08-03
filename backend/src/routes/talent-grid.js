@@ -6,6 +6,17 @@ const router = express.Router();
 router.use(authenticateToken);
 router.use(requireRole('admin', 'hr_manager', 'super_admin', 'department_head'));
 
+// A department head may only view/rate/clear the 9-box placement of
+// employees in their own department — the grid endpoint already scopes
+// this way; enforce it here too so these actions can't be reached
+// directly by ID for someone else's department.
+function inManagedScope(user, employeeId) {
+  if (user.role !== 'department_head') return true;
+  const dept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(user.employee_id);
+  const empDept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(employeeId);
+  return !!dept && !!empDept && dept.department_id === empDept.department_id;
+}
+
 // 9-box cell labels keyed by "performance-potential" (1..3 each)
 const BOXES = {
   '1-3': 'لغز (Enigma)', '2-3': 'صاعد (Growth)', '3-3': 'نجم (Star)',
@@ -55,6 +66,7 @@ router.put('/:employeeId', (req, res, next) => {
     }
     const emp = db.prepare('SELECT id FROM employees WHERE id = ?').get(req.params.employeeId);
     if (!emp) return res.status(404).json({ error: 'Employee not found' });
+    if (!inManagedScope(req.user, req.params.employeeId)) return res.status(403).json({ error: 'Access denied' });
 
     const existing = db.prepare('SELECT performance, potential FROM talent_reviews WHERE employee_id = ?').get(req.params.employeeId);
     const moved = !existing || existing.performance !== performance || existing.potential !== potential;
@@ -80,6 +92,7 @@ router.put('/:employeeId', (req, res, next) => {
 // Placement history for one employee (most recent first)
 router.get('/:employeeId/history', (req, res, next) => {
   try {
+    if (!inManagedScope(req.user, req.params.employeeId)) return res.status(403).json({ error: 'Access denied' });
     const rows = db.prepare(`
       SELECT h.*, e.full_name as changed_by_name
       FROM talent_review_history h
@@ -94,6 +107,7 @@ router.get('/:employeeId/history', (req, res, next) => {
 // Clear a review
 router.delete('/:employeeId', (req, res, next) => {
   try {
+    if (!inManagedScope(req.user, req.params.employeeId)) return res.status(403).json({ error: 'Access denied' });
     db.prepare('DELETE FROM talent_reviews WHERE employee_id = ?').run(req.params.employeeId);
     res.json({ message: 'Cleared' });
   } catch (err) { next(err); }
