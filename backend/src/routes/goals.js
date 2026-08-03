@@ -51,10 +51,17 @@ router.get('/', (req, res, next) => {
   }
 });
 
-// Assign a goal (managers/HR)
-router.post('/', requireRole(...MANAGE), (req, res, next) => {
+// Assign a goal (managers/HR, for anyone) or propose one for myself
+// (everyone else — employees can draft their own goals, not just receive
+// ones assigned top-down; their manager can still edit/adjust it after).
+router.post('/', (req, res, next) => {
   try {
-    const { employee_id, title, description, weight, target_date } = req.body;
+    const isManager = MANAGE.includes(req.user.role);
+    let { employee_id, title, description, weight, target_date } = req.body;
+    if (!isManager) {
+      if (!req.user.employee_id) return res.status(400).json({ error: 'No employee associated with this account' });
+      employee_id = req.user.employee_id;
+    }
     if (!employee_id || !title) return res.status(400).json({ error: 'Employee and title are required' });
     const result = db.prepare(`
       INSERT INTO goals (employee_id, title, description, weight, target_date, created_by)
@@ -94,8 +101,16 @@ router.put('/:id', (req, res, next) => {
   }
 });
 
-router.delete('/:id', requireRole(...MANAGE), (req, res, next) => {
+// Managers/HR can remove any goal; an employee can only withdraw a goal
+// they proposed themselves, and only before any progress has been logged.
+router.delete('/:id', (req, res, next) => {
   try {
+    const goal = db.prepare('SELECT * FROM goals WHERE id = ?').get(req.params.id);
+    if (!goal) return res.status(404).json({ error: 'Not found' });
+    if (!MANAGE.includes(req.user.role)) {
+      if (goal.employee_id !== req.user.employee_id) return res.status(403).json({ error: 'Access denied' });
+      if (goal.status !== 'لم تبدأ') return res.status(400).json({ error: 'لا يمكن حذف هدف بدأ العمل عليه' });
+    }
     db.prepare('DELETE FROM goals WHERE id = ?').run(req.params.id);
     res.json({ message: 'Deleted' });
   } catch (err) {
