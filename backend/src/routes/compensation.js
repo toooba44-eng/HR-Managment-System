@@ -9,6 +9,18 @@ const MANAGE = ['admin', 'hr_manager', 'department_head', 'super_admin'];
 const NUM = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 const total = (r) => r.base_salary + r.housing_allowance + r.transport_allowance + r.other_allowances + r.bonus;
 
+// A department head may only create/edit/delete compensation packages
+// within their own department — the list and history endpoints already
+// scope this way; enforce it here too so these actions (which set an
+// employee's actual salary) can't be reached directly by ID for someone
+// else's department.
+function inManagedScope(user, employeeId) {
+  if (user.role !== 'department_head') return true;
+  const dept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(user.employee_id);
+  const empDept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(employeeId);
+  return !!dept && !!empDept && dept.department_id === empDept.department_id;
+}
+
 // List compensation packages (role-scoped) with a payroll summary
 router.get('/', (req, res, next) => {
   try {
@@ -56,6 +68,7 @@ router.post('/', requireRole(...MANAGE), (req, res, next) => {
     if (!b.employee_id) return res.status(400).json({ error: 'Employee is required' });
     const emp = db.prepare('SELECT id FROM employees WHERE id = ?').get(b.employee_id);
     if (!emp) return res.status(404).json({ error: 'Employee not found' });
+    if (!inManagedScope(req.user, b.employee_id)) return res.status(403).json({ error: 'Access denied' });
 
     const result = db.prepare(`
       INSERT INTO compensation
@@ -81,6 +94,7 @@ router.put('/:id', requireRole(...MANAGE), (req, res, next) => {
   try {
     const existing = db.prepare('SELECT * FROM compensation WHERE id = ?').get(req.params.id);
     if (!existing) return res.status(404).json({ error: 'Not found' });
+    if (!inManagedScope(req.user, existing.employee_id)) return res.status(403).json({ error: 'Access denied' });
     const b = req.body;
 
     const next_ = {
@@ -127,6 +141,9 @@ router.put('/:id', requireRole(...MANAGE), (req, res, next) => {
 // Delete a compensation package (managers & HR)
 router.delete('/:id', requireRole(...MANAGE), (req, res, next) => {
   try {
+    const existing = db.prepare('SELECT employee_id FROM compensation WHERE id = ?').get(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Not found' });
+    if (!inManagedScope(req.user, existing.employee_id)) return res.status(403).json({ error: 'Access denied' });
     const result = db.prepare('DELETE FROM compensation WHERE id = ?').run(req.params.id);
     if (result.changes === 0) return res.status(404).json({ error: 'Not found' });
     res.json({ message: 'Deleted' });
@@ -143,11 +160,7 @@ router.get('/:id/history', (req, res, next) => {
     if (['employee', 'candidate'].includes(req.user.role) && pkg.employee_id !== req.user.employee_id) {
       return res.status(403).json({ error: 'Access denied' });
     }
-    if (req.user.role === 'department_head') {
-      const dept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(req.user.employee_id);
-      const pkgDept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(pkg.employee_id);
-      if (!dept || !pkgDept || dept.department_id !== pkgDept.department_id) return res.status(403).json({ error: 'Access denied' });
-    }
+    if (!inManagedScope(req.user, pkg.employee_id)) return res.status(403).json({ error: 'Access denied' });
     const rows = db.prepare(`
       SELECT h.*, c.full_name as changed_by_name
       FROM compensation_history h

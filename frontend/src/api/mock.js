@@ -597,7 +597,14 @@ export const mockEmployeesApi = {
   async update(id, data) {
     await delay()
     const e = employees.find((x) => x.id === Number(id))
-    if (e) Object.assign(e, data)
+    if (!e) return { message: 'تم التحديث (وضع تجريبي)' }
+    const u = currentUser()
+    if (u?.role === 'candidate') throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    if (u?.role === 'employee' && e.id !== u.employee_id) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    if (u?.role === 'department_head' && e.id !== u.employee_id && !sameDeptAsMe(u, e.id)) {
+      throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    }
+    Object.assign(e, data)
     return { message: 'تم التحديث (وضع تجريبي)' }
   },
   async remove(id) {
