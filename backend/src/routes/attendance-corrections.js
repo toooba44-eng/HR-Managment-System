@@ -57,6 +57,17 @@ router.put('/:id/status', requireRole(...MANAGE), (req, res, next) => {
     const c = db.prepare('SELECT * FROM attendance_corrections WHERE id = ?').get(req.params.id);
     if (!c) return res.status(404).json({ error: 'Not found' });
 
+    // A department head may only review corrections within their own
+    // department — the list endpoint already scopes this way; enforce it
+    // here too so the action can't be reached directly by ID.
+    if (req.user.role === 'department_head') {
+      const dept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(req.user.employee_id);
+      const empDept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(c.employee_id);
+      if (!dept || !empDept || dept.department_id !== empDept.department_id) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+    }
+
     db.prepare('UPDATE attendance_corrections SET status = ?, reviewed_by = ? WHERE id = ?')
       .run(status, req.user.employee_id || null, req.params.id);
 

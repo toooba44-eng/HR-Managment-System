@@ -105,6 +105,17 @@ router.put('/:id/resolve', requireRole('admin', 'hr_manager', 'department_head',
       return res.status(404).json({ error: 'Request not found' });
     }
 
+    // A department head may only resolve requests within their own
+    // department — the list endpoint already scopes this way; enforce it
+    // here too so the action can't be reached directly by ID.
+    if (req.user.role === 'department_head') {
+      const dept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(req.user.employee_id);
+      const empDept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(request.employee_id);
+      if (!dept || !empDept || dept.department_id !== empDept.department_id) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+    }
+
     db.prepare(`
       UPDATE requests
       SET status = ?, response = ?, resolved_by = ?, resolved_at = CURRENT_TIMESTAMP
