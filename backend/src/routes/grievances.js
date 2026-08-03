@@ -24,6 +24,46 @@ router.get('/mine', (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+const isHR = (role) => ['admin', 'hr_manager', 'super_admin'].includes(role);
+
+// Self-service filing: any employee can report a complaint concerning
+// themselves. HR/admin retain the original unrestricted form (any employee,
+// either type, own severity assessment) for logging disciplinary matters or
+// filing on someone else's behalf.
+router.post('/', (req, res, next) => {
+  try {
+    const hr = isHR(req.user.role);
+    let { employee_id, type, category, description, severity } = req.body;
+    if (!hr) {
+      if (!req.user.employee_id) return res.status(400).json({ error: 'No employee associated with this account' });
+      employee_id = req.user.employee_id;
+      type = 'شكوى';
+      severity = 'متوسطة';
+    }
+    if (!employee_id) return res.status(400).json({ error: 'Employee is required' });
+    const emp = db.prepare('SELECT id FROM employees WHERE id = ?').get(employee_id);
+    if (!emp) return res.status(404).json({ error: 'Employee not found' });
+    const r = db.prepare(`INSERT INTO grievances (employee_id, type, category, description, severity, created_by) VALUES (?, ?, ?, ?, ?, ?)`)
+      .run(employee_id, type || 'شكوى', category || 'أخرى', description || null, severity || 'متوسطة', req.user.employee_id || null);
+    res.status(201).json({ message: 'Created', grievance: { id: r.lastInsertRowid } });
+  } catch (err) { next(err); }
+});
+
+// Withdraw: the employee who filed a still-open complaint can retract it;
+// HR/admin can remove any record at any time.
+router.delete('/:id', (req, res, next) => {
+  try {
+    const g = db.prepare('SELECT * FROM grievances WHERE id = ?').get(req.params.id);
+    if (!g) return res.status(404).json({ error: 'Not found' });
+    if (!isHR(req.user.role)) {
+      if (g.employee_id !== req.user.employee_id) return res.status(403).json({ error: 'Access denied' });
+      if (g.status !== 'مفتوحة') return res.status(400).json({ error: 'لا يمكن سحب الشكوى بعد بدء معالجتها' });
+    }
+    db.prepare('DELETE FROM grievances WHERE id = ?').run(req.params.id);
+    res.json({ message: 'Deleted' });
+  } catch (err) { next(err); }
+});
+
 router.use(requireRole('admin', 'hr_manager', 'super_admin'));
 
 router.get('/', (req, res, next) => {
@@ -43,30 +83,15 @@ router.get('/', (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post('/', (req, res, next) => {
-  try {
-    const { employee_id, type, category, description, severity } = req.body;
-    if (!employee_id) return res.status(400).json({ error: 'Employee is required' });
-    const r = db.prepare(`INSERT INTO grievances (employee_id, type, category, description, severity, created_by) VALUES (?, ?, ?, ?, ?, ?)`)
-      .run(employee_id, type || 'شكوى', category || 'أخرى', description || null, severity || 'متوسطة', req.user.employee_id || null);
-    res.status(201).json({ message: 'Created', grievance: { id: r.lastInsertRowid } });
-  } catch (err) { next(err); }
-});
-
 router.put('/:id', (req, res, next) => {
   try {
     const g = db.prepare('SELECT * FROM grievances WHERE id = ?').get(req.params.id);
     if (!g) return res.status(404).json({ error: 'Not found' });
-    const { status, action, assigned_to } = req.body;
-    db.prepare('UPDATE grievances SET status = ?, action = ?, assigned_to = ? WHERE id = ?')
-      .run(status || g.status, action ?? g.action, assigned_to !== undefined ? (assigned_to || null) : g.assigned_to, req.params.id);
+    const { status, action, assigned_to, severity } = req.body;
+    db.prepare('UPDATE grievances SET status = ?, action = ?, assigned_to = ?, severity = ? WHERE id = ?')
+      .run(status || g.status, action ?? g.action, assigned_to !== undefined ? (assigned_to || null) : g.assigned_to, severity || g.severity, req.params.id);
     res.json({ message: 'Updated' });
   } catch (err) { next(err); }
-});
-
-router.delete('/:id', (req, res, next) => {
-  try { db.prepare('DELETE FROM grievances WHERE id = ?').run(req.params.id); res.json({ message: 'Deleted' }); }
-  catch (err) { next(err); }
 });
 
 // Confidential investigation timeline — HR/admin only, never exposed to the
