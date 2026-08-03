@@ -4043,6 +4043,18 @@ const APPROVAL_SOURCES = {
       return true
     },
   },
+  timesheet: {
+    label: 'جدول ساعات',
+    eligible: (u) => ['admin', 'hr_manager', 'department_head', 'super_admin'].includes(u.role),
+    pending(u) {
+      let rows = timesheets.filter((t) => t.status === 'مقدّم')
+      if (u.role === 'department_head') rows = rows.filter((t) => employees.find((e) => e.id === t.employee_id)?.department_id === myDept())
+      return rows
+    },
+    normalize: (r) => ({ title: `جدول ساعات: ${r.project}`, subtitle: `${r.date} · ${r.hours} ساعة${r.task ? ' · ' + r.task : ''}`, amount: null }),
+    approve: (id, u) => approvalSetStatus(timesheets, id, 'معتمد', u, 'مقدّم', 'approved_by'),
+    reject: (id, u) => approvalSetStatus(timesheets, id, 'مرفوض', u, 'مقدّم', 'approved_by'),
+  },
 }
 
 function approvalPendingRequests(u, type) {
@@ -4110,7 +4122,7 @@ function approvalLogDecision(source, id, decision, reason, u) {
     leave: leaves, attendance: attendanceCorrections, overtime: requests, remote: requests,
     hiring: hiringRequests, expense: expenses, advance: expenses, payroll: payrollRuns,
     promotion: promotions, transfer: promotions, document: signatures, raise: compensationRequests, asset: assetRequests,
-    shift_swap: shiftSwapRequests,
+    shift_swap: shiftSwapRequests, timesheet: timesheets,
   }
   const row = arrByTable[source]?.find((x) => x.id === Number(id))
   if (!row) return
