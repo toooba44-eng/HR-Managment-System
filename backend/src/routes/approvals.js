@@ -291,6 +291,24 @@ const SOURCES = {
       return true;
     },
   },
+  timesheet: {
+    label: 'جدول ساعات',
+    table: 'timesheets',
+    eligible: (u) => ['admin', 'hr_manager', 'department_head', 'super_admin'].includes(u.role),
+    pending(user) {
+      let where = "WHERE t.status = 'مقدّم'";
+      const params = [];
+      if (user.role === 'department_head') { where += ' AND e.department_id = ?'; params.push(deptOf(user.employee_id)); }
+      return db.prepare(`
+        SELECT t.*, e.full_name, e.job_title, e.profile_picture
+        FROM timesheets t JOIN employees e ON t.employee_id = e.id
+        ${where} ORDER BY t.created_at ASC
+      `).all(...params);
+    },
+    normalize: (r) => ({ title: `جدول ساعات: ${r.project}`, subtitle: `${r.date} · ${r.hours} ساعة${r.task ? ' · ' + r.task : ''}`, amount: null }),
+    approve: (id, user) => setStatus('timesheets', id, 'معتمد', user, 'مقدّم', 'approved_by'),
+    reject: (id, user) => setStatus('timesheets', id, 'مرفوض', user, 'مقدّم', 'approved_by'),
+  },
 };
 
 function pendingRequestsByType(user, type) {
