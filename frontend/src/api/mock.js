@@ -1948,13 +1948,17 @@ export const mockGoalsApi = {
   async update(id, data) {
     await delay()
     const g = goals.find((x) => x.id === Number(id))
-    if (g) {
-      if (data.progress !== undefined) {
-        g.progress = Math.max(0, Math.min(100, parseInt(data.progress, 10)))
-        if (data.status === undefined) g.status = g.progress >= 100 ? 'مكتملة' : g.progress > 0 ? 'قيد التنفيذ' : g.status
-      }
-      if (data.status !== undefined) { g.status = data.status; if (data.status === 'مكتملة') g.progress = 100 }
+    if (!g) throw notFound()
+    const u = currentUser()
+    const isManager = ['admin', 'hr_manager', 'department_head', 'super_admin'].includes(u?.role)
+    const isOwner = g.employee_id === u?.employee_id
+    if (!isOwner && !isManager) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    if (!isOwner && !sameDeptAsMe(u, g.employee_id)) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    if (data.progress !== undefined) {
+      g.progress = Math.max(0, Math.min(100, parseInt(data.progress, 10)))
+      if (data.status === undefined) g.status = g.progress >= 100 ? 'مكتملة' : g.progress > 0 ? 'قيد التنفيذ' : g.status
     }
+    if (data.status !== undefined) { g.status = data.status; if (data.status === 'مكتملة') g.progress = 100 }
     return { message: 'تم التحديث' }
   },
   async remove(id) {
@@ -1966,6 +1970,8 @@ export const mockGoalsApi = {
     if (!isManager) {
       if (g.employee_id !== u?.employee_id) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
       if (g.status !== 'لم تبدأ') throw badReq('لا يمكن حذف هدف بدأ العمل عليه')
+    } else if (!sameDeptAsMe(u, g.employee_id)) {
+      throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
     }
     const i = goals.findIndex((x) => x.id === Number(id))
     if (i > -1) goals.splice(i, 1)
