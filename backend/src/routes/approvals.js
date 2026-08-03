@@ -309,6 +309,28 @@ const SOURCES = {
     approve: (id, user) => setStatus('timesheets', id, 'معتمد', user, 'مقدّم', 'approved_by'),
     reject: (id, user) => setStatus('timesheets', id, 'مرفوض', user, 'مقدّم', 'approved_by'),
   },
+  // Every other type in the generic `requests` table (شهادة، خطاب، تحديث
+  // بيانات، شكوى/استفسار، أخرى...) — everything that isn't already claimed
+  // by the dedicated overtime/remote sources above, so no pending request
+  // type is ever silently excluded from the inbox as new types get added.
+  service_request: {
+    label: 'طلب موظف',
+    table: 'requests',
+    eligible: (u) => ['admin', 'hr_manager', 'department_head', 'super_admin'].includes(u.role),
+    pending(user) {
+      let where = "WHERE r.status = 'معلقة' AND r.type NOT IN ('عمل إضافي', 'عمل عن بعد')";
+      const params = [];
+      if (user.role === 'department_head') { where += ' AND e.department_id = ?'; params.push(deptOf(user.employee_id)); }
+      return db.prepare(`
+        SELECT r.*, e.full_name, e.job_title, e.profile_picture
+        FROM requests r JOIN employees e ON r.employee_id = e.id
+        ${where} ORDER BY r.created_at ASC
+      `).all(...params);
+    },
+    normalize: (r) => ({ title: `${r.type}: ${r.subject}`, subtitle: r.details || '', amount: null }),
+    approve: (id, user) => resolveRequest(id, 'مقبولة', user),
+    reject: (id, user) => resolveRequest(id, 'مرفوضة', user),
+  },
 };
 
 function pendingRequestsByType(user, type) {
