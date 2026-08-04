@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../config/database');
 const { authenticateToken, requireRole } = require('../middleware/auth');
+const { notifyEmployee } = require('../utils/notify');
 const router = express.Router();
 
 router.use(authenticateToken);
@@ -121,6 +122,14 @@ router.put('/:id/resolve', requireRole('admin', 'hr_manager', 'department_head',
       SET status = ?, response = ?, resolved_by = ?, resolved_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).run(status, response || null, req.user.employee_id || null, req.params.id);
+
+    const STATUS_LABEL = { 'مقبولة': 'قبول', 'مرفوضة': 'رفض', 'مكتملة': 'إنجاز' };
+    notifyEmployee(request.employee_id, {
+      title: `تم ${STATUS_LABEL[status] || 'تحديث'} طلبك: ${request.subject}`,
+      message: response || request.type,
+      type: status === 'مرفوضة' ? 'error' : 'success',
+      link: null,
+    });
 
     res.json({ message: 'Request updated' });
   } catch (err) {

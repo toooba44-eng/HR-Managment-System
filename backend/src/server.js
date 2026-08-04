@@ -62,6 +62,7 @@ const managerRoutes = require('./routes/manager');
 const candidateRoutes = require('./routes/candidate');
 const platformRoutes = require('./routes/platform');
 const saConfigRoutes = require('./routes/sa-config');
+const notificationRoutes = require('./routes/notifications');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -154,6 +155,7 @@ app.use('/api/manager', managerRoutes);
 app.use('/api/candidate', candidateRoutes);
 app.use('/api/platform', platformRoutes);
 app.use('/api/sa', saConfigRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Serve the built frontend when present (single-service deployment).
 // CLIENT_DIR defaults to ../public relative to this file (where the Docker

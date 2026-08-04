@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../config/database');
 const { authenticateToken, requireRole } = require('../middleware/auth');
+const { notifyEmployee } = require('../utils/notify');
 const router = express.Router();
 
 router.use(authenticateToken);
@@ -97,6 +98,15 @@ router.put('/:id/status', requireRole(...MANAGE), (req, res, next) => {
 
     db.prepare('UPDATE expenses SET status = ?, approved_by = ? WHERE id = ?')
       .run(status, req.user.employee_id || null, req.params.id);
+
+    const STATUS_LABEL = { 'معتمدة': 'اعتماد', 'مرفوضة': 'رفض', 'مصروفة': 'صرف' };
+    notifyEmployee(exists.employee_id, {
+      title: `تم ${STATUS_LABEL[status] || 'تحديث'} طلب ${exists.type === 'سلفة' ? 'السلفة' : 'المصروف'}`,
+      message: exists.description || `بمبلغ ${exists.amount}`,
+      type: status === 'مرفوضة' ? 'error' : 'success',
+      link: '/ess/expenses',
+    });
+
     res.json({ message: 'Updated' });
   } catch (err) {
     next(err);

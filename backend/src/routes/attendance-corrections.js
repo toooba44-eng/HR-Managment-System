@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../config/database');
 const { authenticateToken, requireRole } = require('../middleware/auth');
+const { notifyEmployee } = require('../utils/notify');
 const router = express.Router();
 
 router.use(authenticateToken);
@@ -87,6 +88,16 @@ router.put('/:id/status', requireRole(...MANAGE), (req, res, next) => {
           .run(c.employee_id, c.date, finalIn, finalOut, hours, 'حاضر', 'تصحيح معتمد');
       }
     }
+
+    if (status !== 'معلق') {
+      notifyEmployee(c.employee_id, {
+        title: status === 'موافق عليه' ? 'تمت الموافقة على تصحيح الحضور' : 'تم رفض تصحيح الحضور',
+        message: `${c.date} · ${c.requested_check_in || '—'} إلى ${c.requested_check_out || '—'}`,
+        type: status === 'موافق عليه' ? 'success' : 'error',
+        link: '/ess/attendance-corrections',
+      });
+    }
+
     res.json({ message: 'Updated' });
   } catch (err) { next(err); }
 });
