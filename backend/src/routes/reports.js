@@ -136,6 +136,57 @@ const DATASETS = {
       start_date: { label: 'تاريخ البداية', col: 'l.start_date', type: 'date' },
     },
   },
+  expenses: {
+    label: 'المصروفات والسلف',
+    from: `FROM expenses ex JOIN employees e ON ex.employee_id = e.id`,
+    fields: {
+      full_name: { label: 'الموظف', col: 'e.full_name', type: 'text' },
+      type: { label: 'النوع', col: 'ex.type', type: 'text' },
+      category: { label: 'الفئة', col: 'ex.category', type: 'text' },
+      amount: { label: 'المبلغ', col: 'ex.amount', type: 'number' },
+      status: { label: 'الحالة', col: 'ex.status', type: 'text' },
+      created_at: { label: 'تاريخ الطلب', col: 'ex.created_at', type: 'date' },
+    },
+  },
+  training: {
+    label: 'التدريب',
+    from: `FROM enrollments en JOIN employees e ON en.employee_id = e.id JOIN courses c ON en.course_id = c.id`,
+    fields: {
+      full_name: { label: 'الموظف', col: 'e.full_name', type: 'text' },
+      course: { label: 'الدورة', col: 'c.title', type: 'text' },
+      category: { label: 'الفئة', col: 'c.category', type: 'text' },
+      status: { label: 'الحالة', col: 'en.status', type: 'text' },
+      progress: { label: 'نسبة الإنجاز', col: 'en.progress', type: 'number' },
+      enrolled_at: { label: 'تاريخ التسجيل', col: 'en.enrolled_at', type: 'date' },
+    },
+  },
+  compensation: {
+    label: 'الرواتب والتعويضات',
+    from: `FROM compensation c JOIN employees e ON c.employee_id = e.id`,
+    fields: {
+      full_name: { label: 'الموظف', col: 'e.full_name', type: 'text' },
+      grade: { label: 'الدرجة', col: 'c.grade', type: 'text' },
+      base_salary: { label: 'الراتب الأساسي', col: 'c.base_salary', type: 'number' },
+      housing_allowance: { label: 'بدل السكن', col: 'c.housing_allowance', type: 'number' },
+      transport_allowance: { label: 'بدل النقل', col: 'c.transport_allowance', type: 'number' },
+      bonus: { label: 'المكافأة', col: 'c.bonus', type: 'number' },
+      status: { label: 'الحالة', col: 'c.status', type: 'text' },
+      effective_date: { label: 'تاريخ السريان', col: 'c.effective_date', type: 'date' },
+    },
+  },
+  recruitment: {
+    label: 'التوظيف والمرشحون',
+    from: `FROM applications ap JOIN jobs j ON ap.job_id = j.id`,
+    fields: {
+      candidate_name: { label: 'المرشح', col: 'ap.candidate_name', type: 'text' },
+      job_title: { label: 'الوظيفة', col: 'j.title', type: 'text' },
+      status: { label: 'الحالة', col: 'ap.status', type: 'text' },
+      stage: { label: 'المرحلة', col: 'ap.stage', type: 'text' },
+      source: { label: 'المصدر', col: 'ap.source', type: 'text' },
+      rating: { label: 'التقييم', col: 'ap.rating', type: 'number' },
+      created_at: { label: 'تاريخ التقديم', col: 'ap.created_at', type: 'date' },
+    },
+  },
 };
 const OPS = { eq: '=', ne: '!=', gt: '>', lt: '<', contains: 'LIKE' };
 
