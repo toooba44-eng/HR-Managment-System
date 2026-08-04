@@ -136,6 +136,9 @@ const realApplicationsApi = {
   pipeline: (params) => api.get('/applications/pipeline', { params }).then((r) => r.data),
   moveStage: (id, stage) => api.put(`/applications/${id}/stage`, { stage }).then((r) => r.data),
   rate: (id, rating) => api.put(`/applications/${id}/rating`, { rating }).then((r) => r.data),
+  getOffer: (id) => api.get(`/applications/${id}/offer`).then((r) => r.data),
+  createOffer: (id, data) => api.post(`/applications/${id}/offer`, data).then((r) => r.data),
+  withdrawOffer: (offerId) => api.delete(`/applications/offers/${offerId}`).then((r) => r.data),
 }
 
 // ---------- Platform companies (Super Admin) ----------

@@ -1,14 +1,15 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { Users, UserCheck, UserX, Activity, Star, GripVertical, ClipboardList, AlertTriangle } from 'lucide-react'
+import { Users, UserCheck, UserX, Activity, Star, GripVertical, ClipboardList, AlertTriangle, Send, Badge as BadgeIcon } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { applicationsApi, jobsApi, scorecardsApi } from '../../api/endpoints'
 import Spinner from '../../components/ui/Spinner'
 import Avatar from '../../components/ui/Avatar'
 import StatCard from '../../components/ui/StatCard'
 import Modal from '../../components/ui/Modal'
-import { Select, Field, Textarea, Button } from '../../components/ui/Form'
+import { Select, Field, Input, Textarea, Button } from '../../components/ui/Form'
 import { useAuthStore } from '../../store/authStore'
+import { formatCurrency, formatDate } from '../../lib/utils'
 
 const STAGE_TONE = {
   'متقدم جديد': 'border-t-slate-400', 'مراجعة أولية': 'border-t-blue-400', اختبار: 'border-t-cyan-400',
@@ -163,12 +164,72 @@ function ScorecardModal({ application, onClose }) {
   )
 }
 
+const OFFER_STATUS_TONE = { 'معلّق': 'bg-amber-50 text-amber-600', مقبول: 'bg-emerald-50 text-emerald-600', مرفوض: 'bg-rose-50 text-rose-600' }
+
+function OfferModal({ application, onClose }) {
+  const qc = useQueryClient()
+  const { data, isLoading } = useQuery(['application-offer', application.id], () => applicationsApi.getOffer(application.id))
+  const [form, setForm] = useState({ job_title: application.job_title || '', department: application.job_department || '', salary: '', start_date: '', details: '' })
+
+  const create = useMutation(() => applicationsApi.createOffer(application.id, { ...form, salary: form.salary ? Number(form.salary) : null }), {
+    onSuccess: () => { toast.success('تم إرسال العرض للمرشّح'); qc.invalidateQueries(['application-offer', application.id]); qc.invalidateQueries(['pipeline']) },
+    onError: (e) => toast.error(e.response?.data?.error || 'فشل إنشاء العرض'),
+  })
+  const withdraw = useMutation((offerId) => applicationsApi.withdrawOffer(offerId), {
+    onSuccess: () => { toast.success('تم سحب العرض'); qc.invalidateQueries(['application-offer', application.id]) },
+    onError: (e) => toast.error(e.response?.data?.error || 'فشل السحب'),
+  })
+
+  const offer = data?.offer
+
+  return (
+    <Modal open onClose={onClose} title={`العرض الوظيفي — ${application.candidate_name}`}>
+      {isLoading ? <Spinner /> : offer ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-slate-800">{offer.job_title}</h3>
+            <span className={`badge ${OFFER_STATUS_TONE[offer.status] || ''}`}>{offer.status}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            {offer.department && <div><p className="text-slate-400 text-xs">الإدارة</p><p className="text-slate-700">{offer.department}</p></div>}
+            {offer.salary != null && <div><p className="text-slate-400 text-xs">الراتب المعروض</p><p className="text-slate-700 font-medium">{formatCurrency(offer.salary)}</p></div>}
+            {offer.start_date && <div><p className="text-slate-400 text-xs">تاريخ المباشرة</p><p className="text-slate-700">{formatDate(offer.start_date)}</p></div>}
+          </div>
+          {offer.details && <p className="text-sm text-slate-600 leading-relaxed">{offer.details}</p>}
+          {offer.status === 'معلّق' && (
+            <div className="flex justify-end pt-2 border-t border-slate-100">
+              <Button variant="secondary" className="text-rose-500" onClick={() => withdraw.mutate(offer.id)} loading={withdraw.isLoading}>سحب العرض</Button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <form onSubmit={(e) => { e.preventDefault(); create.mutate() }} className="space-y-4">
+          <Field label="المسمى الوظيفي" required>
+            <Input value={form.job_title} onChange={(e) => setForm((f) => ({ ...f, job_title: e.target.value }))} required />
+          </Field>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="الإدارة"><Input value={form.department} onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))} /></Field>
+            <Field label="الراتب المعروض"><Input type="number" min="0" value={form.salary} onChange={(e) => setForm((f) => ({ ...f, salary: e.target.value }))} /></Field>
+            <Field label="تاريخ المباشرة"><Input type="date" value={form.start_date} onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value }))} /></Field>
+          </div>
+          <Field label="تفاصيل إضافية"><Textarea rows={3} value={form.details} onChange={(e) => setForm((f) => ({ ...f, details: e.target.value }))} /></Field>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button type="button" variant="secondary" onClick={onClose}>إلغاء</Button>
+            <Button type="submit" loading={create.isLoading}><Send className="w-4 h-4" /> إرسال العرض</Button>
+          </div>
+        </form>
+      )}
+    </Modal>
+  )
+}
+
 export default function Pipeline() {
   const qc = useQueryClient()
   const [jobId, setJobId] = useState('')
   const [dragId, setDragId] = useState(null)
   const [overStage, setOverStage] = useState(null)
   const [scoring, setScoring] = useState(null)
+  const [offering, setOffering] = useState(null)
   const { data: jobsData } = useQuery('jobs', () => jobsApi.list())
   const { data, isLoading } = useQuery(['pipeline', jobId], () => applicationsApi.pipeline(jobId ? { job_id: jobId } : {}))
   const move = useMutation(({ id, stage }) => applicationsApi.moveStage(id, stage), {
@@ -240,6 +301,15 @@ export default function Pipeline() {
                         <p className="text-[11px] text-slate-400 truncate">{c.job_title}</p>
                       </div>
                       <ClipboardList className="w-3.5 h-3.5 text-slate-300 shrink-0 mt-1" />
+                      {c.stage !== 'متقدم جديد' && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setOffering(c) }}
+                          title="العرض الوظيفي"
+                          className="text-amber-400 hover:text-amber-500 shrink-0 mt-1"
+                        >
+                          <BadgeIcon className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                     <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-50">
                       <Stars value={c.rating} onRate={(rating) => rate.mutate({ id: c.id, rating })} />
@@ -255,6 +325,7 @@ export default function Pipeline() {
       </div>
 
       {scoring && <ScorecardModal application={scoring} onClose={() => setScoring(null)} />}
+      {offering && <OfferModal application={offering} onClose={() => setOffering(null)} />}
     </div>
   )
 }
