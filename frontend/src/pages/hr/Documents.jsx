@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { FileText, Plus, Trash2, Pencil, FileWarning, FileClock, Files } from 'lucide-react'
+import { FileText, Plus, Trash2, Pencil, FileWarning, FileClock, Files, BellRing } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { documentsApi, employeesApi } from '../../api/endpoints'
 import { useAuthStore } from '../../store/authStore'
@@ -67,6 +67,10 @@ export default function Documents() {
     onSuccess: () => { toast.success('تم الحذف'); qc.invalidateQueries('documents-register') },
     onError: () => toast.error('فشل الحذف'),
   })
+  const remind = useMutation((id) => documentsApi.remind(id), {
+    onSuccess: () => { toast.success('تم إرسال تذكير للموظف'); qc.invalidateQueries('documents-register') },
+    onError: (e) => toast.error(e.response?.data?.error || 'فشل إرسال التذكير'),
+  })
 
   const openNew = () => { setEditing(null); setShowForm(true) }
   const openEdit = (r) => { setEditing(r); setShowForm(true) }
@@ -127,6 +131,15 @@ export default function Documents() {
                   {canManage && (
                     <td className="py-3">
                       <div className="flex gap-1 justify-end">
+                        {['تنتهي قريباً', 'منتهية'].includes(r.doc_status) && (
+                          <button
+                            onClick={() => remind.mutate(r.id)}
+                            title={r.reminder_sent_at ? `آخر تذكير: ${formatDate(r.reminder_sent_at)}` : 'إرسال تذكير للموظف'}
+                            className={`w-7 h-7 rounded-lg hover:bg-amber-50 flex items-center justify-center ${r.reminder_sent_at ? 'text-amber-400' : 'text-slate-400 hover:text-amber-600'}`}
+                          >
+                            <BellRing className="w-4 h-4" />
+                          </button>
+                        )}
                         <button onClick={() => openEdit(r)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button>
                         <button onClick={() => window.confirm('حذف المستند؟') && del.mutate(r.id)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-300 hover:text-rose-500"><Trash2 className="w-4 h-4" /></button>
                       </div>

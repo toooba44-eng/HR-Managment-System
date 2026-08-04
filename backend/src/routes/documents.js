@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const db = require('../config/database');
 const { authenticateToken, requireRole } = require('../middleware/auth');
+const { notifyEmployee } = require('../utils/notify');
 const router = express.Router();
 
 const UPLOAD_DIR = 'uploads/documents/';
@@ -118,6 +119,33 @@ router.put('/:id', requireRole(...MANAGE), (req, res, next) => {
       .run(b.type ?? existing.type, b.title ?? existing.title,
         b.expiry_date !== undefined ? b.expiry_date : existing.expiry_date, req.params.id);
     res.json({ message: 'Updated' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Notify the document's employee that it's expiring/expired, and record
+// when so HR can see it's already been nudged rather than re-sending blindly.
+router.put('/:id/remind', requireRole(...MANAGE), (req, res, next) => {
+  try {
+    const doc = db.prepare('SELECT * FROM documents WHERE id = ?').get(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'Not found' });
+    if (!doc.expiry_date) return res.status(400).json({ error: 'لا يوجد تاريخ انتهاء لهذا المستند' });
+
+    const daysLeft = Math.ceil((new Date(doc.expiry_date) - new Date()) / 86400000);
+    if (daysLeft > 30) return res.status(400).json({ error: 'المستند لا يزال سارياً — لا حاجة للتذكير بعد' });
+
+    db.prepare('UPDATE documents SET reminder_sent_at = CURRENT_TIMESTAMP WHERE id = ?').run(req.params.id);
+
+    notifyEmployee(doc.employee_id, {
+      title: daysLeft < 0 ? 'مستند منتهي الصلاحية' : 'مستند على وشك الانتهاء',
+      message: daysLeft < 0
+        ? `${doc.title} منتهي الصلاحية منذ ${Math.abs(daysLeft)} يوم. يرجى تحديثه في أقرب وقت.`
+        : `${doc.title} ينتهي خلال ${daysLeft} يوم. يرجى تجديده قبل الموعد.`,
+      type: daysLeft < 0 ? 'error' : 'warning',
+    });
+
+    res.json({ message: 'تم إرسال التذكير' });
   } catch (err) {
     next(err);
   }
