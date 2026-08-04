@@ -762,6 +762,19 @@ const migrations = [
     FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
   )`,
 
+  // Required proficiency level per job title & skill — the baseline the
+  // skills-gap analysis compares actual ratings (employee_skills) against.
+  `CREATE TABLE IF NOT EXISTS role_required_skills (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    job_title TEXT NOT NULL,
+    skill TEXT NOT NULL,
+    required_level INTEGER NOT NULL CHECK(required_level IN (1, 2, 3, 4, 5)),
+    created_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(job_title, skill),
+    FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
   // Talent & succession planning (critical positions + successors)
   `CREATE TABLE IF NOT EXISTS succession (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
