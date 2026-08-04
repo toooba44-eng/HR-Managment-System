@@ -97,6 +97,9 @@ router.get('/', (req, res, next) => {
 router.post('/checkin', attendanceValidation.checkIn, (req, res, next) => {
   try {
     const { employee_id, location } = req.body;
+    if (parseInt(employee_id, 10) !== req.user.employee_id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
     const today = new Date().toISOString().split('T')[0];
     const now = new Date().toISOString();
 
@@ -124,6 +127,9 @@ router.post('/checkin', attendanceValidation.checkIn, (req, res, next) => {
 router.post('/checkout', attendanceValidation.checkOut, (req, res, next) => {
   try {
     const { employee_id } = req.body;
+    if (parseInt(employee_id, 10) !== req.user.employee_id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
     const today = new Date().toISOString().split('T')[0];
     const now = new Date().toISOString();
 
@@ -164,8 +170,15 @@ router.get('/my/:employee_id', (req, res, next) => {
   try {
     const { employee_id } = req.params;
 
-    if (req.user.role === 'employee' && parseInt(employee_id) !== req.user.employee_id) {
+    if (['employee', 'candidate'].includes(req.user.role) && parseInt(employee_id) !== req.user.employee_id) {
       return res.status(403).json({ error: 'Access denied' });
+    }
+    if (req.user.role === 'department_head' && parseInt(employee_id) !== req.user.employee_id) {
+      const dept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(req.user.employee_id);
+      const target = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(employee_id);
+      if (!dept || !target || dept.department_id !== target.department_id) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
     }
 
     const records = db.prepare(`
@@ -184,11 +197,16 @@ router.get('/my/:employee_id', (req, res, next) => {
 // Get attendance report
 router.get('/report/summary', requireRole('admin', 'hr_manager', 'department_head'), (req, res, next) => {
   try {
-    const { start_date, end_date, department_id } = req.query;
+    const { start_date, end_date } = req.query;
+    let { department_id } = req.query;
 
     let whereClause = 'WHERE a.date BETWEEN ? AND ?';
     const params = [start_date, end_date];
 
+    if (req.user.role === 'department_head') {
+      const dept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(req.user.employee_id);
+      department_id = dept ? dept.department_id : -1;
+    }
     if (department_id) {
       whereClause += ' AND e.department_id = ?';
       params.push(department_id);

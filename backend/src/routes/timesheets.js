@@ -7,6 +7,13 @@ router.use(authenticateToken);
 
 const MANAGE = ['admin', 'hr_manager', 'department_head', 'super_admin'];
 
+function inManagedScope(user, employeeId) {
+  if (user.role !== 'department_head') return true;
+  const dept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(user.employee_id);
+  const target = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(employeeId);
+  return !!dept && !!target && dept.department_id === target.department_id;
+}
+
 // List timesheets (role-scoped) with an hours summary
 router.get('/', (req, res, next) => {
   try {
@@ -92,8 +99,9 @@ router.put('/:id/review', requireRole(...MANAGE), (req, res, next) => {
   try {
     const { status } = req.body;
     if (!['معتمد', 'مرفوض'].includes(status)) return res.status(400).json({ error: 'Invalid status' });
-    const t = db.prepare('SELECT id FROM timesheets WHERE id = ?').get(req.params.id);
+    const t = db.prepare('SELECT * FROM timesheets WHERE id = ?').get(req.params.id);
     if (!t) return res.status(404).json({ error: 'Not found' });
+    if (!inManagedScope(req.user, t.employee_id)) return res.status(403).json({ error: 'Access denied' });
     db.prepare('UPDATE timesheets SET status = ?, approved_by = ? WHERE id = ?').run(status, req.user.employee_id || null, req.params.id);
     res.json({ message: 'Reviewed' });
   } catch (err) { next(err); }
@@ -103,7 +111,10 @@ router.delete('/:id', (req, res, next) => {
   try {
     const t = db.prepare('SELECT * FROM timesheets WHERE id = ?').get(req.params.id);
     if (!t) return res.status(404).json({ error: 'Not found' });
-    if (t.employee_id !== req.user.employee_id && !MANAGE.includes(req.user.role)) return res.status(403).json({ error: 'Access denied' });
+    const isOwner = t.employee_id === req.user.employee_id;
+    if (!isOwner && (!MANAGE.includes(req.user.role) || !inManagedScope(req.user, t.employee_id))) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
     db.prepare('DELETE FROM timesheets WHERE id = ?').run(req.params.id);
     res.json({ message: 'Deleted' });
   } catch (err) { next(err); }

@@ -128,8 +128,15 @@ router.get('/employee/:employee_id', (req, res, next) => {
   try {
     const { employee_id } = req.params;
 
-    if (req.user.role === 'employee' && parseInt(employee_id) !== req.user.employee_id) {
+    if (['employee', 'candidate'].includes(req.user.role) && parseInt(employee_id) !== req.user.employee_id) {
       return res.status(403).json({ error: 'Access denied' });
+    }
+    if (req.user.role === 'department_head' && parseInt(employee_id) !== req.user.employee_id) {
+      const dept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(req.user.employee_id);
+      const target = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(employee_id);
+      if (!dept || !target || dept.department_id !== target.department_id) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
     }
 
     const documents = db.prepare(`

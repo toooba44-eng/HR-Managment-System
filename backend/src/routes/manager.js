@@ -126,6 +126,9 @@ router.put('/interviews/:id', requireRole(...REQUEST_ROLES), (req, res, next) =>
   try {
     const existing = db.prepare('SELECT * FROM interviews WHERE id = ?').get(req.params.id);
     if (!existing) return res.status(404).json({ error: 'Not found' });
+    if (req.user.role === 'department_head' && existing.interviewer_id !== req.user.employee_id && existing.created_by !== req.user.employee_id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
     const b = req.body;
     db.prepare(`
       UPDATE interviews SET candidate_name = ?, job_title = ?, interviewer_id = ?, scheduled_at = ?,
@@ -148,8 +151,12 @@ router.put('/interviews/:id', requireRole(...REQUEST_ROLES), (req, res, next) =>
 
 router.delete('/interviews/:id', requireRole(...REQUEST_ROLES), (req, res, next) => {
   try {
-    const result = db.prepare('DELETE FROM interviews WHERE id = ?').run(req.params.id);
-    if (result.changes === 0) return res.status(404).json({ error: 'Not found' });
+    const existing = db.prepare('SELECT * FROM interviews WHERE id = ?').get(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Not found' });
+    if (req.user.role === 'department_head' && existing.interviewer_id !== req.user.employee_id && existing.created_by !== req.user.employee_id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    db.prepare('DELETE FROM interviews WHERE id = ?').run(req.params.id);
     res.json({ message: 'Deleted' });
   } catch (err) { next(err); }
 });

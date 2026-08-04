@@ -664,6 +664,7 @@ export const mockAttendanceApi = {
   },
   async checkIn({ employee_id }) {
     await delay()
+    if (Number(employee_id) !== currentUser()?.employee_id) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
     const day = today()
     if (attendance.find((a) => a.employee_id === employee_id && a.date === day)) throw badReq('سجّلت الدخول اليوم بالفعل')
     const rec = { id: attendanceSeq++, employee_id, date: day, check_in: nowIso(), check_out: null, work_hours: 0, status: 'حاضر', check_in_location: 'المكتب' }
@@ -672,6 +673,7 @@ export const mockAttendanceApi = {
   },
   async checkOut({ employee_id }) {
     await delay()
+    if (Number(employee_id) !== currentUser()?.employee_id) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
     const day = today()
     const rec = attendance.find((a) => a.employee_id === employee_id && a.date === day)
     if (!rec) throw badReq('لا يوجد سجل دخول لهذا اليوم')
@@ -682,7 +684,15 @@ export const mockAttendanceApi = {
   },
   async mine(employeeId) {
     await delay()
-    return attendance.filter((a) => a.employee_id === Number(employeeId)).slice(-30).reverse()
+    const id = Number(employeeId)
+    const u = currentUser()
+    if (u && ['employee', 'candidate'].includes(u.role) && id !== u.employee_id) {
+      throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    }
+    if (u && u.role === 'department_head' && id !== u.employee_id && !sameDeptAsMe(u, id)) {
+      throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    }
+    return attendance.filter((a) => a.employee_id === id).slice(-30).reverse()
   },
   async report() {
     await delay()
@@ -818,7 +828,13 @@ const docStatus = (d) => {
 export const mockDocumentsApi = {
   async forEmployee(employeeId) {
     await delay()
-    return documents.filter((d) => d.employee_id === Number(employeeId))
+    const u = currentUser()
+    const id = Number(employeeId)
+    if (u && ['employee', 'candidate'].includes(u.role) && id !== u.employee_id) {
+      throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    }
+    if (u && !sameDeptAsMe(u, id)) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    return documents.filter((d) => d.employee_id === id)
   },
   async list({ type, employee_id } = {}) {
     await delay()
@@ -995,8 +1011,16 @@ export const mockPayslipsApi = {
   // been approved — drafts and runs still under review aren't final yet.
   async forEmployee(employeeId) {
     await delay()
-    const emp = employees.find((e) => e.id === Number(employeeId))
+    const id = Number(employeeId)
+    const emp = employees.find((e) => e.id === id)
     if (!emp) throw notFound()
+    const u = currentUser()
+    const privileged = ['admin', 'hr_manager', 'super_admin'].includes(u?.role)
+    if (!privileged && id !== u?.employee_id) {
+      if (u?.role !== 'department_head' || !sameDeptAsMe(u, id)) {
+        throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+      }
+    }
     const payslips = [...payrollRuns]
       .filter((r) => ['معتمد', 'مصروف'].includes(r.status))
       .sort((a, b) => (b.year - a.year) || (b.month - a.month))
@@ -1815,6 +1839,12 @@ export const mockExpensesApi = {
     if (!x) return { message: 'غير موجود' }
     if (x.type !== 'سلفة') { const err = new Error('bad'); err.response = { data: { error: 'يمكن تسوية السلف فقط' } }; throw err }
     if (x.status !== 'مصروفة') { const err = new Error('bad'); err.response = { data: { error: 'يجب صرف السلفة قبل التسوية' } }; throw err }
+    const u = currentUser()
+    const isOwner = u?.employee_id === x.employee_id
+    const isManage = ['admin', 'hr_manager', 'department_head', 'super_admin'].includes(u?.role)
+    if (!isOwner && (!isManage || !sameDeptAsMe(u, x.employee_id))) {
+      throw { response: { data: { error: 'Not allowed' } }, message: 'denied' }
+    }
     x.settled_amount = Number(settledAmount)
     x.settled_at = nowIso()
     return { message: 'تمت التسوية', balance: Number((x.amount - x.settled_amount).toFixed(2)) }
@@ -2588,8 +2618,26 @@ export const mockTimesheetsApi = {
     }
     return { message: 'تم', count }
   },
-  async review(id, status) { await delay(); const t = timesheets.find((x) => x.id === Number(id)); if (t) { t.status = status; t.approved_by = currentUser()?.employee_id || 5 } return { message: 'تم' } },
-  async remove(id) { await delay(); const i = timesheets.findIndex((x) => x.id === Number(id)); if (i > -1) timesheets.splice(i, 1); return { message: 'تم الحذف' } },
+  async review(id, status) {
+    await delay()
+    const t = timesheets.find((x) => x.id === Number(id))
+    if (!t) throw notFound()
+    if (!sameDeptAsMe(currentUser(), t.employee_id)) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    t.status = status
+    t.approved_by = currentUser()?.employee_id || 5
+    return { message: 'تم' }
+  },
+  async remove(id) {
+    await delay()
+    const i = timesheets.findIndex((x) => x.id === Number(id))
+    if (i === -1) throw notFound()
+    const t = timesheets[i]
+    const u = currentUser()
+    const isOwner = t.employee_id === u?.employee_id
+    if (!isOwner && !sameDeptAsMe(u, t.employee_id)) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    timesheets.splice(i, 1)
+    return { message: 'تم الحذف' }
+  },
 }
 
 const compTotal = (r) => r.base_salary + r.housing_allowance + r.transport_allowance + r.other_allowances + r.bonus
@@ -3624,12 +3672,27 @@ export const mockInterviewsApi = {
     await delay()
     const iv = interviews.find((x) => x.id === Number(id))
     if (!iv) throw notFound()
+    const me = currentUser()?.employee_id
+    if (!isReviewer() && iv.interviewer_id !== me && iv.created_by !== me) {
+      throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    }
     for (const k of ['candidate_name', 'job_title', 'interviewer_id', 'scheduled_at', 'mode', 'stage', 'status', 'rating', 'notes']) {
       if (data[k] !== undefined) iv[k] = data[k]
     }
     return { message: 'تم التحديث' }
   },
-  async remove(id) { await delay(); const i = interviews.findIndex((x) => x.id === Number(id)); if (i > -1) interviews.splice(i, 1); return { message: 'تم الحذف' } },
+  async remove(id) {
+    await delay()
+    const iv = interviews.find((x) => x.id === Number(id))
+    if (!iv) throw notFound()
+    const me = currentUser()?.employee_id
+    if (!isReviewer() && iv.interviewer_id !== me && iv.created_by !== me) {
+      throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    }
+    const i = interviews.findIndex((x) => x.id === Number(id))
+    if (i > -1) interviews.splice(i, 1)
+    return { message: 'تم الحذف' }
+  },
 }
 
 let promoSeq = 1
