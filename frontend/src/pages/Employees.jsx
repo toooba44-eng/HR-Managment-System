@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { Search, Plus, Users, FileWarning } from 'lucide-react'
+import { Search, Plus, Users, FileWarning, Download, Upload } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { employeesApi, departmentsApi } from '../api/endpoints'
 import { useAuthStore } from '../store/authStore'
@@ -13,6 +13,120 @@ import Pagination from '../components/ui/Pagination'
 import Modal from '../components/ui/Modal'
 import { Field, Input, Select, Button } from '../components/ui/Form'
 import { formatDate } from '../lib/utils'
+import { downloadCSV, parseCSV } from '../lib/csv'
+
+const EXPORT_COLUMNS = [
+  { key: 'employee_number', label: 'الرقم الوظيفي' },
+  { key: 'full_name', label: 'الاسم الكامل' },
+  { key: 'email', label: 'البريد الإلكتروني' },
+  { key: 'phone', label: 'رقم الجوال' },
+  { key: 'job_title', label: 'المسمى الوظيفي' },
+  { key: 'department_name', label: 'الإدارة' },
+  { key: 'employment_type', label: 'نوع التوظيف' },
+  { key: 'work_location', label: 'موقع العمل' },
+  { key: 'status', label: 'الحالة' },
+  { key: 'hire_date', label: 'تاريخ التعيين' },
+  { key: 'salary', label: 'الراتب الأساسي' },
+]
+const IMPORT_TEMPLATE_COLUMNS = [
+  { key: 'full_name', label: 'الاسم الكامل' },
+  { key: 'email', label: 'البريد الإلكتروني' },
+  { key: 'job_title', label: 'المسمى الوظيفي' },
+  { key: 'hire_date', label: 'hire_date' },
+  { key: 'department', label: 'الإدارة' },
+  { key: 'phone', label: 'رقم الجوال' },
+  { key: 'employment_type', label: 'نوع التوظيف' },
+  { key: 'salary', label: 'الراتب الأساسي' },
+]
+
+function ImportModal({ open, onClose }) {
+  const qc = useQueryClient()
+  const fileRef = useRef(null)
+  const [rows, setRows] = useState([])
+  const [fileName, setFileName] = useState('')
+  const [result, setResult] = useState(null)
+
+  const reset = () => { setRows([]); setFileName(''); setResult(null); if (fileRef.current) fileRef.current.value = '' }
+
+  const onFile = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setResult(null)
+    setFileName(file.name)
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        setRows(parseCSV(String(reader.result)))
+      } catch {
+        toast.error('تعذّر قراءة الملف')
+        setRows([])
+      }
+    }
+    reader.readAsText(file, 'utf-8')
+  }
+
+  const mutation = useMutation(() => employeesApi.import(rows), {
+    onSuccess: (data) => {
+      setResult(data)
+      qc.invalidateQueries('employees')
+      if (data.created > 0) toast.success(`تم إضافة ${data.created} موظف`)
+      if (data.failed?.length) toast.error(`تعذّر استيراد ${data.failed.length} صف`)
+    },
+    onError: (err) => toast.error(err.response?.data?.error || 'فشل الاستيراد'),
+  })
+
+  const handleClose = () => { reset(); onClose() }
+
+  return (
+    <Modal open={open} onClose={handleClose} title="استيراد موظفين من CSV" size="lg">
+      <div className="space-y-4">
+        <p className="text-sm text-slate-500">
+          الأعمدة المطلوبة: الاسم الكامل، البريد الإلكتروني، المسمى الوظيفي، تاريخ التعيين (hire_date بصيغة YYYY-MM-DD). عمود &quot;الإدارة&quot; اختياري ويجب أن يطابق اسم إدارة موجودة.
+        </p>
+        <button
+          type="button"
+          onClick={() => downloadCSV('نموذج-استيراد-الموظفين.csv', [], IMPORT_TEMPLATE_COLUMNS)}
+          className="text-sm text-primary-600 hover:underline"
+        >
+          تحميل نموذج فارغ
+        </button>
+
+        <Field label="ملف CSV">
+          <input ref={fileRef} type="file" accept=".csv,text/csv" onChange={onFile} className="input-field" />
+        </Field>
+
+        {fileName && !result && (
+          <p className="text-sm text-slate-600">{fileName} — {rows.length} صف جاهز للاستيراد</p>
+        )}
+
+        {result && (
+          <div className="rounded-xl bg-slate-50 border border-slate-100 p-3 space-y-2 text-sm">
+            <p className="text-emerald-600 font-medium">تم إنشاء {result.created} موظف بنجاح</p>
+            {result.failed?.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-rose-600 font-medium">فشل {result.failed.length} صف:</p>
+                <ul className="text-xs text-slate-500 space-y-0.5 max-h-40 overflow-y-auto">
+                  {result.failed.map((f, i) => (
+                    <li key={i}>صف {f.row} ({f.email || '—'}): {f.error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="flex justify-end gap-3 pt-2">
+          <Button type="button" variant="secondary" onClick={handleClose}>إغلاق</Button>
+          {!result && (
+            <Button type="button" onClick={() => mutation.mutate()} loading={mutation.isLoading} disabled={rows.length === 0}>
+              <Upload className="w-4 h-4" /> استيراد {rows.length > 0 ? `(${rows.length})` : ''}
+            </Button>
+          )}
+        </div>
+      </div>
+    </Modal>
+  )
+}
 
 function EmployeeForm({ open, onClose }) {
   const qc = useQueryClient()
@@ -94,13 +208,15 @@ function EmployeeForm({ open, onClose }) {
 
 export default function Employees() {
   const navigate = useNavigate()
-  const { isHR } = useAuthStore()
+  const { isHR, user } = useAuthStore()
+  const canExport = isHR() || user?.role === 'department_head'
   const [searchParams, setSearchParams] = useSearchParams()
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
   const [departmentId, setDepartmentId] = useState('')
   const [page, setPage] = useState(1)
   const [showForm, setShowForm] = useState(false)
+  const [showImport, setShowImport] = useState(false)
   const contractExpiring = searchParams.get('contract_expiring') === '1'
 
   const { data: departments = [] } = useQuery('departments', departmentsApi.list)
@@ -112,6 +228,19 @@ export default function Employees() {
 
   const employees = data?.employees || []
   const clearContractFilter = () => { setSearchParams({}); setPage(1) }
+
+  const exportMutation = useMutation(
+    () => employeesApi.export({ search, status, department_id: departmentId }),
+    {
+      onSuccess: (res) => {
+        const rows = res.employees || []
+        if (rows.length === 0) { toast.error('لا يوجد موظفون مطابقون للتصدير'); return }
+        downloadCSV(`الموظفون-${new Date().toISOString().slice(0, 10)}.csv`, rows, EXPORT_COLUMNS)
+        toast.success(`تم تصدير ${rows.length} موظف`)
+      },
+      onError: () => toast.error('فشل التصدير'),
+    }
+  )
 
   return (
     <div className="space-y-6">
@@ -149,11 +278,23 @@ export default function Employees() {
           <option value="معلق">معلق</option>
           <option value="مستقيل">مستقيل</option>
         </Select>
-        {isHR() && (
-          <Button onClick={() => setShowForm(true)} className="sm:w-auto whitespace-nowrap">
-            <Plus className="w-5 h-5" />
-            موظف جديد
+        {canExport && (
+          <Button variant="secondary" onClick={() => exportMutation.mutate()} loading={exportMutation.isLoading} className="sm:w-auto whitespace-nowrap">
+            <Download className="w-4 h-4" />
+            تصدير
           </Button>
+        )}
+        {isHR() && (
+          <>
+            <Button variant="secondary" onClick={() => setShowImport(true)} className="sm:w-auto whitespace-nowrap">
+              <Upload className="w-4 h-4" />
+              استيراد
+            </Button>
+            <Button onClick={() => setShowForm(true)} className="sm:w-auto whitespace-nowrap">
+              <Plus className="w-5 h-5" />
+              موظف جديد
+            </Button>
+          </>
         )}
       </div>
 
@@ -211,6 +352,7 @@ export default function Employees() {
       />
 
       <EmployeeForm open={showForm} onClose={() => setShowForm(false)} />
+      <ImportModal open={showImport} onClose={() => setShowImport(false)} />
     </div>
   )
 }

@@ -34,6 +34,8 @@ const realEmployeesApi = {
   update: (id, data) => api.put(`/employees/${id}`, data).then((r) => r.data),
   remove: (id) => api.delete(`/employees/${id}`).then((r) => r.data),
   orgChart: () => api.get('/employees/org-chart').then((r) => r.data),
+  export: (params) => api.get('/employees/export', { params }).then((r) => r.data),
+  import: (rows) => api.post('/employees/import', { rows }).then((r) => r.data),
 }
 
 // ---------- Departments ----------

@@ -613,6 +613,70 @@ export const mockEmployeesApi = {
     if (i > -1) employees.splice(i, 1)
     return { message: 'تم الحذف (وضع تجريبي)' }
   },
+  async export({ search = '', status = '', department_id = '' } = {}) {
+    await delay()
+    let rows = employees.map(withDept)
+    if (search) {
+      const s = search.toLowerCase()
+      rows = rows.filter((e) => e.full_name.toLowerCase().includes(s) || e.email.toLowerCase().includes(s) || e.job_title.toLowerCase().includes(s))
+    }
+    if (status) rows = rows.filter((e) => e.status === status)
+    if (department_id) rows = rows.filter((e) => e.department_id === Number(department_id))
+    const u = currentUser()
+    if (u?.role === 'department_head') rows = rows.filter((e) => e.id === u.employee_id || sameDeptAsMe(u, e.id))
+    return {
+      employees: rows.map((e) => ({
+        employee_number: e.employee_number, full_name: e.full_name, email: e.email, phone: e.phone,
+        job_title: e.job_title, department_name: e.department_name, employment_type: e.employment_type,
+        work_location: e.work_location, status: e.status, hire_date: e.hire_date, salary: e.salary,
+      })),
+    }
+  },
+  async import(rows) {
+    await delay()
+    const list = Array.isArray(rows) ? rows : []
+    if (list.length === 0) throw badReq('No rows to import')
+    if (list.length > 500) throw badReq('الحد الأقصى 500 صف لكل استيراد')
+    const deptByName = new Map(departments.map((d) => [d.name.trim().toLowerCase(), d.id]))
+    let created = 0
+    const failed = []
+    list.forEach((row, i) => {
+      const full_name = (row.full_name || '').trim()
+      const email = (row.email || '').trim()
+      const job_title = (row.job_title || '').trim()
+      const hire_date = (row.hire_date || '').trim()
+      if (!full_name || !email || !job_title || !hire_date) {
+        failed.push({ row: i + 1, email, error: 'الاسم والبريد والمسمى الوظيفي وتاريخ التعيين مطلوبة' })
+        return
+      }
+      if (employees.some((e) => e.email === email)) {
+        failed.push({ row: i + 1, email, error: 'البريد الإلكتروني مستخدم بالفعل' })
+        return
+      }
+      let department_id = null
+      if (row.department) {
+        department_id = deptByName.get(String(row.department).trim().toLowerCase()) || null
+        if (!department_id) {
+          failed.push({ row: i + 1, email, error: `الإدارة "${row.department}" غير موجودة` })
+          return
+        }
+      }
+      const id = Math.max(...employees.map((e) => e.id)) + 1
+      employees.push({
+        id, full_name, email, phone: row.phone || null, job_title, department_id,
+        manager_id: null, hire_date, employment_type: row.employment_type || 'دوام كامل',
+        work_location: row.work_location || 'الرياض - المقر الرئيسي', team: null, status: 'نشط',
+        salary: row.salary ? Number(row.salary) : 0, allowances: 0, bank_name: null, bank_account: null,
+        contract_type: 'غير محدد', contract_start: null, contract_end: null, national_id: null,
+        date_of_birth: null, marital_status: null, address: null, emergency_contact: null,
+        profile_picture: null, nationality: 'سعودي', employee_number: `EMP-${Date.now()}-${i}`,
+        annual_leave_balance: 30, sick_leave_balance: 10, emergency_leave_balance: 5,
+        created_at: nowIso(),
+      })
+      created += 1
+    })
+    return { created, failed }
+  },
 }
 
 export const mockDepartmentsApi = {
