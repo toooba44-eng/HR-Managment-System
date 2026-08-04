@@ -508,6 +508,7 @@ const realDocumentsApi = {
       .post('/documents', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
       .then((r) => r.data),
   remove: (id) => api.delete(`/documents/${id}`).then((r) => r.data),
+  remind: (id) => api.put(`/documents/${id}/remind`).then((r) => r.data),
 }
 
 // ---------- Notifications ----------

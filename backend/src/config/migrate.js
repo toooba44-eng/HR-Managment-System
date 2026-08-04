@@ -1289,6 +1289,7 @@ function runMigrations() {
     `ALTER TABLE payroll_run_items ADD COLUMN transport_allowance REAL DEFAULT 0`,
     `ALTER TABLE payroll_run_items ADD COLUMN other_allowances REAL DEFAULT 0`,
     `ALTER TABLE payroll_run_items ADD COLUMN bonus REAL DEFAULT 0`,
+    `ALTER TABLE documents ADD COLUMN reminder_sent_at DATETIME`,
   ];
   for (const stmt of columnAdditions) {
     try {

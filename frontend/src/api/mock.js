@@ -966,6 +966,23 @@ export const mockDocumentsApi = {
     if (i > -1) documents.splice(i, 1)
     return { message: 'تم الحذف' }
   },
+  async remind(id) {
+    await delay()
+    const d = documents.find((x) => x.id === Number(id))
+    if (!d) { const err = new Error('bad'); err.response = { status: 404, data: { error: 'غير موجود' } }; throw err }
+    if (!d.expiry_date) throw badReq('لا يوجد تاريخ انتهاء لهذا المستند')
+    const daysLeft = docDaysLeft(d.expiry_date)
+    if (daysLeft > 30) throw badReq('المستند لا يزال سارياً — لا حاجة للتذكير بعد')
+    d.reminder_sent_at = nowIso()
+    pushNotification({ employee_id: d.employee_id }, {
+      title: daysLeft < 0 ? 'مستند منتهي الصلاحية' : 'مستند على وشك الانتهاء',
+      message: daysLeft < 0
+        ? `${d.title} منتهي الصلاحية منذ ${Math.abs(daysLeft)} يوم. يرجى تحديثه في أقرب وقت.`
+        : `${d.title} ينتهي خلال ${daysLeft} يوم. يرجى تجديده قبل الموعد.`,
+      type: daysLeft < 0 ? 'error' : 'warning',
+    })
+    return { message: 'تم إرسال التذكير' }
+  },
 }
 
 function currentUser() {
