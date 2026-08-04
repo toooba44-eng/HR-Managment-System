@@ -1,14 +1,75 @@
 import { useState, useMemo } from 'react'
-import { useQuery } from 'react-query'
+import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { Link } from 'react-router-dom'
-import { Network, Search, ChevronDown, ChevronLeft, Users, UserCircle } from 'lucide-react'
-import { employeesApi } from '../api/endpoints'
+import { Network, Search, ChevronDown, ChevronLeft, Users, UserCircle, UserCog } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { employeesApi, departmentsApi } from '../api/endpoints'
 import Avatar from '../components/ui/Avatar'
 import Spinner from '../components/ui/Spinner'
 import EmptyState from '../components/ui/EmptyState'
 import StatCard from '../components/ui/StatCard'
+import Modal from '../components/ui/Modal'
+import { Field, Select, Button } from '../components/ui/Form'
 
-function Node({ node, depth, expandedAll, query }) {
+function collectIds(node) {
+  const ids = [node.id]
+  for (const c of node.children || []) ids.push(...collectIds(c))
+  return ids
+}
+
+function ReassignModal({ node, allEmployees, departments, onClose }) {
+  const qc = useQueryClient()
+  const excluded = useMemo(() => new Set(collectIds(node)), [node])
+  const [departmentId, setDepartmentId] = useState(node.department_id ?? '')
+  const [managerId, setManagerId] = useState(node.manager_id ?? '')
+
+  const mutation = useMutation(
+    () => employeesApi.update(node.id, {
+      department_id: departmentId ? Number(departmentId) : null,
+      manager_id: managerId ? Number(managerId) : null,
+    }),
+    {
+      onSuccess: () => {
+        toast.success('تم نقل الموظف بنجاح')
+        qc.invalidateQueries('org-chart')
+        qc.invalidateQueries('employees')
+        onClose()
+      },
+      onError: (err) => toast.error(err.response?.data?.error || 'فشل النقل'),
+    }
+  )
+
+  const managerOptions = allEmployees.filter((e) => !excluded.has(e.id))
+
+  return (
+    <Modal open onClose={onClose} title={`نقل ${node.full_name}`}>
+      <form onSubmit={(e) => { e.preventDefault(); mutation.mutate() }} className="space-y-4">
+        <Field label="الإدارة">
+          <Select value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
+            <option value="">بدون إدارة</option>
+            {departments.map((d) => (
+              <option key={d.id} value={d.id}>{d.name}</option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="المدير المباشر">
+          <Select value={managerId} onChange={(e) => setManagerId(e.target.value)}>
+            <option value="">لا يوجد — على قمة الهرم</option>
+            {managerOptions.map((e) => (
+              <option key={e.id} value={e.id}>{e.full_name} — {e.job_title}</option>
+            ))}
+          </Select>
+        </Field>
+        <div className="flex justify-end gap-3 pt-2">
+          <Button type="button" variant="secondary" onClick={onClose}>إلغاء</Button>
+          <Button type="submit" loading={mutation.isLoading}>حفظ النقل</Button>
+        </div>
+      </form>
+    </Modal>
+  )
+}
+
+function Node({ node, depth, expandedAll, query, onReassign }) {
   const [open, setOpen] = useState(true)
   const hasChildren = node.children && node.children.length > 0
   const isOpen = expandedAll ?? open
@@ -31,10 +92,17 @@ function Node({ node, depth, expandedAll, query }) {
         {hasChildren && (
           <span className="flex items-center gap-1 text-xs text-slate-400 shrink-0" title="إجمالي التابعين"><Users className="w-3.5 h-3.5" /> {node.total_reports}</span>
         )}
+        <button
+          onClick={() => onReassign(node)}
+          className="w-7 h-7 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center justify-center text-slate-400 shrink-0"
+          title="نقل الموظف لإدارة/مدير آخر"
+        >
+          <UserCog className="w-4 h-4" />
+        </button>
       </div>
       {hasChildren && isOpen && (
         <div className="mt-2 space-y-2">
-          {node.children.map((c) => <Node key={c.id} node={c} depth={depth + 1} expandedAll={expandedAll} query={query} />)}
+          {node.children.map((c) => <Node key={c.id} node={c} depth={depth + 1} expandedAll={expandedAll} query={query} onReassign={onReassign} />)}
         </div>
       )}
     </div>
@@ -43,8 +111,10 @@ function Node({ node, depth, expandedAll, query }) {
 
 export default function OrgChart() {
   const { data, isLoading } = useQuery('org-chart', () => employeesApi.orgChart())
+  const { data: departments = [] } = useQuery('departments', departmentsApi.list)
   const [query, setQuery] = useState('')
   const [expandedAll, setExpandedAll] = useState(null)
+  const [reassignNode, setReassignNode] = useState(null)
 
   const stats = useMemo(() => {
     const tree = data?.tree || []
@@ -53,7 +123,7 @@ export default function OrgChart() {
     tree.forEach(walk)
     const managers = flat.filter((n) => (n.children || []).length > 0).length
     const maxDepth = (nodes, d = 1) => nodes.reduce((m, n) => Math.max(m, n.children?.length ? maxDepth(n.children, d + 1) : d), 0)
-    return { total: data?.total ?? flat.length, managers, levels: maxDepth(tree), heads: tree.length }
+    return { total: data?.total ?? flat.length, managers, levels: maxDepth(tree), heads: tree.length, flat }
   }, [data])
 
   if (isLoading) return <Spinner fullscreen />
@@ -85,10 +155,19 @@ export default function OrgChart() {
           <EmptyState icon={Network} title="لا يوجد هيكل تنظيمي" />
         ) : (
           <div className="space-y-2 overflow-x-auto">
-            {tree.map((n) => <Node key={n.id} node={n} depth={0} expandedAll={expandedAll} query={query.trim()} />)}
+            {tree.map((n) => <Node key={n.id} node={n} depth={0} expandedAll={expandedAll} query={query.trim()} onReassign={setReassignNode} />)}
           </div>
         )}
       </div>
+
+      {reassignNode && (
+        <ReassignModal
+          node={reassignNode}
+          allEmployees={stats.flat}
+          departments={departments}
+          onClose={() => setReassignNode(null)}
+        />
+      )}
     </div>
   )
 }

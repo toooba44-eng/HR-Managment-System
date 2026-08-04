@@ -79,7 +79,7 @@ router.get('/', (req, res, next) => {
 router.get('/org-chart', (req, res, next) => {
   try {
     const rows = db.prepare(`
-      SELECT e.id, e.full_name, e.job_title, e.profile_picture, e.status, e.manager_id,
+      SELECT e.id, e.full_name, e.job_title, e.profile_picture, e.status, e.manager_id, e.department_id,
              d.name as department_name, d.color as department_color
       FROM employees e
       LEFT JOIN departments d ON e.department_id = d.id
