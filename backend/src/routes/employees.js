@@ -105,6 +105,103 @@ router.get('/org-chart', (req, res, next) => {
   }
 });
 
+// Export employees (all matching rows, no pagination) for CSV download.
+// Same filters and role-scoping as the list endpoint.
+router.get('/export', requireRole('admin', 'hr_manager', 'department_head'), (req, res, next) => {
+  try {
+    const { department_id, status, search } = req.query;
+    let whereClause = 'WHERE 1=1';
+    const params = [];
+
+    if (department_id) { whereClause += ' AND e.department_id = ?'; params.push(department_id); }
+    if (status) { whereClause += ' AND e.status = ?'; params.push(status); }
+    if (search) {
+      whereClause += ` AND (e.full_name LIKE ? OR e.email LIKE ? OR e.job_title LIKE ?)`;
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    }
+    if (req.user.role === 'department_head') {
+      const dept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(req.user.employee_id);
+      if (dept) { whereClause += ' AND e.department_id = ?'; params.push(dept.department_id); }
+    }
+
+    const employees = db.prepare(`
+      SELECT e.employee_number, e.full_name, e.email, e.phone, e.job_title, d.name as department_name,
+             e.employment_type, e.work_location, e.status, e.hire_date, e.salary
+      FROM employees e
+      LEFT JOIN departments d ON e.department_id = d.id
+      ${whereClause}
+      ORDER BY e.full_name
+    `).all(...params);
+
+    res.json({ employees });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Bulk-import employees from parsed CSV rows. Best-effort: each row is
+// applied independently so one bad row doesn't block the rest — same
+// pattern as the approvals inbox's bulk-approve.
+router.post('/import', requireRole('admin', 'hr_manager'), (req, res, next) => {
+  try {
+    const rows = Array.isArray(req.body.rows) ? req.body.rows : [];
+    if (rows.length === 0) return res.status(400).json({ error: 'No rows to import' });
+    if (rows.length > 500) return res.status(400).json({ error: 'الحد الأقصى 500 صف لكل استيراد' });
+
+    const departments = db.prepare('SELECT id, name FROM departments').all();
+    const deptByName = new Map(departments.map((d) => [d.name.trim().toLowerCase(), d.id]));
+
+    const insert = db.prepare(`
+      INSERT INTO employees (full_name, email, phone, job_title, department_id, hire_date, employment_type, work_location, salary, employee_number)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    const emailExists = db.prepare('SELECT 1 FROM employees WHERE email = ?');
+
+    let created = 0;
+    const failed = [];
+    rows.forEach((row, i) => {
+      const full_name = (row.full_name || '').trim();
+      const email = (row.email || '').trim();
+      const job_title = (row.job_title || '').trim();
+      const hire_date = (row.hire_date || '').trim();
+      if (!full_name || !email || !job_title || !hire_date) {
+        failed.push({ row: i + 1, email, error: 'الاسم والبريد والمسمى الوظيفي وتاريخ التعيين مطلوبة' });
+        return;
+      }
+      if (emailExists.get(email)) {
+        failed.push({ row: i + 1, email, error: 'البريد الإلكتروني مستخدم بالفعل' });
+        return;
+      }
+      let department_id = null;
+      if (row.department) {
+        department_id = deptByName.get(String(row.department).trim().toLowerCase()) || null;
+        if (!department_id) {
+          failed.push({ row: i + 1, email, error: `الإدارة "${row.department}" غير موجودة` });
+          return;
+        }
+      }
+      try {
+        insert.run(
+          full_name, email, row.phone || null, job_title, department_id, hire_date,
+          row.employment_type || 'دوام كامل', row.work_location || 'الرياض - المقر الرئيسي',
+          row.salary ? Number(row.salary) : 0, `EMP-${Date.now()}-${i}`,
+        );
+        created += 1;
+        if (department_id) {
+          db.prepare(`UPDATE departments SET employee_count = (SELECT COUNT(*) FROM employees WHERE department_id = ?) WHERE id = ?`)
+            .run(department_id, department_id);
+        }
+      } catch (e) {
+        failed.push({ row: i + 1, email, error: 'تعذّر إنشاء السجل' });
+      }
+    });
+
+    res.json({ created, failed });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Get single employee
 router.get('/:id', (req, res, next) => {
   try {
