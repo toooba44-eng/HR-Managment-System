@@ -124,6 +124,19 @@ export function formatDateTime(datetime) {
   }
 }
 
+export function timeAgo(datetime) {
+  if (!datetime) return '—'
+  const diffMs = Date.now() - new Date(datetime.replace(' ', 'T')).getTime()
+  const diffMin = Math.round(diffMs / 60000)
+  if (diffMin < 1) return 'الآن'
+  if (diffMin < 60) return `منذ ${diffMin} دقيقة`
+  const diffHour = Math.round(diffMin / 60)
+  if (diffHour < 24) return `منذ ${diffHour} ساعة`
+  const diffDay = Math.round(diffHour / 24)
+  if (diffDay < 30) return `منذ ${diffDay} يوم`
+  return formatDate(datetime)
+}
+
 export function formatCurrency(amount) {
   if (amount == null) return '—'
   return new Intl.NumberFormat('ar-SA', {

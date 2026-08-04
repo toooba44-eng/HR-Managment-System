@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
+const { notifyEmployee } = require('../utils/notify');
 const router = express.Router();
 
 router.use(authenticateToken);
@@ -510,6 +511,26 @@ function logDecision(source, id, decision, reason, user) {
   `).run(source, id, decision, reason || null, title, raw.employee_id || null, user.employee_id || null);
 }
 
+// Notifies whoever the record concerns once a decision has been applied.
+// Most sources key off `employee_id`; shift swaps involve two parties
+// instead (`requester_id`/`target_id`) — notify every one present.
+function notifyDecision(source, id, decision, user) {
+  const cfg = SOURCES[source];
+  const raw = db.prepare(`SELECT * FROM ${cfg.table} WHERE id = ?`).get(id);
+  if (!raw) return;
+  const title = cfg.normalize(raw).title;
+  const employeeIds = [...new Set([raw.employee_id, raw.requester_id, raw.target_id, raw.requested_by].filter(Boolean))];
+  for (const empId of employeeIds) {
+    if (empId === user.employee_id) continue; // don't notify the approver about their own action
+    notifyEmployee(empId, {
+      title: decision === 'approve' ? `تمت الموافقة: ${title}` : `تم الرفض: ${title}`,
+      message: cfg.normalize(raw).subtitle || '',
+      type: decision === 'approve' ? 'success' : 'error',
+      link: '/approvals',
+    });
+  }
+}
+
 router.post('/:source/:id/:decision', (req, res, next) => {
   try {
     const { source, id, decision } = req.params;
@@ -524,6 +545,7 @@ router.post('/:source/:id/:decision', (req, res, next) => {
     if (!ok) return res.status(400).json({ error: 'لا يمكن تنفيذ هذا الإجراء — قد يكون الطلب غير موجود أو تم البت فيه بالفعل، أو لا يدعم هذا النوع الرفض' });
 
     logDecision(source, id, decision, reason, req.user);
+    notifyDecision(source, id, decision, req.user);
     res.json({ message: 'Updated' });
   } catch (err) { next(err); }
 });

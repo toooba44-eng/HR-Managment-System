@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../config/database');
 const { authenticateToken, requireRole } = require('../middleware/auth');
+const { notifyEmail } = require('../utils/notify');
 const router = express.Router();
 
 router.use(authenticateToken);
@@ -164,6 +165,14 @@ router.post('/:id/offer', requireRole(...MANAGE), (req, res, next) => {
     `).run(app.candidate_email, job_title, department || null, salary || null, start_date || null, details || null);
 
     db.prepare('UPDATE applications SET stage = ?, status = ? WHERE id = ?').run('عرض وظيفي', 'مقابلة', req.params.id);
+
+    notifyEmail(app.candidate_email, {
+      title: 'لديك عرض وظيفي جديد',
+      message: `${job_title}${department ? ' — ' + department : ''}`,
+      type: 'success',
+      link: '/cand/offer',
+    });
+
     res.status(201).json({ message: 'Created', offer: { id: result.lastInsertRowid } });
   } catch (err) { next(err); }
 });

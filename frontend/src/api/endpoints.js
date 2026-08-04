@@ -503,6 +503,14 @@ const realDocumentsApi = {
   remove: (id) => api.delete(`/documents/${id}`).then((r) => r.data),
 }
 
+// ---------- Notifications ----------
+const realNotificationsApi = {
+  list: (params) => api.get('/notifications', { params }).then((r) => r.data),
+  markRead: (id) => api.put(`/notifications/${id}/read`).then((r) => r.data),
+  markAllRead: () => api.put('/notifications/read-all').then((r) => r.data),
+  remove: (id) => api.delete(`/notifications/${id}`).then((r) => r.data),
+}
+
 // ---------- Exports (real backend, or in-browser mock for the demo) ----------
 export const authApi = DEMO ? mock.mockAuthApi : realAuthApi
 export const dashboardApi = DEMO ? mock.mockDashboardApi : realDashboardApi
@@ -555,3 +563,4 @@ export const hiringApi = DEMO ? mock.mockHiringApi : realHiringApi
 export const interviewsApi = DEMO ? mock.mockInterviewsApi : realInterviewsApi
 export const promotionsApi = DEMO ? mock.mockPromotionsApi : realPromotionsApi
 export const candidateApi = DEMO ? mock.mockCandidateApi : realCandidateApi
+export const notificationsApi = DEMO ? mock.mockNotificationsApi : realNotificationsApi

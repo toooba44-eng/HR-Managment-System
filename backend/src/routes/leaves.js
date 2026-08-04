@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../config/database');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 const { leaveValidation } = require('../middleware/validation');
+const { notifyEmployee } = require('../utils/notify');
 const router = express.Router();
 
 router.use(authenticateToken);
@@ -214,6 +215,13 @@ router.put('/:id/approve', requireRole('admin', 'hr_manager', 'department_head')
         `).run(leave.days_count, leave.employee_id);
       }
     }
+
+    notifyEmployee(leave.employee_id, {
+      title: status === 'موافقة' ? 'تمت الموافقة على طلب الإجازة' : 'تم رفض طلب الإجازة',
+      message: `طلب إجازة ${leave.type} (${leave.start_date} إلى ${leave.end_date})`,
+      type: status === 'موافقة' ? 'success' : 'error',
+      link: '/leaves',
+    });
 
     res.json({ message: `Leave request ${status === 'موافقة' ? 'approved' : 'rejected'} successfully` });
   } catch (err) {

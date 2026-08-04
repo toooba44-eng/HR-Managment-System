@@ -736,6 +736,14 @@ export const mockAttendanceApi = {
       if (rec) { rec.check_in = ci; rec.check_out = co; rec.work_hours = hrs; rec.status = 'حاضر' }
       else attendance.push({ id: attendanceSeq++, employee_id: c.employee_id, date: c.date, check_in: ci, check_out: co, work_hours: hrs, status: 'حاضر', notes: 'تصحيح معتمد' })
     }
+    if (status !== 'معلق') {
+      pushNotification({ employee_id: c.employee_id }, {
+        title: status === 'موافق عليه' ? 'تمت الموافقة على تصحيح الحضور' : 'تم رفض تصحيح الحضور',
+        message: `${c.date} · ${c.requested_check_in || '—'} إلى ${c.requested_check_out || '—'}`,
+        type: status === 'موافق عليه' ? 'success' : 'error',
+        link: '/ess/attendance-corrections',
+      })
+    }
     return { message: 'تم' }
   },
   async removeCorrection(id) {
@@ -784,6 +792,12 @@ export const mockLeavesApi = {
     }
     l.status = status
     l.approved_by = u?.employee_id || 1
+    pushNotification({ employee_id: l.employee_id }, {
+      title: status === 'موافقة' ? 'تمت الموافقة على طلب الإجازة' : 'تم رفض طلب الإجازة',
+      message: `طلب إجازة ${l.type} (${l.start_date} إلى ${l.end_date})`,
+      type: status === 'موافقة' ? 'success' : 'error',
+      link: '/leaves',
+    })
     return { message: 'تم تحديث الطلب (وضع تجريبي)' }
   },
   async cancel(id) {
@@ -898,6 +912,54 @@ function currentUser() {
   }
 }
 
+let notifSeq = 1
+const notifications = []
+// Recipient is either an employee_id (staff) or an email (candidates, who
+// aren't linked to an employees row) — mirrors notifyEmployee/notifyEmail
+// on the real backend.
+function pushNotification({ employee_id, email }, { title, message, type = 'info', link = null }) {
+  notifications.unshift({ id: notifSeq++, employee_id: employee_id || null, email: email || null, title, message, type, link, is_read: 0, created_at: nowIso() })
+}
+function isMyNotification(n, u) {
+  if (u?.employee_id && n.employee_id === u.employee_id) return true
+  if (!n.employee_id && u?.email && n.email === u.email) return true
+  return false
+}
+
+// Seed a few sample notifications so the bell isn't empty on first demo login.
+pushNotification({ employee_id: 6 }, { title: 'تمت الموافقة على طلب الإجازة', message: 'طلب إجازة سنوية (٥ أيام)', type: 'success', link: '/leaves' })
+pushNotification({ employee_id: 6 }, { title: 'إعلان جديد', message: 'اجتماع عام لجميع الموظفين الخميس القادم', type: 'info', link: '/ess/announcements' })
+notifications[1].is_read = 1
+
+export const mockNotificationsApi = {
+  async list({ unread } = {}) {
+    await delay()
+    const u = currentUser()
+    const mine = notifications.filter((n) => isMyNotification(n, u))
+    let rows = mine
+    if (unread === '1' || unread === true || unread === 'true') rows = rows.filter((n) => !n.is_read)
+    return { notifications: rows.slice(0, 50), unread_count: mine.filter((n) => !n.is_read).length }
+  },
+  async markRead(id) {
+    await delay()
+    const n = notifications.find((x) => x.id === Number(id))
+    if (n) n.is_read = 1
+    return { message: 'تم' }
+  },
+  async markAllRead() {
+    await delay()
+    const u = currentUser()
+    notifications.forEach((n) => { if (isMyNotification(n, u)) n.is_read = 1 })
+    return { message: 'تم' }
+  },
+  async remove(id) {
+    await delay()
+    const i = notifications.findIndex((x) => x.id === Number(id))
+    if (i > -1) notifications.splice(i, 1)
+    return { message: 'تم الحذف' }
+  },
+}
+
 const AR_MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
 
 export const mockAnnouncementsApi = {
@@ -992,6 +1054,13 @@ export const mockRequestsApi = {
       throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
     }
     r.status = status; r.response = response || null; r.resolved_by = u?.employee_id || 5; r.resolved_at = nowIso()
+    const STATUS_LABEL = { 'مقبولة': 'قبول', 'مرفوضة': 'رفض', 'مكتملة': 'إنجاز' }
+    pushNotification({ employee_id: r.employee_id }, {
+      title: `تم ${STATUS_LABEL[status] || 'تحديث'} طلبك: ${r.subject}`,
+      message: response || r.type,
+      type: status === 'مرفوضة' ? 'error' : 'success',
+      link: null,
+    })
     return { message: 'تم تحديث الطلب' }
   },
   async remove(id) {
@@ -1403,6 +1472,12 @@ export const mockApplicationsApi = {
     jobOffers.push(offer)
     a.stage = 'عرض وظيفي'
     a.status = 'مقابلة'
+    pushNotification({ email: a.candidate_email }, {
+      title: 'لديك عرض وظيفي جديد',
+      message: `${data.job_title}${data.department ? ' — ' + data.department : ''}`,
+      type: 'success',
+      link: '/cand/offer',
+    })
     return { message: 'تم الإنشاء', offer }
   },
   async withdrawOffer(offerId) {
@@ -1831,6 +1906,13 @@ export const mockExpensesApi = {
     }
     x.status = status
     x.approved_by = u?.employee_id || 5
+    const STATUS_LABEL = { 'معتمدة': 'اعتماد', 'مرفوضة': 'رفض', 'مصروفة': 'صرف' }
+    pushNotification({ employee_id: x.employee_id }, {
+      title: `تم ${STATUS_LABEL[status] || 'تحديث'} طلب ${x.type === 'سلفة' ? 'السلفة' : 'المصروف'}`,
+      message: x.description || `بمبلغ ${x.amount}`,
+      type: status === 'مرفوضة' ? 'error' : 'success',
+      link: '/ess/expenses',
+    })
     return { message: 'تم التحديث' }
   },
   async settle(id, settledAmount) {
@@ -4485,6 +4567,29 @@ function approvalLogDecision(source, id, decision, reason, u) {
   })
 }
 
+function approvalNotifyDecision(source, id, decision, u) {
+  const cfg = APPROVAL_SOURCES[source]
+  const arrByTable = {
+    leave: leaves, attendance: attendanceCorrections, overtime: requests, remote: requests,
+    hiring: hiringRequests, expense: expenses, advance: expenses, payroll: payrollRuns,
+    promotion: promotions, transfer: promotions, document: signatures, raise: compensationRequests, asset: assetRequests,
+    shift_swap: shiftSwapRequests, timesheet: timesheets, service_request: requests,
+  }
+  const row = arrByTable[source]?.find((x) => x.id === Number(id))
+  if (!row) return
+  const title = cfg.normalize(row).title
+  const employeeIds = [...new Set([row.employee_id, row.requester_id, row.target_id, row.requested_by].filter(Boolean))]
+  for (const empId of employeeIds) {
+    if (empId === u.employee_id) continue
+    pushNotification({ employee_id: empId }, {
+      title: decision === 'approve' ? `تمت الموافقة: ${title}` : `تم الرفض: ${title}`,
+      message: cfg.normalize(row).subtitle || '',
+      type: decision === 'approve' ? 'success' : 'error',
+      link: '/approvals',
+    })
+  }
+}
+
 export const mockApprovalsApi = {
   async mine() {
     await delay()
@@ -4517,6 +4622,7 @@ export const mockApprovalsApi = {
     const ok = decision === 'approve' ? cfg.approve(id, u) : cfg.reject(id, u)
     if (!ok) throw badReq('لا يمكن تنفيذ هذا الإجراء — قد يكون الطلب غير موجود أو تم البت فيه بالفعل، أو لا يدعم هذا النوع الرفض')
     approvalLogDecision(source, id, decision, trimmedReason, u)
+    approvalNotifyDecision(source, id, decision, u)
     return { message: 'تم' }
   },
   async bulkApprove(items) {
