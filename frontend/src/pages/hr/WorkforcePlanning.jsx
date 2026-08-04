@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { Users, Wallet, Briefcase, TrendingDown, TrendingUp, Pencil } from 'lucide-react'
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, ReferenceLine } from 'recharts'
 import toast from 'react-hot-toast'
 import { workforceApi } from '../../api/endpoints'
 import { useAuthStore } from '../../store/authStore'
@@ -24,7 +25,7 @@ function PlanModal({ dept, year, onClose }) {
   const qc = useQueryClient()
   const [form, setForm] = useState({ planned_headcount: dept.planned_headcount ?? dept.actual_headcount, budget: dept.budget ?? '', notes: dept.notes || '' })
   const m = useMutation(() => workforceApi.setPlan(dept.department_id, { ...form, year }), {
-    onSuccess: () => { toast.success('تم حفظ الخطة'); qc.invalidateQueries(['workforce', year]); onClose() },
+    onSuccess: () => { toast.success('تم حفظ الخطة'); qc.invalidateQueries(['workforce', year]); qc.invalidateQueries('workforce-trend'); onClose() },
     onError: (e) => toast.error(e.response?.data?.error || 'فشل الحفظ'),
   })
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
@@ -44,6 +45,47 @@ function PlanModal({ dept, year, onClose }) {
         </div>
       </form>
     </Modal>
+  )
+}
+
+function TrendPanel() {
+  const { data } = useQuery('workforce-trend', () => workforceApi.trend())
+  const years = data?.years || []
+  if (years.length === 0) return null
+
+  const chartData = years.map((y) => ({ ...y, name: String(y.year) }))
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="card">
+        <h3 className="font-bold text-slate-800 mb-4">اتجاه العدد المخطط له عبر السنوات</h3>
+        <ResponsiveContainer width="100%" height={220}>
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+            <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} allowDecimals={false} />
+            <Tooltip contentStyle={{ borderRadius: 12, border: 'none', fontFamily: 'Tajawal' }} />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
+            {data?.currentActual != null && (
+              <ReferenceLine y={data.currentActual} stroke="#22c55e" strokeDasharray="4 4" label={{ value: 'الفعلي الحالي', position: 'insideTopLeft', fontSize: 11, fill: '#16a34a' }} />
+            )}
+            <Line type="monotone" dataKey="planned" name="المخطط" stroke="#2563eb" strokeWidth={2} dot={{ r: 4 }} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="card">
+        <h3 className="font-bold text-slate-800 mb-4">اتجاه الميزانية عبر السنوات</h3>
+        <ResponsiveContainer width="100%" height={220}>
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+            <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={(v) => formatCurrency(v)} width={70} />
+            <Tooltip contentStyle={{ borderRadius: 12, border: 'none', fontFamily: 'Tajawal' }} formatter={(v) => formatCurrency(v)} />
+            <Line type="monotone" dataKey="budget" name="الميزانية" stroke="#16a34a" strokeWidth={2} dot={{ r: 4 }} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
   )
 }
 
@@ -73,6 +115,8 @@ export default function WorkforcePlanning() {
         <StatCard icon={TrendingDown} label="أقسام بنقص" value={s.understaffed ?? 0} tone="amber" />
         <StatCard icon={Wallet} label="الميزانية المخططة" value={formatCurrency(s.budget ?? 0)} tone="green" />
       </div>
+
+      <TrendPanel />
 
       <div className="card overflow-x-auto">
         <table className="w-full text-sm border-collapse">

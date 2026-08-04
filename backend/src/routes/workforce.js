@@ -51,6 +51,36 @@ router.get('/', (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Multi-year headcount trend: planned headcount & budget per year, from
+// every year that has a saved plan (across departments, department-head
+// scoped). Actual headcount is always "as of now" — there's no historical
+// snapshot — so it's returned once as a reference point, not per past year.
+router.get('/trend', (req, res, next) => {
+  try {
+    let deptWhere = '';
+    const deptParams = [];
+    if (req.user.role === 'department_head') {
+      const dept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(req.user.employee_id);
+      if (dept) { deptWhere = 'WHERE department_id = ?'; deptParams.push(dept.department_id); }
+    }
+
+    const years = db.prepare(`
+      SELECT year, SUM(planned_headcount) as planned, SUM(budget) as budget
+      FROM workforce_plans
+      ${deptWhere}
+      GROUP BY year ORDER BY year
+    `).all(...deptParams);
+
+    const actualWhere = req.user.role === 'department_head' && deptParams.length
+      ? 'WHERE department_id = ? AND status = \'نشط\''
+      : "WHERE status = 'نشط'";
+    const actualParams = req.user.role === 'department_head' && deptParams.length ? deptParams : [];
+    const currentActual = db.prepare(`SELECT COUNT(*) as c FROM employees ${actualWhere}`).get(...actualParams).c;
+
+    res.json({ years, currentYear: new Date().getFullYear(), currentActual });
+  } catch (err) { next(err); }
+});
+
 // Upsert a department's headcount plan for a year (HR/admin only)
 router.put('/:departmentId', requireRole(...MANAGE), (req, res, next) => {
   try {

@@ -365,6 +365,7 @@ const realHelpdeskApi = {
 const realWorkforceApi = {
   list: (year) => api.get('/workforce', { params: year ? { year } : {} }).then((r) => r.data),
   setPlan: (departmentId, data) => api.put(`/workforce/${departmentId}`, data).then((r) => r.data),
+  trend: () => api.get('/workforce/trend').then((r) => r.data),
 }
 
 // ---------- Talent & succession ----------
