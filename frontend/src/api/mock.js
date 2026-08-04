@@ -2426,6 +2426,26 @@ const RB_DATASETS = {
     fields: { full_name: { label: 'الموظف', type: 'text' }, type: { label: 'النوع', type: 'text' }, status: { label: 'الحالة', type: 'text' }, days_count: { label: 'عدد الأيام', type: 'number' }, start_date: { label: 'تاريخ البداية', type: 'date' } },
     rows: () => leaves.map((l) => ({ full_name: empName(l.employee_id), type: l.type, status: l.status, days_count: l.days_count, start_date: l.start_date })),
   },
+  expenses: {
+    label: 'المصروفات والسلف',
+    fields: { full_name: { label: 'الموظف', type: 'text' }, type: { label: 'النوع', type: 'text' }, category: { label: 'الفئة', type: 'text' }, amount: { label: 'المبلغ', type: 'number' }, status: { label: 'الحالة', type: 'text' }, created_at: { label: 'تاريخ الطلب', type: 'date' } },
+    rows: () => expenses.map((x) => ({ full_name: empName(x.employee_id), type: x.type, category: x.category, amount: x.amount, status: x.status, created_at: x.created_at })),
+  },
+  training: {
+    label: 'التدريب',
+    fields: { full_name: { label: 'الموظف', type: 'text' }, course: { label: 'الدورة', type: 'text' }, category: { label: 'الفئة', type: 'text' }, status: { label: 'الحالة', type: 'text' }, progress: { label: 'نسبة الإنجاز', type: 'number' }, enrolled_at: { label: 'تاريخ التسجيل', type: 'date' } },
+    rows: () => enrollments.map((en) => { const c = courses.find((x) => x.id === en.course_id) || {}; return { full_name: empName(en.employee_id), course: c.title, category: c.category, status: en.status, progress: en.progress, enrolled_at: en.enrolled_at } }),
+  },
+  compensation: {
+    label: 'الرواتب والتعويضات',
+    fields: { full_name: { label: 'الموظف', type: 'text' }, grade: { label: 'الدرجة', type: 'text' }, base_salary: { label: 'الراتب الأساسي', type: 'number' }, housing_allowance: { label: 'بدل السكن', type: 'number' }, transport_allowance: { label: 'بدل النقل', type: 'number' }, bonus: { label: 'المكافأة', type: 'number' }, status: { label: 'الحالة', type: 'text' }, effective_date: { label: 'تاريخ السريان', type: 'date' } },
+    rows: () => compensation.map((c) => ({ full_name: empName(c.employee_id), grade: c.grade, base_salary: c.base_salary, housing_allowance: c.housing_allowance, transport_allowance: c.transport_allowance, bonus: c.bonus, status: c.status, effective_date: c.effective_date })),
+  },
+  recruitment: {
+    label: 'التوظيف والمرشحون',
+    fields: { candidate_name: { label: 'المرشح', type: 'text' }, job_title: { label: 'الوظيفة', type: 'text' }, status: { label: 'الحالة', type: 'text' }, stage: { label: 'المرحلة', type: 'text' }, source: { label: 'المصدر', type: 'text' }, rating: { label: 'التقييم', type: 'number' }, created_at: { label: 'تاريخ التقديم', type: 'date' } },
+    rows: () => applications.map((ap) => ({ candidate_name: ap.candidate_name, job_title: jobs.find((j) => j.id === ap.job_id)?.title, status: ap.status, stage: ap.stage, source: ap.source, rating: ap.rating, created_at: ap.created_at })),
+  },
 }
 
 const withEmp = (r) => ({ ...r, full_name: empName(r.employee_id), job_title: employees.find((e) => e.id === r.employee_id)?.job_title, department_name: deptName(employees.find((e) => e.id === r.employee_id)?.department_id), profile_picture: null })
