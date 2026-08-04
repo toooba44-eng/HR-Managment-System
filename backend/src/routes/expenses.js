@@ -118,8 +118,17 @@ router.put('/:id/settle', (req, res, next) => {
     if (row.status !== 'مصروفة') return res.status(400).json({ error: 'Advance must be disbursed before settlement' });
 
     const isOwner = req.user.employee_id === row.employee_id;
-    if (!isOwner && !MANAGE.includes(req.user.role)) {
-      return res.status(403).json({ error: 'Not allowed' });
+    if (!isOwner) {
+      if (!MANAGE.includes(req.user.role)) {
+        return res.status(403).json({ error: 'Not allowed' });
+      }
+      if (req.user.role === 'department_head') {
+        const dept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(req.user.employee_id);
+        const empDept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(row.employee_id);
+        if (!dept || !empDept || dept.department_id !== empDept.department_id) {
+          return res.status(403).json({ error: 'Not allowed' });
+        }
+      }
     }
 
     db.prepare("UPDATE expenses SET settled_amount = ?, settled_at = CURRENT_TIMESTAMP WHERE id = ?")

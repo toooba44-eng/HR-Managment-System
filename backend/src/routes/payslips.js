@@ -17,10 +17,18 @@ router.get('/:employee_id', (req, res, next) => {
   try {
     const employeeId = parseInt(req.params.employee_id, 10);
 
-    // Permission: own payslips, or a manager/HR role
-    const privileged = ['admin', 'hr_manager', 'department_head', 'super_admin'].includes(req.user.role);
+    // Permission: own payslips, or a manager/HR role (department heads only
+    // for their own department's employees)
+    const privileged = ['admin', 'hr_manager', 'super_admin'].includes(req.user.role);
     if (!privileged && employeeId !== req.user.employee_id) {
-      return res.status(403).json({ error: 'Access denied' });
+      if (req.user.role !== 'department_head') {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+      const dept = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(req.user.employee_id);
+      const target = db.prepare('SELECT department_id FROM employees WHERE id = ?').get(employeeId);
+      if (!dept || !target || dept.department_id !== target.department_id) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
     }
 
     const emp = db.prepare(`
