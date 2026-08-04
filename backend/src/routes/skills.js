@@ -101,6 +101,81 @@ router.get('/matrix', (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+const REQ_MANAGE = ['admin', 'hr_manager', 'super_admin'];
+
+// Required-skill baselines per job title — org-wide, so not department-scoped.
+// Registered before the /:employeeId routes below so "requirements"/"gaps"
+// aren't swallowed as an employee id.
+router.get('/requirements', (req, res, next) => {
+  try {
+    const rows = db.prepare('SELECT id, job_title, skill, required_level FROM role_required_skills ORDER BY job_title, skill').all();
+    res.json({ requirements: rows, levels: LEVELS });
+  } catch (err) { next(err); }
+});
+
+router.put('/requirements', requireRole(...REQ_MANAGE), (req, res, next) => {
+  try {
+    const job_title = (req.body.job_title || '').trim();
+    const skill = (req.body.skill || '').trim();
+    const required_level = req.body.required_level;
+    if (!job_title) return res.status(400).json({ error: 'Job title is required' });
+    if (!skill) return res.status(400).json({ error: 'Skill is required' });
+    if (![1, 2, 3, 4, 5].includes(required_level)) return res.status(400).json({ error: 'Level must be 1-5' });
+    db.prepare(`
+      INSERT INTO role_required_skills (job_title, skill, required_level, created_by)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(job_title, skill) DO UPDATE SET required_level = excluded.required_level
+    `).run(job_title, skill, required_level, req.user.employee_id || null);
+    res.json({ message: 'Saved' });
+  } catch (err) { next(err); }
+});
+
+router.delete('/requirements/:id', requireRole(...REQ_MANAGE), (req, res, next) => {
+  try {
+    db.prepare('DELETE FROM role_required_skills WHERE id = ?').run(req.params.id);
+    res.json({ message: 'Removed' });
+  } catch (err) { next(err); }
+});
+
+// Gap analysis: active employees whose job title has defined requirements,
+// compared against their actual ratings (missing rating counts as level 0).
+router.get('/gaps', (req, res, next) => {
+  try {
+    const s = scope(req);
+    const params = s.param != null ? [s.param] : [];
+    const rows = db.prepare(`
+      SELECT e.id as employee_id, e.full_name, e.job_title, e.profile_picture, d.name as department_name,
+             r.skill, r.required_level, COALESCE(es.level, 0) as actual_level
+      FROM employees e
+      LEFT JOIN departments d ON e.department_id = d.id
+      JOIN role_required_skills r ON r.job_title = e.job_title
+      LEFT JOIN employee_skills es ON es.employee_id = e.id AND es.skill = r.skill
+      WHERE e.status = 'نشط' ${s.where}
+      ORDER BY e.full_name, r.skill
+    `).all(...params);
+
+    const byEmp = new Map();
+    for (const row of rows) {
+      if (row.actual_level >= row.required_level) continue;
+      if (!byEmp.has(row.employee_id)) {
+        byEmp.set(row.employee_id, {
+          employee_id: row.employee_id, full_name: row.full_name, job_title: row.job_title,
+          profile_picture: row.profile_picture, department_name: row.department_name, shortfalls: [],
+        });
+      }
+      byEmp.get(row.employee_id).shortfalls.push({ skill: row.skill, required_level: row.required_level, actual_level: row.actual_level });
+    }
+    const employeesWithGaps = [...byEmp.values()];
+    const totalShortfalls = employeesWithGaps.reduce((sum, e) => sum + e.shortfalls.length, 0);
+
+    res.json({
+      employees: employeesWithGaps,
+      summary: { employeesWithGaps: employeesWithGaps.length, totalShortfalls },
+      levels: LEVELS,
+    });
+  } catch (err) { next(err); }
+});
+
 // Upsert a skill rating for an employee
 router.put('/:employeeId', (req, res, next) => {
   try {

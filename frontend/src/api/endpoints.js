@@ -336,6 +336,10 @@ const realSkillsApi = {
   me: () => api.get('/skills/me').then((r) => r.data),
   set: (employeeId, data) => api.put(`/skills/${employeeId}`, data).then((r) => r.data),
   remove: (employeeId, skill) => api.delete(`/skills/${employeeId}`, { params: { skill } }).then((r) => r.data),
+  requirements: () => api.get('/skills/requirements').then((r) => r.data),
+  setRequirement: (data) => api.put('/skills/requirements', data).then((r) => r.data),
+  removeRequirement: (id) => api.delete(`/skills/requirements/${id}`).then((r) => r.data),
+  gaps: () => api.get('/skills/gaps').then((r) => r.data),
 }
 
 // ---------- Interview scorecards ----------

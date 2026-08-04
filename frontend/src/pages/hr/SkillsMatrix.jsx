@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { Grid2x2, Users, Award, TrendingDown, Sparkles, Plus } from 'lucide-react'
+import { Grid2x2, Users, Award, TrendingDown, Sparkles, Plus, Target, Trash2, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { skillsApi } from '../../api/endpoints'
 import Spinner from '../../components/ui/Spinner'
@@ -8,7 +8,7 @@ import Modal from '../../components/ui/Modal'
 import Avatar from '../../components/ui/Avatar'
 import StatCard from '../../components/ui/StatCard'
 import EmptyState from '../../components/ui/EmptyState'
-import { Field, Input, Button } from '../../components/ui/Form'
+import { Field, Input, Select, Button } from '../../components/ui/Form'
 
 // color ramp for proficiency 1..5
 const LEVEL_TONE = {
@@ -91,12 +91,141 @@ function AddSkillModal({ employees, onClose }) {
   )
 }
 
-export default function SkillsMatrix() {
+function AddRequirementModal({ onClose }) {
+  const qc = useQueryClient()
+  const [jobTitle, setJobTitle] = useState('')
+  const [skill, setSkill] = useState('')
+  const [level, setLevel] = useState(3)
+  const save = useMutation(() => skillsApi.setRequirement({ job_title: jobTitle.trim(), skill: skill.trim(), required_level: level }), {
+    onSuccess: () => { toast.success('تم حفظ المتطلب'); qc.invalidateQueries('skills-requirements'); qc.invalidateQueries('skills-gaps'); onClose() },
+    onError: (e) => toast.error(e.response?.data?.error || 'فشل الحفظ'),
+  })
+  return (
+    <Modal open onClose={onClose} title="تحديد متطلب مهارة لمسمى وظيفي">
+      <form onSubmit={(e) => { e.preventDefault(); if (jobTitle.trim() && skill.trim()) save.mutate() }} className="space-y-4">
+        <Field label="المسمى الوظيفي" required>
+          <Input value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} placeholder="مثال: مطور واجهات أمامية" required />
+        </Field>
+        <Field label="المهارة" required>
+          <Input value={skill} onChange={(e) => setSkill(e.target.value)} placeholder="مثال: JavaScript" required />
+        </Field>
+        <Field label="المستوى المطلوب (1-5)" required>
+          <Select value={level} onChange={(e) => setLevel(Number(e.target.value))}>
+            {[1, 2, 3, 4, 5].map((v) => <option key={v} value={v}>{v}</option>)}
+          </Select>
+        </Field>
+        <div className="flex justify-end gap-3 pt-2">
+          <Button type="button" variant="secondary" onClick={onClose}>إلغاء</Button>
+          <Button type="submit" loading={save.isLoading}>حفظ</Button>
+        </div>
+      </form>
+    </Modal>
+  )
+}
+
+function GapAnalysisTab() {
+  const qc = useQueryClient()
+  const { data: reqData, isLoading: reqLoading } = useQuery('skills-requirements', () => skillsApi.requirements())
+  const { data: gapData, isLoading: gapLoading } = useQuery('skills-gaps', () => skillsApi.gaps())
+  const [adding, setAdding] = useState(false)
+
+  const removeReq = useMutation((id) => skillsApi.removeRequirement(id), {
+    onSuccess: () => { toast.success('تم الحذف'); qc.invalidateQueries('skills-requirements'); qc.invalidateQueries('skills-gaps') },
+    onError: () => toast.error('فشل الحذف'),
+  })
+
+  if (reqLoading || gapLoading) return <Spinner />
+  const requirements = reqData?.requirements || []
+  const levels = reqData?.levels || {}
+  const gapEmployees = gapData?.employees || []
+  const summary = gapData?.summary || {}
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        <StatCard icon={Target} label="متطلبات محدَّدة" value={requirements.length} tone="blue" />
+        <StatCard icon={Users} label="موظفون لديهم فجوات" value={summary.employeesWithGaps ?? 0} tone="rose" />
+        <StatCard icon={AlertTriangle} label="إجمالي نقاط النقص" value={summary.totalShortfalls ?? 0} tone="amber" />
+      </div>
+
+      <div className="card">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-bold text-slate-800 flex items-center gap-2"><Target className="w-5 h-5 text-slate-400" /> متطلبات المهارات حسب المسمى الوظيفي</h3>
+          <Button onClick={() => setAdding(true)}><Plus className="w-4 h-4" /> إضافة متطلب</Button>
+        </div>
+        {requirements.length === 0 ? (
+          <EmptyState icon={Target} title="لا توجد متطلبات محدَّدة بعد" description="أضف متطلب مهارة لمسمى وظيفي لبدء تحليل الفجوات." />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="text-slate-400 text-xs">
+                  <th className="text-right p-2 font-medium">المسمى الوظيفي</th>
+                  <th className="text-right p-2 font-medium">المهارة</th>
+                  <th className="p-2 font-medium text-center">المستوى المطلوب</th>
+                  <th className="p-2"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {requirements.map((r) => (
+                  <tr key={r.id} className="border-t border-slate-100">
+                    <td className="p-2 text-slate-700">{r.job_title}</td>
+                    <td className="p-2 text-slate-600">{r.skill}</td>
+                    <td className="p-2 text-center">
+                      <span className={`badge ${LEVEL_TONE[r.required_level]}`}>{r.required_level} · {levels[r.required_level]}</span>
+                    </td>
+                    <td className="p-2 text-center">
+                      <button onClick={() => removeReq.mutate(r.id)} className="w-8 h-8 rounded-lg hover:bg-rose-50 text-slate-300 hover:text-rose-500 flex items-center justify-center mx-auto">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className="card">
+        <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-3"><AlertTriangle className="w-5 h-5 text-slate-400" /> الموظفون ذوو الفجوات</h3>
+        {gapEmployees.length === 0 ? (
+          <EmptyState icon={Sparkles} title="لا توجد فجوات حالياً" description="جميع الموظفين يستوفون متطلبات مسمياتهم الوظيفية (أو لا توجد متطلبات محدَّدة بعد)." />
+        ) : (
+          <div className="space-y-3">
+            {gapEmployees.map((e) => (
+              <div key={e.employee_id} className="rounded-xl border border-slate-100 p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Avatar name={e.full_name} src={e.profile_picture} size="sm" />
+                  <div className="min-w-0">
+                    <p className="font-medium text-slate-700 truncate">{e.full_name}</p>
+                    <p className="text-xs text-slate-400 truncate">{e.job_title} · {e.department_name || '—'}</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {e.shortfalls.map((s, i) => (
+                    <span key={i} className="badge bg-rose-50 text-rose-600 border border-rose-100">
+                      {s.skill}: {s.actual_level || '—'} ← {s.required_level}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {adding && <AddRequirementModal onClose={() => setAdding(false)} />}
+    </div>
+  )
+}
+
+function MatrixTab() {
   const { data, isLoading } = useQuery('skills-matrix', () => skillsApi.matrix())
   const [editing, setEditing] = useState(null) // { emp, skill }
   const [adding, setAdding] = useState(false)
 
-  if (isLoading) return <Spinner fullscreen />
+  if (isLoading) return <Spinner />
   const emps = data?.employees || []
   const skills = data?.skills || []
   const levels = data?.levels || {}
@@ -174,6 +303,23 @@ export default function SkillsMatrix() {
 
       {editing && <RatingModal emp={editing.emp} skill={editing.skill} levels={levels} onClose={() => setEditing(null)} />}
       {adding && <AddSkillModal employees={emps} onClose={() => setAdding(false)} />}
+    </div>
+  )
+}
+
+export default function SkillsMatrix() {
+  const [tab, setTab] = useState('matrix')
+  return (
+    <div className="space-y-6">
+      <div className="flex gap-2">
+        <button onClick={() => setTab('matrix')} className={`text-sm px-4 py-2 rounded-xl font-medium transition-colors ${tab === 'matrix' ? 'bg-primary-600 text-white' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>
+          مصفوفة المهارات
+        </button>
+        <button onClick={() => setTab('gaps')} className={`text-sm px-4 py-2 rounded-xl font-medium transition-colors ${tab === 'gaps' ? 'bg-primary-600 text-white' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>
+          تحليل الفجوات
+        </button>
+      </div>
+      {tab === 'matrix' ? <MatrixTab /> : <GapAnalysisTab />}
     </div>
   )
 }

@@ -2993,6 +2993,13 @@ const employeeSkills = {
   5: { 'التوظيف': 5, 'التواصل': 5, 'القيادة': 4, 'إدارة المشاريع': 3 },
   4: { 'التفاوض': 5, 'التواصل': 4, 'Excel المتقدم': 2 },
 }
+let reqSkillSeq = 1
+const roleRequiredSkills = [
+  { id: reqSkillSeq++, job_title: 'مطور واجهات أمامية', skill: 'JavaScript', required_level: 4 },
+  { id: reqSkillSeq++, job_title: 'مطور واجهات أمامية', skill: 'قواعد البيانات', required_level: 3 },
+  { id: reqSkillSeq++, job_title: 'مطور برمجيات أول', skill: 'JavaScript', required_level: 4 },
+  { id: reqSkillSeq++, job_title: 'مطور برمجيات أول', skill: 'القيادة', required_level: 3 },
+]
 export const mockSkillsApi = {
   async matrix() {
     await delay()
@@ -3045,6 +3052,52 @@ export const mockSkillsApi = {
     const bag = employeeSkills[Number(employeeId)]
     if (bag) delete bag[(skill || '').trim()]
     return { message: 'تم' }
+  },
+  async requirements() {
+    await delay()
+    const rows = [...roleRequiredSkills].sort((a, b) => a.job_title.localeCompare(b.job_title, 'ar') || a.skill.localeCompare(b.skill, 'ar'))
+    return { requirements: rows, levels: SKILL_LEVELS }
+  },
+  async setRequirement(data) {
+    await delay()
+    const job_title = (data.job_title || '').trim()
+    const skill = (data.skill || '').trim()
+    if (!job_title) throw badReq('المسمى الوظيفي مطلوب')
+    if (!skill) throw badReq('المهارة مطلوبة')
+    if (![1, 2, 3, 4, 5].includes(data.required_level)) throw badReq('المستوى يجب أن يكون 1-5')
+    const existing = roleRequiredSkills.find((r) => r.job_title === job_title && r.skill === skill)
+    if (existing) existing.required_level = data.required_level
+    else roleRequiredSkills.push({ id: reqSkillSeq++, job_title, skill, required_level: data.required_level })
+    return { message: 'تم' }
+  },
+  async removeRequirement(id) {
+    await delay()
+    const i = roleRequiredSkills.findIndex((r) => r.id === Number(id))
+    if (i > -1) roleRequiredSkills.splice(i, 1)
+    return { message: 'تم' }
+  },
+  async gaps() {
+    await delay()
+    const u = currentUser()
+    let emps = employees.filter((e) => e.status === 'نشط')
+    if (u && u.role === 'department_head') {
+      const dep = employees.find((e) => e.id === u.employee_id)?.department_id
+      emps = emps.filter((e) => e.department_id === dep)
+    }
+    const result = []
+    for (const e of emps) {
+      const reqs = roleRequiredSkills.filter((r) => r.job_title === e.job_title)
+      if (reqs.length === 0) continue
+      const actual = employeeSkills[e.id] || {}
+      const shortfalls = reqs
+        .filter((r) => (actual[r.skill] || 0) < r.required_level)
+        .map((r) => ({ skill: r.skill, required_level: r.required_level, actual_level: actual[r.skill] || 0 }))
+      if (shortfalls.length > 0) {
+        result.push({ employee_id: e.id, full_name: e.full_name, job_title: e.job_title, profile_picture: null, department_name: deptName(e.department_id), shortfalls })
+      }
+    }
+    const totalShortfalls = result.reduce((s, e) => s + e.shortfalls.length, 0)
+    return { employees: result, summary: { employeesWithGaps: result.length, totalShortfalls }, levels: SKILL_LEVELS }
   },
 }
 
