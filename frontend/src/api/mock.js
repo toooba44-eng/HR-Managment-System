@@ -4302,6 +4302,28 @@ export const mockWorkforceApi = {
     ;(workforcePlans[Number(departmentId)] ||= {})[y] = { planned_headcount: planned, budget, notes: data.notes || null }
     return { message: 'تم' }
   },
+  async trend() {
+    await delay()
+    const u = currentUser()
+    let deptIds = departments.map((d) => d.id)
+    if (u && u.role === 'department_head') {
+      const dep = employees.find((e) => e.id === u.employee_id)?.department_id
+      deptIds = dep ? [dep] : []
+    }
+    const byYear = {}
+    for (const did of deptIds) {
+      const plansForDept = workforcePlans[did] || {}
+      for (const [y, plan] of Object.entries(plansForDept)) {
+        const year = Number(y)
+        byYear[year] ||= { year, planned: 0, budget: 0 }
+        byYear[year].planned += plan.planned_headcount || 0
+        byYear[year].budget += plan.budget || 0
+      }
+    }
+    const years = Object.values(byYear).sort((a, b) => a.year - b.year)
+    const currentActual = employees.filter((e) => deptIds.includes(e.department_id) && e.status === 'نشط').length
+    return { years, currentYear: new Date().getFullYear(), currentActual }
+  },
 }
 
 // ---------- Approvals Inbox (مركز الموافقات) ----------
