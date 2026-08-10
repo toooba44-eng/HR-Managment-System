@@ -425,6 +425,7 @@ const realIntegrationsApi = {
   create: (data) => api.post('/integrations', data).then((r) => r.data),
   setConnection: (id, connect) => api.put(`/integrations/${id}/connection`, { connect }).then((r) => r.data),
   sync: (id) => api.post(`/integrations/${id}/sync`).then((r) => r.data),
+  syncs: (id) => api.get(`/integrations/${id}/syncs`).then((r) => r.data),
   remove: (id) => api.delete(`/integrations/${id}`).then((r) => r.data),
 }
 

@@ -3848,6 +3848,43 @@ const integrations = [
   { id: intSeq++, name: 'Active Directory', provider: 'Microsoft', category: 'مصادقة', description: 'الدخول الموحّد وإدارة الهوية', is_connected: 0, status: 'خطأ', last_sync: addDays(-5) },
 ]
 
+let intSyncSeq = 1
+const integrationSyncs = []
+
+// Mirrors backend runCategorySync — a real, category-specific count from
+// the mock system's own in-memory data, not a no-op timestamp bump.
+function runCategorySyncMock(category) {
+  const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000
+  switch (category) {
+    case 'تواصل': {
+      const n = notifications.filter((x) => new Date(x.created_at).getTime() >= oneDayAgo).length
+      return { item_count: n, summary: `${n} إشعاراً أُرسل خلال آخر 24 ساعة` }
+    }
+    case 'تخزين':
+      return { item_count: documents.length, summary: `${documents.length} مستنداً مخزَّناً` }
+    case 'محاسبة': {
+      const n = payrollRuns.filter((r) => ['معتمد', 'مصروف'].includes(r.status)).length
+      return { item_count: n, summary: `${n} مسير رواتب معتمداً جاهزاً للتصدير المحاسبي` }
+    }
+    case 'توظيف': {
+      const openJobs = jobs.filter((j) => j.status === 'مفتوحة').length
+      return { item_count: openJobs + applications.length, summary: `${openJobs} وظيفة مفتوحة و${applications.length} طلب توظيف` }
+    }
+    case 'تقويم': {
+      const in7 = addDays(7)
+      const nowStr = today()
+      const n = leaves.filter((l) => l.status === 'موافقة' && l.start_date >= nowStr && l.start_date <= in7).length
+      return { item_count: n, summary: `${n} إجازة معتمدة خلال الأسبوع القادم` }
+    }
+    case 'مصادقة': {
+      const n = Object.values(users).filter((u) => u.two_factor_enabled).length
+      return { item_count: n, summary: `${n} مستخدماً مفعَّلاً لديه التحقق بخطوتين` }
+    }
+    default:
+      return { item_count: 0, summary: 'لا توجد بيانات مرتبطة بهذه الفئة للمزامنة' }
+  }
+}
+
 export const mockIntegrationsApi = {
   async list({ category } = {}) {
     await delay()
@@ -3859,7 +3896,7 @@ export const mockIntegrationsApi = {
   },
   async create(data) {
     await delay()
-    const i = { id: intSeq++, name: data.name, provider: data.provider || null, category: data.category || 'أخرى', description: data.description || null, is_connected: 0, status: 'غير متصل', last_sync: null }
+    const i = { id: intSeq++, name: data.name, provider: data.provider || null, category: data.category || 'أخرى', description: data.description || null, is_connected: 0, status: 'غير متصل', last_sync: null, last_sync_summary: null }
     integrations.push(i)
     return { message: 'تم', integration: { id: i.id } }
   },
@@ -3877,9 +3914,18 @@ export const mockIntegrationsApi = {
     const i = integrations.find((x) => x.id === Number(id))
     if (!i) throw notFound()
     if (!i.is_connected) throw badReq('التكامل غير مربوط')
+    const result = runCategorySyncMock(i.category)
     i.last_sync = nowIso()
     i.status = 'متصل'
-    return { message: 'تمت المزامنة', last_sync: i.last_sync }
+    i.last_sync_summary = result.summary
+    integrationSyncs.unshift({ id: intSyncSeq++, integration_id: i.id, status: 'نجاح', summary: result.summary, item_count: result.item_count, created_at: i.last_sync })
+    return { message: 'تمت المزامنة', last_sync: i.last_sync, ...result }
+  },
+  async syncs(id) {
+    await delay()
+    const i = integrations.find((x) => x.id === Number(id))
+    if (!i) throw notFound()
+    return { syncs: integrationSyncs.filter((s) => s.integration_id === i.id).slice(0, 20) }
   },
   async remove(id) {
     await delay()
