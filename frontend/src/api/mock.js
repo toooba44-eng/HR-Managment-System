@@ -808,8 +808,16 @@ export const mockAttendanceApi = {
     await delay()
     if (Number(employee_id) !== currentUser()?.employee_id) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
     const day = today()
-    if (attendance.find((a) => a.employee_id === employee_id && a.date === day)) throw badReq('سجّلت الدخول اليوم بالفعل')
-    const rec = { id: attendanceSeq++, employee_id, date: day, check_in: nowIso(), check_out: null, work_hours: 0, status: 'حاضر', check_in_location: 'المكتب' }
+    const existing = attendance.find((a) => a.employee_id === employee_id && a.date === day)
+    if (existing && !existing.check_out) throw badReq('سجّلت الدخول اليوم بالفعل')
+    if (existing) {
+      // Re-entry later the same day: keep the original check_in and any
+      // hours already accumulated, just reopen a new active session.
+      existing.check_out = null
+      existing.session_start = nowIso()
+      return { message: 'تم تسجيل الدخول', attendance: existing }
+    }
+    const rec = { id: attendanceSeq++, employee_id, date: day, check_in: nowIso(), session_start: nowIso(), check_out: null, work_hours: 0, status: 'حاضر', check_in_location: 'المكتب' }
     attendance.push(rec)
     return { message: 'تم تسجيل الدخول', attendance: rec }
   },
@@ -820,8 +828,14 @@ export const mockAttendanceApi = {
     const rec = attendance.find((a) => a.employee_id === employee_id && a.date === day)
     if (!rec) throw badReq('لا يوجد سجل دخول لهذا اليوم')
     if (rec.check_out) throw badReq('سجّلت الخروج اليوم بالفعل')
+    const sessionStart = new Date(rec.session_start || rec.check_in)
+    const sessionHours = (new Date() - sessionStart) / 3600000
     rec.check_out = nowIso()
-    rec.work_hours = Math.max(1, ((new Date(rec.check_out) - new Date(rec.check_in)) / 3600000)).toFixed(2)
+    rec.work_hours = (Math.max(0, Number(rec.work_hours) || 0) + sessionHours).toFixed(2)
+    rec.session_start = null
+    if (rec.work_hours < 4) rec.status = 'غائب'
+    else if (rec.work_hours < 8) rec.status = 'تأخر'
+    else rec.status = 'حاضر'
     return { message: 'تم تسجيل الخروج', attendance: rec }
   },
   async mine(employeeId) {

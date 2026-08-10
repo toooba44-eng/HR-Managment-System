@@ -93,7 +93,10 @@ router.get('/', (req, res, next) => {
   }
 });
 
-// Check-in
+// Check-in — first entry of the day creates the record; re-entering later
+// the same day (after a check-out) reopens a new session on the same row
+// instead of being blocked, so a lunch break or errand doesn't cost the
+// employee their ability to keep logging hours until midnight.
 router.post('/checkin', attendanceValidation.checkIn, (req, res, next) => {
   try {
     const { employee_id, location } = req.body;
@@ -103,27 +106,43 @@ router.post('/checkin', attendanceValidation.checkIn, (req, res, next) => {
     const today = new Date().toISOString().split('T')[0];
     const now = new Date().toISOString();
 
-    // Check if already checked in today
     const existing = db.prepare('SELECT * FROM attendance WHERE employee_id = ? AND date = ?').get(employee_id, today);
-    if (existing) {
+
+    if (existing && !existing.check_out) {
       return res.status(400).json({ error: 'Already checked in today' });
     }
 
+    if (existing) {
+      // Re-entry: keep the day's original check_in and accumulated
+      // work_hours, just open a new active session.
+      db.prepare(`
+        UPDATE attendance SET check_out = NULL, session_start = ?, check_in_location = ?
+        WHERE id = ?
+      `).run(now, location, existing.id);
+      return res.status(201).json({
+        message: 'Checked in successfully',
+        attendance: { ...existing, check_out: null, session_start: now }
+      });
+    }
+
     const result = db.prepare(`
-      INSERT INTO attendance (employee_id, date, check_in, check_in_location, status)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(employee_id, today, now, location, 'حاضر');
+      INSERT INTO attendance (employee_id, date, check_in, session_start, check_in_location, status)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(employee_id, today, now, now, location, 'حاضر');
 
     res.status(201).json({
       message: 'Checked in successfully',
-      attendance: { id: result.lastInsertRowid, employee_id, date: today, check_in: now }
+      attendance: { id: result.lastInsertRowid, employee_id, date: today, check_in: now, session_start: now }
     });
   } catch (err) {
     next(err);
   }
 });
 
-// Check-out
+// Check-out — closes the currently active session and adds its duration to
+// the day's running total, so multiple check-in/check-out cycles before
+// midnight accumulate into one daily work_hours figure instead of only the
+// last session counting.
 router.post('/checkout', attendanceValidation.checkOut, (req, res, next) => {
   try {
     const { employee_id } = req.body;
@@ -141,24 +160,26 @@ router.post('/checkout', attendanceValidation.checkOut, (req, res, next) => {
       return res.status(400).json({ error: 'Already checked out today' });
     }
 
-    // Calculate work hours
-    const checkIn = new Date(record.check_in);
+    // Fall back to check_in for records created before session_start existed.
+    const sessionStart = new Date(record.session_start || record.check_in);
     const checkOut = new Date(now);
-    const workHours = ((checkOut - checkIn) / (1000 * 60 * 60)).toFixed(2);
+    const sessionHours = (checkOut - sessionStart) / (1000 * 60 * 60);
+    const workHours = Math.round(((record.work_hours || 0) + sessionHours) * 100) / 100;
 
     let status = record.status;
     if (workHours < 4) status = 'غائب';
     else if (workHours < 8) status = 'تأخر';
+    else status = 'حاضر';
 
     db.prepare(`
-      UPDATE attendance 
-      SET check_out = ?, work_hours = ?, status = ?
+      UPDATE attendance
+      SET check_out = ?, work_hours = ?, status = ?, session_start = NULL
       WHERE id = ?
     `).run(now, workHours, status, record.id);
 
     res.json({
       message: 'Checked out successfully',
-      attendance: { ...record, check_out: now, work_hours: parseFloat(workHours), status }
+      attendance: { ...record, check_out: now, work_hours: workHours, status, session_start: null }
     });
   } catch (err) {
     next(err);
