@@ -727,6 +727,7 @@ const migrations = [
     bonus REAL NOT NULL DEFAULT 0,
     allowances REAL NOT NULL DEFAULT 0,
     deductions REAL NOT NULL DEFAULT 0,
+    employer_gosi REAL NOT NULL DEFAULT 0,
     net REAL NOT NULL DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (run_id) REFERENCES payroll_runs(id) ON DELETE CASCADE,
@@ -1338,6 +1339,7 @@ function runMigrations() {
     `ALTER TABLE org_settings ADD COLUMN wps_establishment_id TEXT`,
     `ALTER TABLE org_settings ADD COLUMN wps_bank_code TEXT`,
     `ALTER TABLE org_settings ADD COLUMN wps_employer_iban TEXT`,
+    `ALTER TABLE payroll_run_items ADD COLUMN employer_gosi REAL DEFAULT 0`,
   ];
   for (const stmt of columnAdditions) {
     try {

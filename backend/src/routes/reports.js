@@ -46,7 +46,7 @@ router.get('/overview', (req, res, next) => {
     // Uses each employee's active compensation package when one exists, so
     // this agrees with the live payroll overview and payroll runs.
     const payRows = db.prepare(`
-      SELECT e.salary, e.allowances,
+      SELECT e.salary, e.allowances, e.nationality,
              c.base_salary, c.housing_allowance, c.transport_allowance, c.other_allowances, c.bonus
       FROM employees e
       ${ACTIVE_COMP_JOIN}

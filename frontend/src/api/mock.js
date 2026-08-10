@@ -1253,6 +1253,28 @@ export const mockPoliciesApi = {
   },
 }
 
+// GOSI (Saudi social insurance) contribution rates — mirrors backend
+// payCalc.js. Saudis subscribe on both sides (Annuities + SANED); non-Saudis
+// only carry the employer-paid Occupational Hazards branch.
+const GOSI_SAUDI_EMPLOYEE_RATE = 0.0975
+const GOSI_SAUDI_EMPLOYER_RATE = 0.1175
+const GOSI_NON_SAUDI_EMPLOYER_RATE = 0.02
+const isSaudiNationality = (n) => n === 'سعودي' || n === 'سعودية'
+function payItemFor(e) {
+  const pkg = compensation.find((c) => c.employee_id === e.id && c.status === 'نشط')
+  const basic = pkg ? pkg.base_salary : (e.salary || 0)
+  const housing_allowance = pkg ? pkg.housing_allowance : 0
+  const transport_allowance = pkg ? pkg.transport_allowance : 0
+  const other_allowances = pkg ? pkg.other_allowances : (e.allowances || 0)
+  const bonus = pkg ? pkg.bonus : 0
+  const allowances = housing_allowance + transport_allowance + other_allowances + bonus
+  const gosiWage = basic + housing_allowance
+  const saudi = isSaudiNationality(e.nationality)
+  const deductions = saudi ? Math.round(gosiWage * GOSI_SAUDI_EMPLOYEE_RATE) : 0
+  const employer_gosi = Math.round(gosiWage * (saudi ? GOSI_SAUDI_EMPLOYER_RATE : GOSI_NON_SAUDI_EMPLOYER_RATE))
+  return { basic, housing_allowance, transport_allowance, other_allowances, bonus, allowances, deductions, employer_gosi, net: basic + allowances - deductions }
+}
+
 export const mockPayrollApi = {
   async overview({ department_id } = {}) {
     await delay()
@@ -1260,15 +1282,8 @@ export const mockPayrollApi = {
     if (department_id) rows = rows.filter((e) => e.department_id === Number(department_id))
     const payroll = rows
       .map((e) => {
-        const pkg = compensation.find((c) => c.employee_id === e.id && c.status === 'نشط')
-        const basic = pkg ? pkg.base_salary : (e.salary || 0)
-        const housing_allowance = pkg ? pkg.housing_allowance : 0
-        const transport_allowance = pkg ? pkg.transport_allowance : 0
-        const other_allowances = pkg ? pkg.other_allowances : (e.allowances || 0)
-        const bonus = pkg ? pkg.bonus : 0
-        const allowances = housing_allowance + transport_allowance + other_allowances + bonus
-        const deductions = Math.round(basic * 0.1)
-        return { id: e.id, full_name: e.full_name, job_title: e.job_title, employee_number: e.employee_number, department_name: deptName(e.department_id), basic, allowances, deductions, net: basic + allowances - deductions }
+        const { basic, allowances, deductions, net } = payItemFor(e)
+        return { id: e.id, full_name: e.full_name, job_title: e.job_title, employee_number: e.employee_number, department_name: deptName(e.department_id), basic, allowances, deductions, net }
       })
       .sort((a, b) => b.basic - a.basic)
     const totals = payroll.reduce((t, p) => ({ basic: t.basic + p.basic, allowances: t.allowances + p.allowances, deductions: t.deductions + p.deductions, net: t.net + p.net }), { basic: 0, allowances: 0, deductions: 0, net: 0 })
@@ -1280,17 +1295,7 @@ const PR_STATUSES = ['مسودة', 'قيد المراجعة', 'معتمد', 'م�
 const PR_NEXT_STATUS = { مسودة: 'قيد المراجعة', 'قيد المراجعة': 'معتمد', معتمد: 'مصروف' }
 let payrollRunSeq = 1
 function prBuildItems() {
-  return employees.filter((e) => e.status === 'نشط').map((e) => {
-    const pkg = compensation.find((c) => c.employee_id === e.id && c.status === 'نشط')
-    const basic = pkg ? pkg.base_salary : (e.salary || 0)
-    const housing_allowance = pkg ? pkg.housing_allowance : 0
-    const transport_allowance = pkg ? pkg.transport_allowance : 0
-    const other_allowances = pkg ? pkg.other_allowances : (e.allowances || 0)
-    const bonus = pkg ? pkg.bonus : 0
-    const allowances = housing_allowance + transport_allowance + other_allowances + bonus
-    const deductions = Math.round(basic * 0.1)
-    return { employee_id: e.id, basic, housing_allowance, transport_allowance, other_allowances, bonus, allowances, deductions, net: basic + allowances - deductions }
-  })
+  return employees.filter((e) => e.status === 'نشط').map((e) => ({ employee_id: e.id, ...payItemFor(e) }))
 }
 function prMakeRun(month, year, status, createdAgoDays, approvedAgoDays, paidAgoDays) {
   const items = prBuildItems()
@@ -1396,6 +1401,28 @@ Object.assign(mockPayrollApi, {
 
     const ready = orgIssues.length === 0 && items.every((i) => i.ok)
     return { run: { id: r.id, month: r.month, year: r.year, status: r.status }, org, org_issues: orgIssues, items, ready }
+  },
+  async gosi(id) {
+    await delay()
+    const r = payrollRuns.find((x) => x.id === Number(id))
+    if (!r) throw notFound()
+    const SAUDI_NATIONAL_ID_RE = /^[12]\d{9}$/
+    const items = r.items.map((i) => {
+      const e = employees.find((x) => x.id === i.employee_id)
+      const issues = []
+      if (!e?.national_id || !SAUDI_NATIONAL_ID_RE.test(e.national_id)) issues.push('رقم الهوية/الإقامة مفقود أو غير صالح')
+      if (!e?.nationality) issues.push('الجنسية غير مُحدَّدة')
+      return {
+        employee_id: i.employee_id, full_name: e?.full_name, national_id: e?.national_id, nationality: e?.nationality,
+        gosi_wage: i.basic + i.housing_allowance, employee_gosi: i.deductions, employer_gosi: i.employer_gosi,
+        total_gosi: i.deductions + i.employer_gosi, ok: issues.length === 0, issues,
+      }
+    }).sort((a, b) => (a.full_name || '').localeCompare(b.full_name || '', 'ar'))
+    const totals = items.reduce((t, i) => ({
+      gosi_wage: t.gosi_wage + i.gosi_wage, employee_gosi: t.employee_gosi + i.employee_gosi,
+      employer_gosi: t.employer_gosi + i.employer_gosi, total_gosi: t.total_gosi + i.total_gosi,
+    }), { gosi_wage: 0, employee_gosi: 0, employer_gosi: 0, total_gosi: 0 })
+    return { run: { id: r.id, month: r.month, year: r.year, status: r.status }, items, totals, ready: items.every((i) => i.ok) }
   },
 })
 
