@@ -36,6 +36,7 @@ const realEmployeesApi = {
   orgChart: () => api.get('/employees/org-chart').then((r) => r.data),
   export: (params) => api.get('/employees/export', { params }).then((r) => r.data),
   import: (rows) => api.post('/employees/import', { rows }).then((r) => r.data),
+  qiwaReadiness: () => api.get('/employees/qiwa-readiness').then((r) => r.data),
 }
 
 // ---------- Departments ----------
