@@ -189,9 +189,13 @@ router.post('/import', requireRole('admin', 'hr_manager'), (req, res, next) => {
     const departments = db.prepare('SELECT id, name FROM departments').all();
     const deptByName = new Map(departments.map((d) => [d.name.trim().toLowerCase(), d.id]));
 
+    const org = db.prepare('SELECT annual_leave_days, sick_leave_days FROM org_settings WHERE id = 1').get() || {};
+    const annualLeaveBalance = org.annual_leave_days ?? 30;
+    const sickLeaveBalance = org.sick_leave_days ?? 10;
+
     const insert = db.prepare(`
-      INSERT INTO employees (full_name, email, phone, job_title, department_id, hire_date, employment_type, work_location, salary, employee_number)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO employees (full_name, email, phone, job_title, department_id, hire_date, employment_type, work_location, salary, employee_number, annual_leave_balance, sick_leave_balance)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     const emailExists = db.prepare('SELECT 1 FROM employees WHERE email = ?');
 
@@ -223,6 +227,7 @@ router.post('/import', requireRole('admin', 'hr_manager'), (req, res, next) => {
           full_name, email, row.phone || null, job_title, department_id, hire_date,
           row.employment_type || 'دوام كامل', row.work_location || 'الرياض - المقر الرئيسي',
           row.salary ? Number(row.salary) : 0, `EMP-${Date.now()}-${i}`,
+          annualLeaveBalance, sickLeaveBalance,
         );
         created += 1;
         if (department_id) {
@@ -352,18 +357,26 @@ router.post('/', requireRole('admin', 'hr_manager'), employeeValidation.create, 
 
     const employeeNumber = `EMP-${Date.now()}`;
 
+    // New hires start with the leave balances HR configured for the whole
+    // organization (org_settings.annual_leave_days/sick_leave_days) instead
+    // of the schema's hardcoded fallback — those settings were previously
+    // editable in the Settings page but never actually applied anywhere.
+    const org = db.prepare('SELECT annual_leave_days, sick_leave_days FROM org_settings WHERE id = 1').get() || {};
+    const annualLeaveBalance = org.annual_leave_days ?? 30;
+    const sickLeaveBalance = org.sick_leave_days ?? 10;
+
     const result = db.prepare(`
       INSERT INTO employees (
         full_name, email, phone, national_id, date_of_birth, nationality, marital_status, address,
         emergency_contact, employee_number, job_title, department_id, manager_id, hire_date,
         employment_type, work_location, team, salary, allowances, bank_name, bank_account,
-        contract_type, contract_start, contract_end
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        contract_type, contract_start, contract_end, annual_leave_balance, sick_leave_balance
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       full_name, email, phone, national_id, date_of_birth, nationality, marital_status, address,
       emergency_contact, employeeNumber, job_title, department_id, manager_id, hire_date,
       employment_type, work_location, team, salary || 0, allowances || 0, bank_name, bank_account,
-      contract_type, contract_start, contract_end
+      contract_type, contract_start, contract_end, annualLeaveBalance, sickLeaveBalance
     );
 
     // Update department count
