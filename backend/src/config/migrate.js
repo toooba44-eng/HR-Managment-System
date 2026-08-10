@@ -680,6 +680,21 @@ const migrations = [
     FOREIGN KEY (actor_id) REFERENCES employees(id) ON DELETE SET NULL
   )`,
 
+  // Temporary approval delegation — while active (today within the date
+  // range), the delegate can act on anything the delegator could approve,
+  // across every source in the approvals inbox.
+  `CREATE TABLE IF NOT EXISTS approval_delegations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    delegator_id INTEGER NOT NULL,
+    delegate_id INTEGER NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (delegator_id) REFERENCES employees(id) ON DELETE CASCADE,
+    FOREIGN KEY (delegate_id) REFERENCES employees(id) ON DELETE CASCADE
+  )`,
+
   // Payroll runs: a monthly batch that snapshots each active employee's pay
   // figures at creation time, then moves through a review/approval/payment
   // lifecycle. Snapshotting keeps historical runs stable even if an

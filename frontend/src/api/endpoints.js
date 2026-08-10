@@ -267,6 +267,9 @@ const realApprovalsApi = {
   history: () => api.get('/approvals/history').then((r) => r.data),
   decide: (source, id, decision, reason) => api.post(`/approvals/${source}/${id}/${decision}`, { reason }).then((r) => r.data),
   bulkApprove: (items) => api.post('/approvals/bulk-approve', { items }).then((r) => r.data),
+  delegations: () => api.get('/approvals/delegations').then((r) => r.data),
+  createDelegation: (data) => api.post('/approvals/delegations', data).then((r) => r.data),
+  removeDelegation: (id) => api.delete(`/approvals/delegations/${id}`).then((r) => r.data),
 }
 
 // ---------- Health & safety incidents ----------
