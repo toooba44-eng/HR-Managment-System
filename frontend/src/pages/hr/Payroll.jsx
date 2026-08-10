@@ -133,10 +133,32 @@ function NewRunForm({ open, onClose }) {
   )
 }
 
+const WPS_SUB_STATUS_TONE = { 'تم التوليد': 'bg-slate-100 text-slate-600', 'أُرسل لمدد': 'bg-amber-50 text-amber-600', 'مؤكد': 'bg-emerald-50 text-emerald-600' }
+
 function WpsSection({ runId }) {
+  const qc = useQueryClient()
   const { data, isLoading } = useQuery(['payroll-run-wps', runId], () => payrollApi.wps(runId), { enabled: !!runId })
+  const { data: subsData } = useQuery(['wps-submissions', runId], () => payrollApi.wpsSubmissions(runId), { enabled: !!runId })
+  const record = useMutation(() => payrollApi.recordWps(runId), {
+    onSuccess: () => qc.invalidateQueries(['wps-submissions', runId]),
+  })
+  const advance = useMutation(
+    ({ subId, status, mudad_reference }) => payrollApi.advanceWpsSubmission(subId, status, mudad_reference),
+    {
+      onSuccess: () => { toast.success('تم التحديث'); qc.invalidateQueries(['wps-submissions', runId]) },
+      onError: (e) => toast.error(e.response?.data?.error || 'فشل التحديث'),
+    }
+  )
+
   if (isLoading || !data) return null
   const issueCount = data.items.filter((i) => !i.ok).length
+  const submissions = subsData?.submissions || []
+
+  const markSent = (subId) => {
+    const ref = window.prompt('الرقم المرجعي من مدد:')
+    if (ref && ref.trim()) advance.mutate({ subId, status: 'أُرسل لمدد', mudad_reference: ref.trim() })
+  }
+
   return (
     <div className="rounded-xl border border-slate-100 p-3 space-y-2">
       <div className="flex items-center justify-between gap-3">
@@ -144,7 +166,7 @@ function WpsSection({ runId }) {
         <Button
           variant={data.ready ? 'primary' : 'secondary'}
           disabled={!data.ready}
-          onClick={() => { downloadWpsFile(data); toast.success('تم تنزيل الملف') }}
+          onClick={() => { downloadWpsFile(data); toast.success('تم تنزيل الملف'); record.mutate() }}
         >
           <Download className="w-4 h-4" /> تنزيل الملف
         </Button>
@@ -158,6 +180,27 @@ function WpsSection({ runId }) {
         <p className="text-xs text-amber-600 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 shrink-0" /> {issueCount} موظف يحتاج بيانات هوية/آيبان صحيحة قبل توليد الملف</p>
       )}
       {data.ready && <p className="text-xs text-emerald-600">جاهز للتوليد — {data.items.length} موظف.</p>}
+
+      {submissions.length > 0 && (
+        <div className="pt-2 mt-2 border-t border-slate-50 space-y-1.5">
+          <p className="text-xs font-bold text-slate-500">سجل الإرسال</p>
+          {submissions.map((s) => (
+            <div key={s.id} className="flex items-center justify-between gap-2 text-xs bg-slate-50 rounded-lg px-3 py-2">
+              <div className="min-w-0">
+                <span className={`badge ${WPS_SUB_STATUS_TONE[s.status]}`}>{s.status}</span>
+                <span className="text-slate-400 mr-2">{formatDateTime(s.created_at)} · {s.generated_by_name || '—'}</span>
+                {s.mudad_reference && <span className="text-slate-500 block mt-1">مرجع مدد: {s.mudad_reference}</span>}
+              </div>
+              {s.status === 'تم التوليد' && (
+                <button onClick={() => markSent(s.id)} className="shrink-0 text-blue-600 hover:underline">تسجيل الإرسال لمدد</button>
+              )}
+              {s.status === 'أُرسل لمدد' && (
+                <button onClick={() => advance.mutate({ subId: s.id, status: 'مؤكد' })} className="shrink-0 text-emerald-600 hover:underline">تأكيد الاستلام</button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
