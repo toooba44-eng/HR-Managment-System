@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../config/database');
 const { authenticateToken, requireRole } = require('../middleware/auth');
+const { runWorkflow } = require('../utils/workflowEngine');
 const router = express.Router();
 
 router.use(authenticateToken);
@@ -34,13 +35,19 @@ router.get('/', requireRole(...MANAGE), (req, res, next) => {
   }
 });
 
-// Get one workflow with its steps
+// Get one workflow with its steps, conditions, and recent execution history
 router.get('/:id', requireRole(...MANAGE), (req, res, next) => {
   try {
     const wf = db.prepare('SELECT * FROM workflows WHERE id = ?').get(req.params.id);
     if (!wf) return res.status(404).json({ error: 'Not found' });
     const steps = db.prepare('SELECT * FROM workflow_steps WHERE workflow_id = ? ORDER BY step_order ASC, id ASC').all(req.params.id);
-    res.json({ ...withSteps(wf), steps });
+    const conditions = db.prepare('SELECT * FROM workflow_conditions WHERE workflow_id = ? ORDER BY id ASC').all(req.params.id);
+    const runs = db.prepare(`
+      SELECT r.*, e.full_name as employee_name
+      FROM workflow_runs r LEFT JOIN employees e ON r.employee_id = e.id
+      WHERE r.workflow_id = ? ORDER BY r.id DESC LIMIT 20
+    `).all(req.params.id).map((r) => ({ ...r, detail: JSON.parse(r.detail || '[]') }));
+    res.json({ ...withSteps(wf), steps, conditions, runs });
   } catch (err) {
     next(err);
   }
@@ -86,14 +93,54 @@ router.put('/:id', requireRole(...MANAGE), (req, res, next) => {
   }
 });
 
-// Simulate running a workflow (increments the run counter)
+// Test-run a workflow against a specific employee: evaluates its real
+// conditions and, if they pass, actually performs its steps (sends the
+// notification, creates the task, opens the approval request) — the same
+// runWorkflow() a live trigger uses, not a simulation.
 router.post('/:id/run', requireRole(...MANAGE), (req, res, next) => {
   try {
     const wf = db.prepare('SELECT * FROM workflows WHERE id = ?').get(req.params.id);
     if (!wf) return res.status(404).json({ error: 'Not found' });
     if (!wf.is_active) return res.status(400).json({ error: 'Workflow is inactive' });
-    db.prepare('UPDATE workflows SET runs_count = runs_count + 1 WHERE id = ?').run(req.params.id);
-    res.json({ message: 'Executed', runs_count: wf.runs_count + 1 });
+    const employeeId = req.body.employee_id ? parseInt(req.body.employee_id, 10) : null;
+    if (!employeeId) return res.status(400).json({ error: 'اختر موظفاً لتجربة تشغيل المسار عليه' });
+    const emp = db.prepare('SELECT id FROM employees WHERE id = ?').get(employeeId);
+    if (!emp) return res.status(404).json({ error: 'الموظف غير موجود' });
+
+    const run = runWorkflow(wf, employeeId);
+    const updated = db.prepare('SELECT runs_count FROM workflows WHERE id = ?').get(req.params.id);
+    res.json({ message: run.matched ? 'تم التنفيذ' : 'الشروط لم تتحقق لهذا الموظف', runs_count: updated.runs_count, run });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ------------------------- Conditions -------------------------
+
+const COND_FIELDS = ['department', 'nationality', 'contract_type', 'salary', 'work_location', 'status'];
+const COND_OPS = ['eq', 'ne', 'gt', 'lt', 'contains'];
+
+router.post('/:id/conditions', requireRole(...MANAGE), (req, res, next) => {
+  try {
+    const wf = db.prepare('SELECT id FROM workflows WHERE id = ?').get(req.params.id);
+    if (!wf) return res.status(404).json({ error: 'Not found' });
+    const { field, operator, value } = req.body;
+    if (!COND_FIELDS.includes(field)) return res.status(400).json({ error: 'Invalid field' });
+    if (!COND_OPS.includes(operator)) return res.status(400).json({ error: 'Invalid operator' });
+    if (value === undefined || value === null || String(value).trim() === '') return res.status(400).json({ error: 'Value is required' });
+    const result = db.prepare('INSERT INTO workflow_conditions (workflow_id, field, operator, value) VALUES (?, ?, ?, ?)')
+      .run(req.params.id, field, operator, String(value).trim());
+    res.status(201).json({ message: 'Created', condition: { id: result.lastInsertRowid } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete('/conditions/:condId', requireRole(...MANAGE), (req, res, next) => {
+  try {
+    const result = db.prepare('DELETE FROM workflow_conditions WHERE id = ?').run(req.params.condId);
+    if (result.changes === 0) return res.status(404).json({ error: 'Not found' });
+    res.json({ message: 'Deleted' });
   } catch (err) {
     next(err);
   }

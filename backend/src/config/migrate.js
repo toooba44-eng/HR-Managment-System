@@ -894,6 +894,33 @@ const migrations = [
     FOREIGN KEY (workflow_id) REFERENCES workflows(id) ON DELETE CASCADE
   )`,
 
+  // Conditions a workflow's trigger must also satisfy (evaluated against the
+  // triggering employee's own fields) before its steps run — AND'ed together.
+  `CREATE TABLE IF NOT EXISTS workflow_conditions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    workflow_id INTEGER NOT NULL,
+    field TEXT NOT NULL CHECK(field IN ('department', 'nationality', 'contract_type', 'salary', 'work_location', 'status')),
+    operator TEXT NOT NULL CHECK(operator IN ('eq', 'ne', 'gt', 'lt', 'contains')),
+    value TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (workflow_id) REFERENCES workflows(id) ON DELETE CASCADE
+  )`,
+
+  // Execution history — every time a trigger fires (real event or manual
+  // test-run), whether or not conditions matched, and what each step did.
+  `CREATE TABLE IF NOT EXISTS workflow_runs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    workflow_id INTEGER NOT NULL,
+    employee_id INTEGER,
+    trigger_event TEXT,
+    matched INTEGER NOT NULL DEFAULT 0,
+    actions_executed INTEGER DEFAULT 0,
+    detail TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (workflow_id) REFERENCES workflows(id) ON DELETE CASCADE,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
   // External integrations catalog
   `CREATE TABLE IF NOT EXISTS integrations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

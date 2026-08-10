@@ -404,10 +404,12 @@ const realAutomationApi = {
   get: (id) => api.get(`/automation/${id}`).then((r) => r.data),
   create: (data) => api.post('/automation', data).then((r) => r.data),
   update: (id, data) => api.put(`/automation/${id}`, data).then((r) => r.data),
-  run: (id) => api.post(`/automation/${id}/run`).then((r) => r.data),
+  run: (id, employeeId) => api.post(`/automation/${id}/run`, { employee_id: employeeId }).then((r) => r.data),
   remove: (id) => api.delete(`/automation/${id}`).then((r) => r.data),
   addStep: (id, data) => api.post(`/automation/${id}/steps`, data).then((r) => r.data),
   removeStep: (stepId) => api.delete(`/automation/steps/${stepId}`).then((r) => r.data),
+  addCondition: (id, data) => api.post(`/automation/${id}/conditions`, data).then((r) => r.data),
+  removeCondition: (condId) => api.delete(`/automation/conditions/${condId}`).then((r) => r.data),
 }
 
 // ---------- Integrations ----------

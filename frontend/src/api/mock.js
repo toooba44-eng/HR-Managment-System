@@ -592,6 +592,7 @@ export const mockEmployeesApi = {
     const id = Math.max(...employees.map((e) => e.id)) + 1
     const emp = { id, employee_number: `EMP-${String(id).padStart(3, '0')}`, status: 'نشط', annual_leave_balance: 30, sick_leave_balance: 10, emergency_leave_balance: 5, profile_picture: null, manager_id: null, ...data }
     employees.push(emp)
+    wfRunWorkflowsFor('تعيين موظف', id)
     return { message: 'تم إضافة الموظف (وضع تجريبي)', employee: emp }
   },
   async update(id, data) {
@@ -844,6 +845,7 @@ export const mockLeavesApi = {
     const days = Math.ceil((end - start) / 86400000) + 1
     const leave = { id: leaveSeq++, days_count: days, status: 'معلقة', approved_by: null, created_at: nowIso(), ...data }
     leaves.unshift(leave)
+    wfRunWorkflowsFor('طلب إجازة', leave.employee_id)
     return { message: 'تم إرسال الطلب (وضع تجريبي)', leave }
   },
   async approve(id, { status }) {
@@ -3536,6 +3538,82 @@ function wfSummaryShape(w) {
   }
 }
 
+let wfCondSeq = 1
+const workflowConditions = [] // { id, workflow_id, field, operator, value }
+let wfRunSeq = 1
+const workflowRuns = [] // { id, workflow_id, employee_id, trigger_event, matched, actions_executed, detail: [...], created_at }
+
+function wfEmployeeFieldValue(employeeId, field) {
+  const e = employees.find((x) => x.id === employeeId)
+  if (!e) return null
+  if (field === 'department') return deptName(e.department_id)
+  return e[field] ?? null
+}
+function wfEvaluateCondition(cond, employeeId) {
+  const actual = wfEmployeeFieldValue(employeeId, cond.field)
+  if (actual == null) return false
+  switch (cond.operator) {
+    case 'eq': return String(actual) === String(cond.value)
+    case 'ne': return String(actual) !== String(cond.value)
+    case 'gt': return Number(actual) > Number(cond.value)
+    case 'lt': return Number(actual) < Number(cond.value)
+    case 'contains': return String(actual).includes(cond.value)
+    default: return false
+  }
+}
+function wfFirstHrManagerId() {
+  const entry = Object.values(users).find((u) => u.role === 'hr_manager' && u.employee_id)
+  return entry ? entry.employee_id : null
+}
+function wfResolveAssignee(label, employeeId) {
+  const l = (label || '').trim()
+  if (/مدير/.test(l)) {
+    const e = employees.find((x) => x.id === employeeId)
+    return e?.manager_id || wfFirstHrManagerId()
+  }
+  if (/نفسه|^الموظف$/.test(l)) return employeeId
+  return wfFirstHrManagerId()
+}
+function wfExecuteStep(step, employeeId) {
+  try {
+    if (step.action_type === 'إشعار') {
+      const recipient = wfResolveAssignee(step.assignee, employeeId)
+      if (!recipient) return { step_id: step.id, action_type: step.action_type, ok: false, note: 'لا يوجد مستلم' }
+      pushNotification({ employee_id: recipient }, { title: step.name, message: step.name, type: 'info', link: null })
+      return { step_id: step.id, action_type: step.action_type, ok: true, to: recipient }
+    }
+    if (step.action_type === 'إسناد مهمة') {
+      const assignee = wfResolveAssignee(step.assignee, employeeId)
+      if (!assignee) return { step_id: step.id, action_type: step.action_type, ok: false, note: 'لا يوجد مسؤول' }
+      tasks.unshift({ id: taskSeq++, title: step.name, employee_id: assignee, status: 'جديدة', priority: 'متوسطة', due_date: addDays(3), created_at: nowIso() })
+      return { step_id: step.id, action_type: step.action_type, ok: true, to: assignee }
+    }
+    if (step.action_type === 'موافقة') {
+      if (!employeeId) return { step_id: step.id, action_type: step.action_type, ok: false, note: 'لا يوجد موظف مرتبط' }
+      requests.unshift({ id: reqSeq++, employee_id: employeeId, type: 'أخرى', subject: step.name, details: 'أُنشئ تلقائياً عبر مسار عمل — يظهر في مركز الموافقات.', status: 'معلقة', response: null, resolved_by: null, resolved_at: null, created_at: nowIso() })
+      return { step_id: step.id, action_type: step.action_type, ok: true }
+    }
+    return { step_id: step.id, action_type: step.action_type, ok: false, note: 'غير مُنفَّذ تلقائياً بعد' }
+  } catch {
+    return { step_id: step.id, action_type: step.action_type, ok: false, note: 'خطأ أثناء التنفيذ' }
+  }
+}
+function wfRunWorkflow(wf, employeeId) {
+  const conditions = workflowConditions.filter((c) => c.workflow_id === wf.id)
+  const matched = employeeId != null && conditions.every((c) => wfEvaluateCondition(c, employeeId))
+  const steps = matched ? wf.steps.slice().sort((a, b) => a.step_order - b.step_order) : []
+  const executed = steps.map((s) => wfExecuteStep(s, employeeId))
+  wf.runs_count += 1
+  const run = { id: wfRunSeq++, workflow_id: wf.id, employee_id: employeeId || null, trigger_event: wf.trigger_event, matched, actions_executed: executed.filter((e) => e.ok).length, detail: executed, created_at: nowIso() }
+  workflowRuns.unshift(run)
+  return run
+}
+function wfRunWorkflowsFor(triggerEvent, employeeId) {
+  for (const wf of workflows) {
+    if (wf.trigger_event === triggerEvent && wf.is_active) wfRunWorkflow(wf, employeeId)
+  }
+}
+
 export const mockAutomationApi = {
   async list() {
     await delay()
@@ -3547,7 +3625,9 @@ export const mockAutomationApi = {
     await delay()
     const w = workflows.find((x) => x.id === Number(id))
     if (!w) throw notFound()
-    return { ...wfSummaryShape(w), steps: w.steps.slice().sort((a, b) => a.step_order - b.step_order) }
+    const conditions = workflowConditions.filter((c) => c.workflow_id === w.id)
+    const runs = workflowRuns.filter((r) => r.workflow_id === w.id).slice(0, 20).map((r) => ({ ...r, employee_name: empName(r.employee_id) }))
+    return { ...wfSummaryShape(w), steps: w.steps.slice().sort((a, b) => a.step_order - b.step_order), conditions, runs }
   },
   async create(data) {
     await delay()
@@ -3566,13 +3646,16 @@ export const mockAutomationApi = {
     if (w) { if (data.name !== undefined) w.name = data.name; if (data.trigger_event !== undefined) w.trigger_event = data.trigger_event; if (data.description !== undefined) w.description = data.description; if (data.is_active !== undefined) w.is_active = data.is_active ? 1 : 0 }
     return { message: 'تم التحديث' }
   },
-  async run(id) {
+  async run(id, employeeId) {
     await delay()
     const w = workflows.find((x) => x.id === Number(id))
     if (!w) throw notFound()
     if (!w.is_active) throw badReq('المسار غير مفعّل')
-    w.runs_count += 1
-    return { message: 'تم التنفيذ', runs_count: w.runs_count }
+    if (!employeeId) throw badReq('اختر موظفاً لتجربة تشغيل المسار عليه')
+    const emp = employees.find((e) => e.id === Number(employeeId))
+    if (!emp) { const err = new Error('bad'); err.response = { status: 404, data: { error: 'الموظف غير موجود' } }; throw err }
+    const run = wfRunWorkflow(w, Number(employeeId))
+    return { message: run.matched ? 'تم التنفيذ' : 'الشروط لم تتحقق لهذا الموظف', runs_count: w.runs_count, run }
   },
   async remove(id) {
     await delay()
@@ -3592,6 +3675,25 @@ export const mockAutomationApi = {
   async removeStep(stepId) {
     await delay()
     for (const w of workflows) w.steps = w.steps.filter((s) => s.id !== Number(stepId))
+    return { message: 'تم الحذف' }
+  },
+  async addCondition(id, data) {
+    await delay()
+    const w = workflows.find((x) => x.id === Number(id))
+    if (!w) throw notFound()
+    const fields = ['department', 'nationality', 'contract_type', 'salary', 'work_location', 'status']
+    const ops = ['eq', 'ne', 'gt', 'lt', 'contains']
+    if (!fields.includes(data.field)) throw badReq('Invalid field')
+    if (!ops.includes(data.operator)) throw badReq('Invalid operator')
+    if (!String(data.value ?? '').trim()) throw badReq('Value is required')
+    const cond = { id: wfCondSeq++, workflow_id: w.id, field: data.field, operator: data.operator, value: String(data.value).trim() }
+    workflowConditions.push(cond)
+    return { message: 'تم', condition: { id: cond.id } }
+  },
+  async removeCondition(condId) {
+    await delay()
+    const i = workflowConditions.findIndex((c) => c.id === Number(condId))
+    if (i > -1) workflowConditions.splice(i, 1)
     return { message: 'تم الحذف' }
   },
 }
