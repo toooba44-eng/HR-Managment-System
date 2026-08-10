@@ -917,6 +917,10 @@ export const mockLeavesApi = {
   },
   async create(data) {
     await delay()
+    const u = currentUser()
+    if (u?.role === 'employee' && !orgSettings.self_service_enabled) {
+      throw badReq('بوابة الخدمة الذاتية غير مفعَّلة حالياً — تواصل مع الموارد البشرية لتقديم طلبك')
+    }
     const start = new Date(data.start_date)
     const end = new Date(data.end_date)
     const days = Math.ceil((end - start) / 86400000) + 1
@@ -2150,7 +2154,11 @@ export const mockExpensesApi = {
   },
   async create(data) {
     await delay()
-    const x = { id: expenseSeq++, employee_id: currentUser()?.employee_id, status: 'معلقة', approved_by: null, created_at: nowIso(), type: data.type || 'مصروف', category: data.category || 'أخرى', ...data }
+    const u = currentUser()
+    if (u?.role === 'employee' && !orgSettings.self_service_enabled) {
+      throw badReq('بوابة الخدمة الذاتية غير مفعَّلة حالياً — تواصل مع الموارد البشرية لتقديم طلبك')
+    }
+    const x = { id: expenseSeq++, employee_id: u?.employee_id, status: 'معلقة', approved_by: null, created_at: nowIso(), type: data.type || 'مصروف', category: data.category || 'أخرى', ...data }
     expenses.unshift(x)
     return { message: 'تم الإرسال', expense: x }
   },

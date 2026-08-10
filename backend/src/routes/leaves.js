@@ -136,6 +136,17 @@ router.post('/', leaveValidation.create, (req, res, next) => {
       return res.status(403).json({ error: 'You can only request leave for yourself' });
     }
 
+    // Self-submitted requests specifically go through the self-service
+    // portal — when the org has that switched off, HR still files leave on
+    // an employee's behalf via the same endpoint (role !== 'employee'), so
+    // only the true self-service path is blocked here.
+    if (req.user.role === 'employee') {
+      const org = db.prepare('SELECT self_service_enabled FROM org_settings WHERE id = 1').get();
+      if (org && !org.self_service_enabled) {
+        return res.status(400).json({ error: 'بوابة الخدمة الذاتية غير مفعَّلة حالياً — تواصل مع الموارد البشرية لتقديم طلبك' });
+      }
+    }
+
     // Calculate days
     const start = new Date(start_date);
     const end = new Date(end_date);

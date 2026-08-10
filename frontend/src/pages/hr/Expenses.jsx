@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { Receipt, Plus, Check, X, Banknote, Wallet, Clock, Scale, HandCoins } from 'lucide-react'
+import { Receipt, Plus, Check, X, Banknote, Wallet, Clock, Scale, HandCoins, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { expensesApi } from '../../api/endpoints'
+import { expensesApi, settingsApi } from '../../api/endpoints'
 import { useAuthStore } from '../../store/authStore'
 import Spinner from '../../components/ui/Spinner'
 import EmptyState from '../../components/ui/EmptyState'
@@ -102,6 +102,10 @@ export default function Expenses() {
   const items = data?.expenses || []
   const s = data?.summary || { total: 0, pending: 0, approved: 0, count: 0, outstanding: 0 }
 
+  const isSelfServiceUser = user?.role === 'employee'
+  const { data: settingsData } = useQuery('settings', () => settingsApi.get(), { enabled: isSelfServiceUser })
+  const selfServiceDisabled = isSelfServiceUser && settingsData && !settingsData.settings?.self_service_enabled
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
@@ -112,8 +116,15 @@ export default function Expenses() {
         <StatCard icon={Banknote} label="الإجمالي" value={formatCurrency(s.total)} tone="violet" />
       </div>
 
+      {selfServiceDisabled && (
+        <div className="card border-r-4 border-amber-400 flex items-center gap-2 text-sm text-amber-700">
+          <AlertTriangle className="w-5 h-5 shrink-0" />
+          بوابة الخدمة الذاتية غير مفعَّلة حالياً — تواصل مع الموارد البشرية لتقديم مطالبتك.
+        </div>
+      )}
+
       <div className="flex justify-end">
-        <Button onClick={() => setShowForm(true)}><Plus className="w-5 h-5" /> مطالبة جديدة</Button>
+        <Button onClick={() => setShowForm(true)} disabled={selfServiceDisabled}><Plus className="w-5 h-5" /> مطالبة جديدة</Button>
       </div>
 
       {isLoading ? (
