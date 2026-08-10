@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { Wallet, Users, TrendingDown, Banknote, Plus, Trash2, ArrowLeftCircle, ClipboardList, CheckCircle2, Clock } from 'lucide-react'
+import { Wallet, Users, TrendingDown, Banknote, Plus, Trash2, ArrowLeftCircle, ClipboardList, CheckCircle2, Clock, Landmark, Download, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { payrollApi, departmentsApi } from '../../api/endpoints'
+import { downloadWpsFile } from '../../lib/wps'
 import Spinner from '../../components/ui/Spinner'
 import EmptyState from '../../components/ui/EmptyState'
 import Modal from '../../components/ui/Modal'
@@ -131,6 +132,35 @@ function NewRunForm({ open, onClose }) {
   )
 }
 
+function WpsSection({ runId }) {
+  const { data, isLoading } = useQuery(['payroll-run-wps', runId], () => payrollApi.wps(runId), { enabled: !!runId })
+  if (isLoading || !data) return null
+  const issueCount = data.items.filter((i) => !i.ok).length
+  return (
+    <div className="rounded-xl border border-slate-100 p-3 space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-bold text-slate-700 flex items-center gap-1.5"><Landmark className="w-4 h-4 text-slate-400" /> ملف حماية الأجور (WPS)</p>
+        <Button
+          variant={data.ready ? 'primary' : 'secondary'}
+          disabled={!data.ready}
+          onClick={() => { downloadWpsFile(data); toast.success('تم تنزيل الملف') }}
+        >
+          <Download className="w-4 h-4" /> تنزيل الملف
+        </Button>
+      </div>
+      {data.org_issues.length > 0 && (
+        <ul className="text-xs text-amber-600 space-y-1">
+          {data.org_issues.map((iss) => <li key={iss} className="flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 shrink-0" /> {iss}</li>)}
+        </ul>
+      )}
+      {issueCount > 0 && (
+        <p className="text-xs text-amber-600 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 shrink-0" /> {issueCount} موظف يحتاج بيانات هوية/آيبان صحيحة قبل توليد الملف</p>
+      )}
+      {data.ready && <p className="text-xs text-emerald-600">جاهز للتوليد — {data.items.length} موظف.</p>}
+    </div>
+  )
+}
+
 function RunDetailModal({ runId, onClose }) {
   const qc = useQueryClient()
   const { data, isLoading } = useQuery(['payroll-run', runId], () => payrollApi.getRun(runId), { enabled: !!runId })
@@ -172,7 +202,7 @@ function RunDetailModal({ runId, onClose }) {
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {data.items.map((i) => (
-                  <tr key={i.id}>
+                  <tr key={i.employee_id}>
                     <td className="py-2">
                       <div className="flex items-center gap-2">
                         <Avatar name={i.full_name} src={i.profile_picture} size="sm" />
@@ -188,6 +218,8 @@ function RunDetailModal({ runId, onClose }) {
               </tbody>
             </table>
           </div>
+
+          <WpsSection runId={runId} />
 
           {NEXT_STATUS[data.status] && (
             <div className="flex justify-end pt-2 border-t border-slate-100">

@@ -7,7 +7,7 @@ router.use(authenticateToken);
 
 const MANAGE = ['admin', 'hr_manager', 'super_admin'];
 
-const TEXT_FIELDS = ['currency', 'timezone', 'language', 'week_start', 'fiscal_year_start'];
+const TEXT_FIELDS = ['currency', 'timezone', 'language', 'week_start', 'fiscal_year_start', 'wps_establishment_id', 'wps_bank_code', 'wps_employer_iban'];
 const INT_FIELDS = ['work_days_per_week', 'work_hours_per_day', 'probation_months', 'annual_leave_days', 'sick_leave_days'];
 const BOOL_FIELDS = ['overtime_enabled', 'remote_work_enabled', 'two_factor_required', 'self_service_enabled'];
 
