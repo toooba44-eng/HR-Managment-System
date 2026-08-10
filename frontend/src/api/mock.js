@@ -833,8 +833,10 @@ export const mockAttendanceApi = {
     rec.check_out = nowIso()
     rec.work_hours = (Math.max(0, Number(rec.work_hours) || 0) + sessionHours).toFixed(2)
     rec.session_start = null
-    if (rec.work_hours < 4) rec.status = 'غائب'
-    else if (rec.work_hours < 8) rec.status = 'تأخر'
+    const fullDay = orgSettings.work_hours_per_day || 8
+    const halfDay = fullDay / 2
+    if (rec.work_hours < halfDay) rec.status = 'غائب'
+    else if (rec.work_hours < fullDay) rec.status = 'تأخر'
     else rec.status = 'حاضر'
     return { message: 'تم تسجيل الخروج', attendance: rec }
   },

@@ -166,9 +166,16 @@ router.post('/checkout', attendanceValidation.checkOut, (req, res, next) => {
     const sessionHours = (checkOut - sessionStart) / (1000 * 60 * 60);
     const workHours = Math.round(((record.work_hours || 0) + sessionHours) * 100) / 100;
 
+    // Status thresholds scale with the org's configured workday length
+    // instead of being fixed at 8 hours — a full day still counts as
+    // "حاضر" and half a day as the "تأخر" cutoff, whatever that length is.
+    const org = db.prepare('SELECT work_hours_per_day FROM org_settings WHERE id = 1').get();
+    const fullDay = org?.work_hours_per_day || 8;
+    const halfDay = fullDay / 2;
+
     let status = record.status;
-    if (workHours < 4) status = 'غائب';
-    else if (workHours < 8) status = 'تأخر';
+    if (workHours < halfDay) status = 'غائب';
+    else if (workHours < fullDay) status = 'تأخر';
     else status = 'حاضر';
 
     db.prepare(`
