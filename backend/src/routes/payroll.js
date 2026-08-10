@@ -13,8 +13,8 @@ const STATUSES = ['مسودة', 'قيد المراجعة', 'معتمد', 'مصر
 const NEXT_STATUS = { مسودة: 'قيد المراجعة', 'قيد المراجعة': 'معتمد', معتمد: 'مصروف' };
 
 // Payroll overview across employees (HR / admins only).
-// Net = basic + allowances − GOSI (10% of basic, simple model). Uses each
-// employee's active compensation package when one exists.
+// Net = basic + allowances − GOSI (nationality-aware rates, see payCalc.js).
+// Uses each employee's active compensation package when one exists.
 router.get('/', requireRole(...MANAGE), (req, res, next) => {
   try {
     const { department_id } = req.query;
@@ -115,6 +115,64 @@ router.get('/runs/:id/wps', requireRole(...MANAGE), (req, res, next) => {
 
     const ready = orgIssues.length === 0 && items.every((i) => i.ok);
     res.json({ run: { id: run.id, month: run.month, year: run.year, status: run.status }, org, org_issues: orgIssues, items, ready });
+  } catch (err) { next(err); }
+});
+
+// Records that a WPS file was actually generated for this run — called by
+// the frontend right after the client-side download succeeds, so there's
+// an audit trail of when the file was pulled and by whom, distinct from
+// whether the bank/Mudad has actually received and confirmed it yet.
+router.post('/runs/:id/wps/record', requireRole(...MANAGE), (req, res, next) => {
+  try {
+    const run = db.prepare('SELECT * FROM payroll_runs WHERE id = ?').get(req.params.id);
+    if (!run) return res.status(404).json({ error: 'Not found' });
+    if (!['معتمد', 'مصروف'].includes(run.status)) return res.status(400).json({ error: 'يجب اعتماد المسير قبل توليد الملف' });
+
+    const totals = db.prepare('SELECT COUNT(*) as item_count, COALESCE(SUM(net), 0) as total_amount FROM payroll_run_items WHERE run_id = ?').get(req.params.id);
+    const result = db.prepare(`
+      INSERT INTO wps_submissions (run_id, generated_by, item_count, total_amount)
+      VALUES (?, ?, ?, ?)
+    `).run(req.params.id, req.user.employee_id || null, totals.item_count, totals.total_amount);
+
+    res.status(201).json({ message: 'Recorded', submission: { id: result.lastInsertRowid } });
+  } catch (err) { next(err); }
+});
+
+// Submission history for a run's WPS files, most recent first.
+router.get('/runs/:id/wps/submissions', requireRole(...MANAGE), (req, res, next) => {
+  try {
+    const run = db.prepare('SELECT id FROM payroll_runs WHERE id = ?').get(req.params.id);
+    if (!run) return res.status(404).json({ error: 'Not found' });
+    const rows = db.prepare(`
+      SELECT s.*, e.full_name as generated_by_name
+      FROM wps_submissions s
+      LEFT JOIN employees e ON s.generated_by = e.id
+      WHERE s.run_id = ?
+      ORDER BY s.id DESC
+    `).all(req.params.id);
+    res.json({ submissions: rows });
+  } catch (err) { next(err); }
+});
+
+// Advance a submission's manual status: تم التوليد → أُرسل لمدد (requires a
+// reference number) → مؤكد. Forward-only, mirroring the run's own lifecycle.
+const WPS_SUB_NEXT = { 'تم التوليد': 'أُرسل لمدد', 'أُرسل لمدد': 'مؤكد' };
+router.put('/wps/submissions/:subId/status', requireRole(...MANAGE), (req, res, next) => {
+  try {
+    const sub = db.prepare('SELECT * FROM wps_submissions WHERE id = ?').get(req.params.subId);
+    if (!sub) return res.status(404).json({ error: 'Not found' });
+    const { status, mudad_reference } = req.body;
+    if (status !== WPS_SUB_NEXT[sub.status]) {
+      return res.status(400).json({ error: `لا يمكن الانتقال من "${sub.status}" إلى "${status}" مباشرة` });
+    }
+    if (status === 'أُرسل لمدد') {
+      if (!mudad_reference || !mudad_reference.trim()) return res.status(400).json({ error: 'الرقم المرجعي من مدد مطلوب' });
+      db.prepare('UPDATE wps_submissions SET status = ?, mudad_reference = ?, submitted_at = CURRENT_TIMESTAMP WHERE id = ?')
+        .run(status, mudad_reference.trim(), req.params.subId);
+    } else {
+      db.prepare('UPDATE wps_submissions SET status = ?, confirmed_at = CURRENT_TIMESTAMP WHERE id = ?').run(status, req.params.subId);
+    }
+    res.json({ message: 'Updated' });
   } catch (err) { next(err); }
 });
 

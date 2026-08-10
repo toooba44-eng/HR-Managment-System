@@ -118,6 +118,9 @@ const realPayrollApi = {
   removeRun: (id) => api.delete(`/payroll/runs/${id}`).then((r) => r.data),
   wps: (id) => api.get(`/payroll/runs/${id}/wps`).then((r) => r.data),
   gosi: (id) => api.get(`/payroll/runs/${id}/gosi`).then((r) => r.data),
+  recordWps: (id) => api.post(`/payroll/runs/${id}/wps/record`).then((r) => r.data),
+  wpsSubmissions: (id) => api.get(`/payroll/runs/${id}/wps/submissions`).then((r) => r.data),
+  advanceWpsSubmission: (subId, status, mudad_reference) => api.put(`/payroll/wps/submissions/${subId}/status`, { status, mudad_reference }).then((r) => r.data),
 }
 
 // ---------- Tasks ----------

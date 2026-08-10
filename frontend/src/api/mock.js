@@ -1394,6 +1394,8 @@ const payrollRuns = [
   prMakeRun(lastMonthDate.getMonth() + 1, lastMonthDate.getFullYear(), 'مصروف', 28, 25, 20),
   prMakeRun(now.getMonth() + 1, now.getFullYear(), 'قيد المراجعة', 1, null, null),
 ]
+let wpsSubSeq = 1
+const wpsSubmissions = []
 
 Object.assign(mockPayrollApi, {
   async runs() {
@@ -1481,6 +1483,41 @@ Object.assign(mockPayrollApi, {
 
     const ready = orgIssues.length === 0 && items.every((i) => i.ok)
     return { run: { id: r.id, month: r.month, year: r.year, status: r.status }, org, org_issues: orgIssues, items, ready }
+  },
+  async recordWps(id) {
+    await delay()
+    const r = payrollRuns.find((x) => x.id === Number(id))
+    if (!r) throw notFound()
+    if (!['معتمد', 'مصروف'].includes(r.status)) throw badReq('يجب اعتماد المسير قبل توليد الملف')
+    const u = currentUser()
+    const item_count = r.items.length
+    const total_amount = r.items.reduce((s, i) => s + i.net, 0)
+    const sub = {
+      id: wpsSubSeq++, run_id: r.id, generated_by: u?.employee_id || null, generated_by_name: empName(u?.employee_id),
+      item_count, total_amount, status: 'تم التوليد', mudad_reference: null, submitted_at: null, confirmed_at: null, created_at: nowIso(),
+    }
+    wpsSubmissions.unshift(sub)
+    return { message: 'Recorded', submission: { id: sub.id } }
+  },
+  async wpsSubmissions(id) {
+    await delay()
+    const r = payrollRuns.find((x) => x.id === Number(id))
+    if (!r) throw notFound()
+    return { submissions: wpsSubmissions.filter((s) => s.run_id === r.id) }
+  },
+  async advanceWpsSubmission(subId, status, mudad_reference) {
+    await delay()
+    const sub = wpsSubmissions.find((s) => s.id === Number(subId))
+    if (!sub) throw notFound()
+    const WPS_SUB_NEXT = { 'تم التوليد': 'أُرسل لمدد', 'أُرسل لمدد': 'مؤكد' }
+    if (status !== WPS_SUB_NEXT[sub.status]) throw badReq(`لا يمكن الانتقال من "${sub.status}" إلى "${status}" مباشرة`)
+    if (status === 'أُرسل لمدد') {
+      if (!mudad_reference || !mudad_reference.trim()) throw badReq('الرقم المرجعي من مدد مطلوب')
+      sub.status = status; sub.mudad_reference = mudad_reference.trim(); sub.submitted_at = nowIso()
+    } else {
+      sub.status = status; sub.confirmed_at = nowIso()
+    }
+    return { message: 'Updated' }
   },
   async gosi(id) {
     await delay()

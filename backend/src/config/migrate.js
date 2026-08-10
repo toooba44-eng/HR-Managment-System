@@ -736,6 +736,27 @@ const migrations = [
     FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
   )`,
 
+  // One row per WPS salary file actually generated for a run (the frontend
+  // reports back to this endpoint right after the client-side download
+  // succeeds), plus its manually-tracked submission lifecycle through the
+  // bank/Mudad — there's no real banking API to call here, so "sent" and
+  // "confirmed" are HR-entered facts, same as payroll_runs' own manual
+  // مسودة→معتمد→مصروف progression.
+  `CREATE TABLE IF NOT EXISTS wps_submissions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id INTEGER NOT NULL,
+    generated_by INTEGER,
+    item_count INTEGER NOT NULL DEFAULT 0,
+    total_amount REAL NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'تم التوليد' CHECK(status IN ('تم التوليد', 'أُرسل لمدد', 'مؤكد')),
+    mudad_reference TEXT,
+    submitted_at DATETIME,
+    confirmed_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (run_id) REFERENCES payroll_runs(id) ON DELETE CASCADE,
+    FOREIGN KEY (generated_by) REFERENCES employees(id) ON DELETE SET NULL
+  )`,
+
   // Talent 9-box reviews (performance x potential)
   `CREATE TABLE IF NOT EXISTS talent_reviews (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
