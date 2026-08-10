@@ -2460,6 +2460,51 @@ export const mockTrainingApi = {
   },
 }
 
+// Mirrors backend/src/routes/reports.js computeInsights — same deterministic,
+// threshold-based rules over the same numbers, not a model call.
+function computeInsightsMock(o) {
+  const insights = []
+
+  const total30 = (o.attendance30.present || 0) + (o.attendance30.absent || 0) + (o.attendance30.late || 0) + (o.attendance30.remote || 0)
+  if (total30 > 0) {
+    const absentRate = (o.attendance30.absent || 0) / total30
+    if (absentRate > 0.05) insights.push(`نسبة الغياب خلال آخر 30 يوماً ${(absentRate * 100).toFixed(0)}% من سجلات الحضور — أعلى من المعتاد.`)
+    const lateRate = (o.attendance30.late || 0) / total30
+    if (lateRate > 0.1) insights.push(`نسبة التأخر خلال آخر 30 يوماً ${(lateRate * 100).toFixed(0)}% من سجلات الحضور.`)
+  }
+
+  if (o.recruitment.applications > 0) {
+    const accepted = o.recruitment.byStatus.find((s) => s.status === 'مقبول')?.count || 0
+    const rejected = o.recruitment.byStatus.find((s) => s.status === 'مرفوض')?.count || 0
+    const decided = accepted + rejected
+    if (decided > 0) {
+      const acceptRate = accepted / decided
+      insights.push(`معدل قبول المرشحين ${(acceptRate * 100).toFixed(0)}% من أصل ${decided} قراراً صدر حتى الآن.`)
+    }
+  }
+
+  if (o.expenses.total > 0) {
+    const pendingRate = o.expenses.pending / o.expenses.total
+    if (pendingRate > 0.3) insights.push(`${(pendingRate * 100).toFixed(0)}% من إجمالي المصروفات لا تزال معلّقة بانتظار الاعتماد.`)
+  }
+
+  if (o.byDepartment.length > 1) {
+    const counts = o.byDepartment.map((d) => d.count)
+    const avg = counts.reduce((a, b) => a + b, 0) / counts.length
+    const max = o.byDepartment.reduce((m, d) => (d.count > m.count ? d : m))
+    if (avg > 0 && max.count > avg * 1.8) {
+      insights.push(`إدارة ${max.name} تضم ${max.count} موظف، أعلى بكثير من متوسط ${avg.toFixed(1)} موظف لكل إدارة.`)
+    }
+  }
+
+  if (o.training.enrollments > 0) {
+    const completionRate = o.training.completed / o.training.enrollments
+    insights.push(`معدل إكمال التدريب ${(completionRate * 100).toFixed(0)}% من ${o.training.enrollments} تسجيلاً.`)
+  }
+
+  return insights.slice(0, 5)
+}
+
 export const mockReportsApi = {
   async overview() {
     await delay()
@@ -2496,21 +2541,19 @@ export const mockReportsApi = {
     // Uses each employee's active compensation package when one exists, so
     // this agrees with the live payroll overview and payroll runs.
     const payTotals = active.reduce((t, e) => {
-      const pkg = compensation.find((c) => c.employee_id === e.id && c.status === 'نشط')
-      const eBasic = pkg ? pkg.base_salary : (e.salary || 0)
-      const eAllowances = pkg ? pkg.housing_allowance + pkg.transport_allowance + pkg.other_allowances + pkg.bonus : (e.allowances || 0)
-      return { basic: t.basic + eBasic, allowances: t.allowances + eAllowances }
-    }, { basic: 0, allowances: 0 })
+      const i = payItemFor(e)
+      return { basic: t.basic + i.basic, allowances: t.allowances + i.allowances, deductions: t.deductions + i.deductions }
+    }, { basic: 0, allowances: 0, deductions: 0 })
     const basic = payTotals.basic
     const allowances = payTotals.allowances
-    const deductions = Math.round(basic * 0.1)
+    const deductions = payTotals.deductions
 
     const appStatus = groupCount(applications, 'status')
     const expTotal = expenses.reduce((s, x) => s + x.amount, 0)
     const expPending = expenses.filter((x) => x.status === 'معلقة').reduce((s, x) => s + x.amount, 0)
     const expApproved = expenses.filter((x) => ['معتمدة', 'مصروفة'].includes(x.status)).reduce((s, x) => s + x.amount, 0)
 
-    return {
+    const payload = {
       headcount: { total: employees.length, active: active.length },
       byDepartment,
       byStatus,
@@ -2527,6 +2570,9 @@ export const mockReportsApi = {
       expenses: { total: expTotal, pending: expPending, approved: expApproved },
       training: { courses: courses.length, enrollments: enrollments.length, completed: enrollments.filter((e) => e.status === 'مكتمل').length },
     }
+
+    if (aiSettings.enabled && aiSettings.insights) payload.insights = computeInsightsMock(payload)
+    return payload
   },
   async datasets() {
     await delay()

@@ -7,6 +7,53 @@ const router = express.Router();
 router.use(authenticateToken);
 router.use(requireRole('admin', 'hr_manager', 'super_admin', 'department_head'));
 
+// Deterministic, threshold-based observations over the same numbers the
+// overview already computes — not a model call, just rules flagging what's
+// worth a human's attention. Gated behind ai_settings.insights so it reads
+// honestly as "on/off", same spirit as the rule-based assistant.
+function computeInsights(o) {
+  const insights = [];
+
+  const total30 = (o.attendance30.present || 0) + (o.attendance30.absent || 0) + (o.attendance30.late || 0) + (o.attendance30.remote || 0);
+  if (total30 > 0) {
+    const absentRate = (o.attendance30.absent || 0) / total30;
+    if (absentRate > 0.05) insights.push(`نسبة الغياب خلال آخر 30 يوماً ${(absentRate * 100).toFixed(0)}% من سجلات الحضور — أعلى من المعتاد.`);
+    const lateRate = (o.attendance30.late || 0) / total30;
+    if (lateRate > 0.1) insights.push(`نسبة التأخر خلال آخر 30 يوماً ${(lateRate * 100).toFixed(0)}% من سجلات الحضور.`);
+  }
+
+  if (o.recruitment.applications > 0) {
+    const accepted = o.recruitment.byStatus.find((s) => s.status === 'مقبول')?.count || 0;
+    const rejected = o.recruitment.byStatus.find((s) => s.status === 'مرفوض')?.count || 0;
+    const decided = accepted + rejected;
+    if (decided > 0) {
+      const acceptRate = accepted / decided;
+      insights.push(`معدل قبول المرشحين ${(acceptRate * 100).toFixed(0)}% من أصل ${decided} قراراً صدر حتى الآن.`);
+    }
+  }
+
+  if (o.expenses.total > 0) {
+    const pendingRate = o.expenses.pending / o.expenses.total;
+    if (pendingRate > 0.3) insights.push(`${(pendingRate * 100).toFixed(0)}% من إجمالي المصروفات لا تزال معلّقة بانتظار الاعتماد.`);
+  }
+
+  if (o.byDepartment.length > 1) {
+    const counts = o.byDepartment.map((d) => d.count);
+    const avg = counts.reduce((a, b) => a + b, 0) / counts.length;
+    const max = o.byDepartment.reduce((m, d) => (d.count > m.count ? d : m));
+    if (avg > 0 && max.count > avg * 1.8) {
+      insights.push(`إدارة ${max.name} تضم ${max.count} موظف، أعلى بكثير من متوسط ${avg.toFixed(1)} موظف لكل إدارة.`);
+    }
+  }
+
+  if (o.training.enrollments > 0) {
+    const completionRate = o.training.completed / o.training.enrollments;
+    insights.push(`معدل إكمال التدريب ${(completionRate * 100).toFixed(0)}% من ${o.training.enrollments} تسجيلاً.`);
+  }
+
+  return insights.slice(0, 5);
+}
+
 // Aggregated HR analytics computed from existing data (no new tables).
 router.get('/overview', (req, res, next) => {
   try {
@@ -77,7 +124,7 @@ router.get('/overview', (req, res, next) => {
       completed: db.prepare("SELECT COUNT(*) as c FROM enrollments WHERE status = 'مكتمل'").get().c,
     };
 
-    res.json({
+    const payload = {
       headcount,
       byDepartment,
       byStatus,
@@ -89,7 +136,12 @@ router.get('/overview', (req, res, next) => {
       recruitment,
       expenses: { total: exp.total || 0, pending: exp.pending || 0, approved: exp.approved || 0 },
       training,
-    });
+    };
+
+    const ai = db.prepare('SELECT enabled, insights FROM ai_settings WHERE id = 1').get();
+    if (ai && ai.enabled && ai.insights) payload.insights = computeInsights(payload);
+
+    res.json(payload);
   } catch (err) {
     next(err);
   }
