@@ -64,6 +64,16 @@ router.post('/', (req, res, next) => {
     if (!employee_id) return res.status(400).json({ error: 'No employee associated with this account' });
     if (!amount || amount <= 0) return res.status(400).json({ error: 'Valid amount is required' });
 
+    // Only the plain-employee self-service path is gated — managers/HR
+    // submitting their own expense claim through this same endpoint aren't
+    // "using self-service", they're just employees of the company too.
+    if (req.user.role === 'employee') {
+      const org = db.prepare('SELECT self_service_enabled FROM org_settings WHERE id = 1').get();
+      if (org && !org.self_service_enabled) {
+        return res.status(400).json({ error: 'بوابة الخدمة الذاتية غير مفعَّلة حالياً — تواصل مع الموارد البشرية لتقديم طلبك' });
+      }
+    }
+
     const result = db.prepare(`
       INSERT INTO expenses (employee_id, type, category, amount, description)
       VALUES (?, ?, ?, ?, ?)

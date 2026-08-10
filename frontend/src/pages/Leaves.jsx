@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { Plus, Check, X, CalendarDays, Ban } from 'lucide-react'
+import { Plus, Check, X, CalendarDays, Ban, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { leavesApi } from '../api/endpoints'
+import { leavesApi, settingsApi } from '../api/endpoints'
 import { useAuthStore } from '../store/authStore'
 import Avatar from '../components/ui/Avatar'
 import Badge from '../components/ui/Badge'
@@ -115,9 +115,20 @@ export default function Leaves() {
     onError: (err) => toast.error(err.response?.data?.error || 'فشل الإلغاء'),
   })
 
+  const isSelfServiceUser = user?.role === 'employee'
+  const { data: settingsData } = useQuery('settings', () => settingsApi.get(), { enabled: isSelfServiceUser })
+  const selfServiceDisabled = isSelfServiceUser && settingsData && !settingsData.settings?.self_service_enabled
+
   return (
     <div className="space-y-6">
       <LeaveBalance />
+
+      {selfServiceDisabled && (
+        <div className="card border-r-4 border-amber-400 flex items-center gap-2 text-sm text-amber-700">
+          <AlertTriangle className="w-5 h-5 shrink-0" />
+          بوابة الخدمة الذاتية غير مفعَّلة حالياً — تواصل مع الموارد البشرية لتقديم طلب إجازة.
+        </div>
+      )}
 
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
         <Select value={status} onChange={(e) => setStatus(e.target.value)} className="sm:w-48">
@@ -127,7 +138,7 @@ export default function Leaves() {
           <option value="مرفوضة">مرفوضة</option>
           <option value="ملغاة">ملغاة</option>
         </Select>
-        <Button onClick={() => setShowForm(true)}>
+        <Button onClick={() => setShowForm(true)} disabled={selfServiceDisabled}>
           <Plus className="w-5 h-5" />
           طلب إجازة
         </Button>
