@@ -14,6 +14,10 @@ const realAuthApi = {
   login: (data) => api.post('/auth/login', data).then((r) => r.data),
   me: () => api.get('/auth/me').then((r) => r.data),
   changePassword: (data) => api.put('/auth/change-password', data).then((r) => r.data),
+  verifyTwoFactor: (data) => api.post('/auth/2fa/verify', data).then((r) => r.data),
+  setupTwoFactor: () => api.post('/auth/2fa/setup').then((r) => r.data),
+  enableTwoFactor: (code) => api.post('/auth/2fa/enable', { code }).then((r) => r.data),
+  disableTwoFactor: (password) => api.post('/auth/2fa/disable', { password }).then((r) => r.data),
 }
 
 // ---------- Dashboard ----------

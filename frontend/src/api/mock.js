@@ -2,6 +2,8 @@
 // Mirrors the backend endpoints using the same seed data, entirely client-side.
 // No persistence across reloads — state lives in memory for the session.
 
+import * as totp from '../lib/totp'
+
 const today = () => new Date().toISOString().split('T')[0]
 const nowIso = () => new Date().toISOString()
 const delay = (ms = 180) => new Promise((r) => setTimeout(r, ms))
@@ -362,6 +364,20 @@ function withDept(e) {
 }
 
 // ---------- mock API ----------
+function sessionFor(email) {
+  const u = users[email]
+  const emp = employees.find((e) => e.id === u.employee_id)
+  return {
+    token: `demo-token-${email}`,
+    user: {
+      id: u.employee_id || 0, email, role: u.role, employee_id: u.employee_id,
+      full_name: emp?.full_name || u.name || 'مستخدم', job_title: emp?.job_title || u.name || '',
+      department_id: emp?.department_id || null, department_name: emp ? deptName(emp.department_id) : null,
+      profile_picture: null, two_factor_enabled: !!u.two_factor_enabled,
+    },
+  }
+}
+
 export const mockAuthApi = {
   async login({ email, password }) {
     await delay()
@@ -371,23 +387,64 @@ export const mockAuthApi = {
       err.response = { status: 401, data: { error: 'بيانات الدخول غير صحيحة' } }
       throw err
     }
-    const emp = employees.find((e) => e.id === u.employee_id)
-    return {
-      token: `demo-token-${email}`,
-      user: {
-        id: u.employee_id || 0, email, role: u.role, employee_id: u.employee_id,
-        full_name: emp?.full_name || u.name || 'مستخدم', job_title: emp?.job_title || u.name || '',
-        department_id: emp?.department_id || null, department_name: emp ? deptName(emp.department_id) : null,
-        profile_picture: null,
-      },
+    if (u.two_factor_enabled) {
+      return { requires_2fa: true, pending_token: `demo-pending-${email}` }
     }
+    return sessionFor(email)
+  },
+  async verifyTwoFactor({ pending_token, code }) {
+    await delay()
+    const email = String(pending_token || '').replace(/^demo-pending-/, '')
+    const u = users[email]
+    if (!u || !u.two_factor_enabled) {
+      const err = new Error('Invalid pending session')
+      err.response = { status: 401, data: { error: 'Invalid pending session' } }
+      throw err
+    }
+    if (!(await totp.verifyToken(u.two_factor_secret, code))) {
+      const err = new Error('Invalid code')
+      err.response = { status: 400, data: { error: 'رمز التحقق غير صحيح' } }
+      throw err
+    }
+    return sessionFor(email)
+  },
+  async setupTwoFactor() {
+    await delay()
+    const cu = currentUser()
+    const u = cu && users[cu.email]
+    if (!u) { const err = new Error('No session'); err.response = { status: 401, data: { error: 'No token provided' } }; throw err }
+    const secret = totp.generateSecret()
+    u.two_factor_secret = secret
+    u.two_factor_enabled = false
+    return { secret, otpauth_url: totp.otpauthUrl(secret, cu.email) }
+  },
+  async enableTwoFactor(code) {
+    await delay()
+    const cu = currentUser()
+    const u = cu && users[cu.email]
+    if (!u) { const err = new Error('No session'); err.response = { status: 401, data: { error: 'No token provided' } }; throw err }
+    if (!u.two_factor_secret) throw badReq('ابدأ الإعداد أولاً')
+    if (!(await totp.verifyToken(u.two_factor_secret, code))) throw badReq('رمز التحقق غير صحيح')
+    u.two_factor_enabled = true
+    return { message: 'تم تفعيل التحقق بخطوتين' }
+  },
+  async disableTwoFactor(password) {
+    await delay()
+    const cu = currentUser()
+    const u = cu && users[cu.email]
+    if (!u) { const err = new Error('No session'); err.response = { status: 401, data: { error: 'No token provided' } }; throw err }
+    if (password !== u.password) throw badReq('كلمة المرور غير صحيحة')
+    u.two_factor_secret = null
+    u.two_factor_enabled = false
+    return { message: 'تم تعطيل التحقق بخطوتين' }
   },
   async me() {
     await delay()
-    // Reuse the user persisted by the Zustand auth store
     try {
       const persisted = JSON.parse(localStorage.getItem('quant-hr-auth') || 'null')
-      return { user: persisted?.state?.user || null }
+      const user = persisted?.state?.user || null
+      if (user?.email && users[user.email]) user.two_factor_enabled = !!users[user.email].two_factor_enabled
+      return { user }
     } catch {
       return { user: null }
     }

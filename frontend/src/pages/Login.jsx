@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useLocation, Navigate } from 'react-router-dom'
-import { Mail, Lock, Eye, EyeOff, LogIn } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, LogIn, ShieldCheck } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../store/authStore'
 import { portalForRole } from '../config/portals'
@@ -17,23 +17,43 @@ const DEMO_ACCOUNTS = [
 ]
 
 export default function Login() {
-  const { login, token, isLoading } = useAuthStore()
+  const { login, verifyTwoFactor, token, isLoading } = useAuthStore()
   const navigate = useNavigate()
   const location = useLocation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [pendingToken, setPendingToken] = useState(null)
+  const [code, setCode] = useState('')
 
   if (token) return <Navigate to="/" replace />
+
+  const goHome = (u) => {
+    toast.success('تم تسجيل الدخول بنجاح')
+    navigate(location.state?.from?.pathname || portalForRole(u.role).home, { replace: true })
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      const u = await login({ email, password })
-      toast.success('تم تسجيل الدخول بنجاح')
-      navigate(location.state?.from?.pathname || portalForRole(u.role).home, { replace: true })
+      const result = await login({ email, password })
+      if (result?.requires_2fa) {
+        setPendingToken(result.pending_token)
+        return
+      }
+      goHome(result)
     } catch (err) {
       toast.error(err.response?.data?.error || 'فشل تسجيل الدخول')
+    }
+  }
+
+  const handleVerify = async (e) => {
+    e.preventDefault()
+    try {
+      const u = await verifyTwoFactor({ pending_token: pendingToken, code })
+      goHome(u)
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'رمز التحقق غير صحيح')
     }
   }
 
@@ -76,58 +96,90 @@ export default function Login() {
           </div>
 
           <div className="card">
-            <h2 className="text-2xl font-extrabold text-slate-800 mb-1">مرحباً بعودتك</h2>
-            <p className="text-slate-400 mb-4">سجّل الدخول للمتابعة إلى حسابك</p>
+            {pendingToken ? (
+              <>
+                <div className="flex items-center gap-2 mb-1">
+                  <ShieldCheck className="w-6 h-6 text-primary-600" />
+                  <h2 className="text-2xl font-extrabold text-slate-800">التحقق بخطوتين</h2>
+                </div>
+                <p className="text-slate-400 mb-4">أدخل الرمز المكوّن من 6 أرقام من تطبيق المصادقة</p>
+                <form onSubmit={handleVerify} className="space-y-4">
+                  <Field label="رمز التحقق" required>
+                    <Input
+                      value={code}
+                      onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="000000"
+                      className="text-center tracking-[0.5em] font-mono"
+                      maxLength={6}
+                      required
+                      autoFocus
+                    />
+                  </Field>
+                  <Button type="submit" loading={isLoading} className="w-full" disabled={code.length !== 6}>
+                    <ShieldCheck className="w-5 h-5" />
+                    تحقق
+                  </Button>
+                  <button type="button" onClick={() => { setPendingToken(null); setCode('') }} className="text-sm text-slate-400 hover:text-slate-600 w-full text-center">
+                    الرجوع لتسجيل الدخول
+                  </button>
+                </form>
+              </>
+            ) : (
+              <>
+                <h2 className="text-2xl font-extrabold text-slate-800 mb-1">مرحباً بعودتك</h2>
+                <p className="text-slate-400 mb-4">سجّل الدخول للمتابعة إلى حسابك</p>
 
-            {DEMO && (
-              <div className="mb-5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs leading-relaxed p-3">
-                🧪 <span className="font-bold">نسخة تجريبية</span> — تعمل بالكامل داخل المتصفح ببيانات وهمية دون خادم فعلي. التعديلات مؤقتة ولا تُحفظ. استخدم أحد الحسابات التجريبية بالأسفل.
-              </div>
+                {DEMO && (
+                  <div className="mb-5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs leading-relaxed p-3">
+                    🧪 <span className="font-bold">نسخة تجريبية</span> — تعمل بالكامل داخل المتصفح ببيانات وهمية دون خادم فعلي. التعديلات مؤقتة ولا تُحفظ. استخدم أحد الحسابات التجريبية بالأسفل.
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <Field label="البريد الإلكتروني" required>
+                    <div className="relative">
+                      <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                      <Input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="name@quant.com"
+                        className="pr-11"
+                        required
+                      />
+                    </div>
+                  </Field>
+
+                  <Field label="كلمة المرور" required>
+                    <div className="relative">
+                      <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                      <Input
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="pr-11 pl-11"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((s) => !s)}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                  </Field>
+
+                  <Button type="submit" loading={isLoading} className="w-full">
+                    <LogIn className="w-5 h-5" />
+                    تسجيل الدخول
+                  </Button>
+                </form>
+              </>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <Field label="البريد الإلكتروني" required>
-                <div className="relative">
-                  <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  <Input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@quant.com"
-                    className="pr-11"
-                    required
-                  />
-                </div>
-              </Field>
-
-              <Field label="كلمة المرور" required>
-                <div className="relative">
-                  <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  <Input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="pr-11 pl-11"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((s) => !s)}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
-                </div>
-              </Field>
-
-              <Button type="submit" loading={isLoading} className="w-full">
-                <LogIn className="w-5 h-5" />
-                تسجيل الدخول
-              </Button>
-            </form>
-
-            <div className="mt-6 pt-6 border-t border-slate-100">
+            {!pendingToken && <div className="mt-6 pt-6 border-t border-slate-100">
               <p className="text-xs text-slate-400 mb-3 text-center">حسابات تجريبية (اضغط للتعبئة)</p>
               <div className="grid grid-cols-3 gap-2">
                 {DEMO_ACCOUNTS.map((acc) => (
@@ -140,7 +192,7 @@ export default function Login() {
                   </button>
                 ))}
               </div>
-            </div>
+            </div>}
           </div>
         </div>
       </div>
