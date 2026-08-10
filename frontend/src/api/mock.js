@@ -1200,6 +1200,9 @@ export const mockRequestsApi = {
   },
   async create(data) {
     await delay()
+    const TOGGLE_GATED_TYPES = { 'عمل إضافي': { column: 'overtime_enabled', label: 'احتساب العمل الإضافي' }, 'عمل عن بعد': { column: 'remote_work_enabled', label: 'العمل عن بُعد' } }
+    const gate = TOGGLE_GATED_TYPES[data.type]
+    if (gate && !orgSettings[gate.column]) throw badReq(`ميزة "${gate.label}" غير مفعَّلة حالياً في إعدادات المؤسسة`)
     const u = currentUser()
     const req = { id: reqSeq++, employee_id: u?.employee_id || data.employee_id, status: 'معلقة', response: null, resolved_by: null, created_at: nowIso(), ...data }
     requests.unshift(req)

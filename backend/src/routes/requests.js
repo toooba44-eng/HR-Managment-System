@@ -44,6 +44,15 @@ router.get('/', (req, res, next) => {
   }
 });
 
+// Request types gated behind an organization-wide feature toggle — filing
+// one while the org has disabled the feature would create a request no
+// policy actually allows, so it's rejected at submission time instead of
+// leaving HR to catch it during review.
+const TOGGLE_GATED_TYPES = {
+  'عمل إضافي': { column: 'overtime_enabled', label: 'احتساب العمل الإضافي' },
+  'عمل عن بعد': { column: 'remote_work_enabled', label: 'العمل عن بُعد' },
+};
+
 // Create a request (employees create for themselves)
 router.post('/', (req, res, next) => {
   try {
@@ -59,6 +68,14 @@ router.post('/', (req, res, next) => {
     }
     if (!type || !subject) {
       return res.status(400).json({ error: 'Type and subject are required' });
+    }
+
+    const gate = TOGGLE_GATED_TYPES[type];
+    if (gate) {
+      const org = db.prepare(`SELECT ${gate.column} FROM org_settings WHERE id = 1`).get();
+      if (org && !org[gate.column]) {
+        return res.status(400).json({ error: `ميزة "${gate.label}" غير مفعَّلة حالياً في إعدادات المؤسسة` });
+      }
     }
 
     const result = db.prepare(`

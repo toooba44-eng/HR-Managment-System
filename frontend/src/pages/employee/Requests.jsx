@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { Plus, Check, X, CheckCheck, Inbox, Undo2 } from 'lucide-react'
+import { Plus, Check, X, CheckCheck, Inbox, Undo2, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { requestsApi } from '../../api/endpoints'
+import { requestsApi, settingsApi } from '../../api/endpoints'
 import { useAuthStore } from '../../store/authStore'
 import Spinner from '../../components/ui/Spinner'
 import EmptyState from '../../components/ui/EmptyState'
@@ -13,6 +13,10 @@ import { Field, Input, Textarea, Select, Button } from '../../components/ui/Form
 import { formatDate } from '../../lib/utils'
 
 const MANAGE_ROLES = ['admin', 'hr_manager', 'department_head', 'super_admin']
+
+// Mirrors backend/src/routes/requests.js's TOGGLE_GATED_TYPES — these two
+// request types are only meaningful when the org has the feature on.
+const TOGGLE_GATED_TYPES = { 'عمل إضافي': 'overtime_enabled', 'عمل عن بعد': 'remote_work_enabled' }
 
 function RequestForm({ open, onClose, type, typeOptions }) {
   const qc = useQueryClient()
@@ -87,6 +91,10 @@ export default function Requests({ type, typeOptions, title, description }) {
     onError: (err) => toast.error(err.response?.data?.error || 'فشل سحب الطلب'),
   })
 
+  const toggleColumn = type ? TOGGLE_GATED_TYPES[type] : null
+  const { data: settingsData } = useQuery('settings', () => settingsApi.get(), { enabled: !!toggleColumn })
+  const featureDisabled = toggleColumn && settingsData && !settingsData.settings?.[toggleColumn]
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -94,11 +102,18 @@ export default function Requests({ type, typeOptions, title, description }) {
           {title && <h2 className="text-lg font-bold text-slate-800">{title}</h2>}
           {description && <p className="text-sm text-slate-400">{description}</p>}
         </div>
-        <Button onClick={() => setShowForm(true)}>
+        <Button onClick={() => setShowForm(true)} disabled={featureDisabled}>
           <Plus className="w-5 h-5" />
           طلب جديد
         </Button>
       </div>
+
+      {featureDisabled && (
+        <div className="card border-r-4 border-amber-400 flex items-center gap-2 text-sm text-amber-700">
+          <AlertTriangle className="w-5 h-5 shrink-0" />
+          هذه الميزة غير مفعَّلة حالياً في إعدادات المؤسسة — تواصل مع الموارد البشرية إن احتجت تفعيلها.
+        </div>
+      )}
 
       {isLoading ? (
         <Spinner fullscreen />
