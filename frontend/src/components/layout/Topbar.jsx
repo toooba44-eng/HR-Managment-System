@@ -6,6 +6,7 @@ import { useAuthStore } from '../../store/authStore'
 import { notificationsApi } from '../../api/endpoints'
 import { timeAgo } from '../../lib/utils'
 import Avatar from '../ui/Avatar'
+import GlobalSearch from './GlobalSearch'
 
 const TYPE_DOT = { success: 'bg-emerald-500', error: 'bg-rose-500', warning: 'bg-amber-500', info: 'bg-blue-500' }
 
@@ -109,6 +110,7 @@ export default function Topbar({ onMenuClick, title }) {
         </div>
 
         <div className="flex items-center gap-3">
+          <GlobalSearch />
           <NotificationsBell />
           <Link to="/profile" className="hidden sm:flex items-center gap-2 hover:bg-slate-50 rounded-lg px-2 py-1 transition-colors" title="ملفي الشخصي">
             <Avatar name={user?.full_name} src={user?.profile_picture} size="sm" />
