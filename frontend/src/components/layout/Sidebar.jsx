@@ -1,14 +1,58 @@
-import { Fragment } from 'react'
-import { NavLink } from 'react-router-dom'
-import { LogOut, X } from 'lucide-react'
+import { Fragment, useEffect, useState } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
+import { LogOut, X, ChevronDown } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { portalForRole } from '../../config/portals'
 import { ROLE_LABELS, cn } from '../../lib/utils'
 import Avatar from '../ui/Avatar'
 
+// Nav items already arrive grouped by section (contiguous runs sharing the
+// same `section` value) — fold that into { section, items } chunks so each
+// section can be rendered as its own collapsible group.
+function groupNav(nav) {
+  const groups = []
+  for (const item of nav) {
+    const last = groups[groups.length - 1]
+    const section = item.section || null
+    if (last && last.section === section) last.items.push(item)
+    else groups.push({ section, items: [item] })
+  }
+  return groups
+}
+
+function isItemActive(item, pathname) {
+  if (item.exact) return pathname === item.to
+  return pathname === item.to || pathname.startsWith(item.to + '/')
+}
+
 export default function Sidebar({ open, onClose }) {
   const { user, logout } = useAuthStore()
   const portal = portalForRole(user?.role)
+  const location = useLocation()
+  const groups = groupNav(portal.nav)
+
+  const activeSection = groups.find(
+    (g) => g.section && g.items.some((item) => isItemActive(item, location.pathname))
+  )?.section
+
+  // Sections collapse by default; whichever one holds the current page
+  // starts (and stays) open so navigating never hides the active link.
+  const [openSections, setOpenSections] = useState(() => new Set(activeSection ? [activeSection] : []))
+
+  useEffect(() => {
+    if (activeSection) {
+      setOpenSections((prev) => (prev.has(activeSection) ? prev : new Set(prev).add(activeSection)))
+    }
+  }, [activeSection])
+
+  const toggleSection = (name) => {
+    setOpenSections((prev) => {
+      const next = new Set(prev)
+      if (next.has(name)) next.delete(name)
+      else next.add(name)
+      return next
+    })
+  }
 
   return (
     <>
@@ -40,29 +84,60 @@ export default function Sidebar({ open, onClose }) {
           </button>
         </div>
 
-        {/* Nav from the portal config — grouped into sections when provided */}
+        {/* Nav from the portal config — ungrouped items stay as plain links,
+            sectioned items collapse into accordion groups. */}
         <nav className="flex-1 px-4 space-y-1 overflow-y-auto scrollbar-hide pb-4">
-          {portal.nav.map((item, i) => {
-            const showHeader = item.section && item.section !== portal.nav[i - 1]?.section
-            return (
-              <Fragment key={item.to}>
-                {showHeader && (
-                  <p className="px-4 pt-4 pb-1 text-[11px] font-bold text-slate-400 uppercase tracking-wide">
-                    {item.section}
-                  </p>
-                )}
-                <NavLink
-                  to={item.to}
-                  end={item.exact}
-                  onClick={onClose}
-                  className={({ isActive }) => cn('nav-item', isActive && 'active')}
+          {groups.map((group) =>
+            group.section ? (
+              <div key={group.section} className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => toggleSection(group.section)}
+                  aria-expanded={openSections.has(group.section)}
+                  className="w-full flex items-center justify-between gap-2 px-4 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-wide hover:text-slate-600 transition-colors"
                 >
-                  <item.icon className="w-5 h-5 shrink-0" />
-                  <span className="truncate">{item.label}</span>
-                </NavLink>
+                  <span className="truncate">{group.section}</span>
+                  <ChevronDown
+                    className={cn(
+                      'w-3.5 h-3.5 shrink-0 transition-transform duration-200',
+                      openSections.has(group.section) && 'rotate-180'
+                    )}
+                  />
+                </button>
+                {openSections.has(group.section) && (
+                  <div className="space-y-1">
+                    {group.items.map((item) => (
+                      <NavLink
+                        key={item.to}
+                        to={item.to}
+                        end={item.exact}
+                        onClick={onClose}
+                        className={({ isActive }) => cn('nav-item', isActive && 'active')}
+                      >
+                        <item.icon className="w-5 h-5 shrink-0" />
+                        <span className="truncate">{item.label}</span>
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Fragment key={group.items[0].to}>
+                {group.items.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end={item.exact}
+                    onClick={onClose}
+                    className={({ isActive }) => cn('nav-item', isActive && 'active')}
+                  >
+                    <item.icon className="w-5 h-5 shrink-0" />
+                    <span className="truncate">{item.label}</span>
+                  </NavLink>
+                ))}
               </Fragment>
             )
-          })}
+          )}
         </nav>
 
         {/* User footer */}
