@@ -678,6 +678,26 @@ export const mockEmployeesApi = {
     })
     return { created, failed }
   },
+  async qiwaReadiness() {
+    await delay()
+    const QIWA_ID_RE = /^[12]\d{9}$/
+    const items = employees.filter((e) => e.status === 'نشط').map((e) => {
+      const issues = []
+      if (!e.national_id || !QIWA_ID_RE.test(e.national_id)) issues.push('رقم الهوية/الإقامة مفقود أو غير صالح')
+      if (!e.nationality) issues.push('الجنسية غير مُحدَّدة')
+      if (!e.contract_type) issues.push('نوع العقد غير محدد')
+      if (!e.contract_start && !e.hire_date) issues.push('تاريخ بداية العقد مفقود')
+      if (!e.salary || e.salary <= 0) issues.push('الراتب الأساسي غير محدد')
+      if (!e.work_location) issues.push('موقع العمل غير محدد')
+      return {
+        employee_id: e.id, full_name: e.full_name, job_title: e.job_title, department_name: deptName(e.department_id),
+        national_id: e.national_id, nationality: e.nationality, contract_type: e.contract_type,
+        ok: issues.length === 0, issues,
+      }
+    }).sort((a, b) => (a.full_name || '').localeCompare(b.full_name || '', 'ar'))
+    const readyCount = items.filter((i) => i.ok).length
+    return { items, summary: { total: items.length, ready: readyCount, not_ready: items.length - readyCount } }
+  },
 }
 
 export const mockDepartmentsApi = {

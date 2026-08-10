@@ -140,6 +140,43 @@ router.get('/export', requireRole('admin', 'hr_manager', 'department_head'), (re
   }
 });
 
+// Qiwa (Saudi Ministry of Labor platform) contract-documentation readiness:
+// flags active employees missing the data a work-contract registration
+// needs, so HR can close gaps before filing rather than discovering them at
+// submission time. Saudi national ID and Iqama (resident ID) numbers both
+// start with 1 or 2, followed by 9 digits.
+const QIWA_ID_RE = /^[12]\d{9}$/;
+router.get('/qiwa-readiness', requireRole('admin', 'hr_manager', 'super_admin'), (req, res, next) => {
+  try {
+    const rows = db.prepare(`
+      SELECT e.id, e.full_name, e.job_title, e.national_id, e.nationality, e.contract_type,
+             e.contract_start, e.salary, e.work_location, d.name as department_name
+      FROM employees e
+      LEFT JOIN departments d ON e.department_id = d.id
+      WHERE e.status = 'نشط'
+      ORDER BY e.full_name ASC
+    `).all();
+
+    const items = rows.map((r) => {
+      const issues = [];
+      if (!r.national_id || !QIWA_ID_RE.test(r.national_id)) issues.push('رقم الهوية/الإقامة مفقود أو غير صالح');
+      if (!r.nationality) issues.push('الجنسية غير مُحدَّدة');
+      if (!r.contract_type) issues.push('نوع العقد غير محدد');
+      if (!r.contract_start) issues.push('تاريخ بداية العقد مفقود');
+      if (!r.salary || r.salary <= 0) issues.push('الراتب الأساسي غير محدد');
+      if (!r.work_location) issues.push('موقع العمل غير محدد');
+      return {
+        employee_id: r.id, full_name: r.full_name, job_title: r.job_title, department_name: r.department_name,
+        national_id: r.national_id, nationality: r.nationality, contract_type: r.contract_type,
+        ok: issues.length === 0, issues,
+      };
+    });
+
+    const readyCount = items.filter((i) => i.ok).length;
+    res.json({ items, summary: { total: items.length, ready: readyCount, not_ready: items.length - readyCount } });
+  } catch (err) { next(err); }
+});
+
 // Bulk-import employees from parsed CSV rows. Best-effort: each row is
 // applied independently so one bad row doesn't block the rest — same
 // pattern as the approvals inbox's bulk-approve.

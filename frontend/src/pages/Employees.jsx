@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { Search, Plus, Users, FileWarning, Download, Upload } from 'lucide-react'
+import { Search, Plus, Users, FileWarning, Download, Upload, ShieldCheck, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { employeesApi, departmentsApi } from '../api/endpoints'
 import { useAuthStore } from '../store/authStore'
@@ -128,6 +128,52 @@ function ImportModal({ open, onClose }) {
   )
 }
 
+function QiwaReadinessModal({ open, onClose }) {
+  const { data, isLoading } = useQuery('qiwa-readiness', employeesApi.qiwaReadiness, { enabled: open })
+  const items = data?.items || []
+  const s = data?.summary || {}
+  return (
+    <Modal open={open} onClose={onClose} title="جاهزية توثيق العقود في قوى" size="lg">
+      {isLoading || !data ? (
+        <div className="py-12"><Spinner /></div>
+      ) : (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-500">فحص البيانات المطلوبة لتسجيل عقود العمل في منصة قوى لكل موظف نشط.</p>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-xl bg-slate-50 border border-slate-100 p-3 text-center">
+              <p className="text-xl font-bold text-slate-800">{s.total ?? 0}</p>
+              <p className="text-xs text-slate-400">الإجمالي</p>
+            </div>
+            <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3 text-center">
+              <p className="text-xl font-bold text-emerald-700">{s.ready ?? 0}</p>
+              <p className="text-xs text-emerald-600">جاهز</p>
+            </div>
+            <div className="rounded-xl bg-amber-50 border border-amber-100 p-3 text-center">
+              <p className="text-xl font-bold text-amber-700">{s.not_ready ?? 0}</p>
+              <p className="text-xs text-amber-600">يحتاج استكمال</p>
+            </div>
+          </div>
+          <div className="max-h-96 overflow-y-auto space-y-2">
+            {items.filter((i) => !i.ok).map((i) => (
+              <div key={i.employee_id} className="rounded-xl border border-amber-100 bg-amber-50/50 p-3">
+                <p className="text-sm font-bold text-slate-700">{i.full_name} <span className="text-xs font-normal text-slate-400">— {i.job_title}</span></p>
+                <ul className="text-xs text-amber-700 mt-1 space-y-0.5">
+                  {i.issues.map((iss) => (
+                    <li key={iss} className="flex items-center gap-1.5"><AlertTriangle className="w-3 h-3 shrink-0" /> {iss}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+            {items.filter((i) => !i.ok).length === 0 && (
+              <p className="text-sm text-emerald-600 text-center py-4">جميع الموظفين النشطين جاهزون.</p>
+            )}
+          </div>
+        </div>
+      )}
+    </Modal>
+  )
+}
+
 function EmployeeForm({ open, onClose }) {
   const qc = useQueryClient()
   const { data: departments = [] } = useQuery('departments', departmentsApi.list, { enabled: open })
@@ -217,6 +263,7 @@ export default function Employees() {
   const [page, setPage] = useState(1)
   const [showForm, setShowForm] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  const [showQiwa, setShowQiwa] = useState(false)
   const contractExpiring = searchParams.get('contract_expiring') === '1'
 
   const { data: departments = [] } = useQuery('departments', departmentsApi.list)
@@ -286,6 +333,10 @@ export default function Employees() {
         )}
         {isHR() && (
           <>
+            <Button variant="secondary" onClick={() => setShowQiwa(true)} className="sm:w-auto whitespace-nowrap">
+              <ShieldCheck className="w-4 h-4" />
+              جاهزية قوى
+            </Button>
             <Button variant="secondary" onClick={() => setShowImport(true)} className="sm:w-auto whitespace-nowrap">
               <Upload className="w-4 h-4" />
               استيراد
@@ -353,6 +404,7 @@ export default function Employees() {
 
       <EmployeeForm open={showForm} onClose={() => setShowForm(false)} />
       <ImportModal open={showImport} onClose={() => setShowImport(false)} />
+      <QiwaReadinessModal open={showQiwa} onClose={() => setShowQiwa(false)} />
     </div>
   )
 }
