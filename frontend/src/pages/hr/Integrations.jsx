@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { Plug, Plus, Trash2, RefreshCw, Link2, Check, Cable, AlertTriangle, MessageSquare, HardDrive, Calculator, Briefcase, Calendar, KeyRound, Package } from 'lucide-react'
+import { Plug, Plus, Trash2, RefreshCw, Link2, Check, Cable, AlertTriangle, MessageSquare, HardDrive, Calculator, Briefcase, Calendar, KeyRound, Package, History } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { integrationsApi } from '../../api/endpoints'
 import Spinner from '../../components/ui/Spinner'
@@ -9,7 +9,7 @@ import Modal from '../../components/ui/Modal'
 import Badge from '../../components/ui/Badge'
 import StatCard from '../../components/ui/StatCard'
 import { Field, Input, Select, Button } from '../../components/ui/Form'
-import { formatDate } from '../../lib/utils'
+import { formatDate, formatDateTime } from '../../lib/utils'
 
 const CATEGORIES = ['تواصل', 'تخزين', 'محاسبة', 'توظيف', 'تقويم', 'مصادقة', 'أخرى']
 const CAT_ICON = { تواصل: MessageSquare, تخزين: HardDrive, محاسبة: Calculator, توظيف: Briefcase, تقويم: Calendar, مصادقة: KeyRound, أخرى: Package }
@@ -41,17 +41,44 @@ function CreateForm({ open, onClose }) {
   )
 }
 
+function SyncHistoryModal({ integration, onClose }) {
+  const { data, isLoading } = useQuery(['integration-syncs', integration?.id], () => integrationsApi.syncs(integration.id), { enabled: !!integration })
+  const syncs = data?.syncs || []
+  return (
+    <Modal open={!!integration} onClose={onClose} title={`سجل مزامنة ${integration?.name || ''}`}>
+      {isLoading ? (
+        <div className="py-8"><Spinner /></div>
+      ) : syncs.length === 0 ? (
+        <EmptyState icon={History} title="لا توجد عمليات مزامنة بعد" />
+      ) : (
+        <div className="space-y-2 max-h-96 overflow-y-auto">
+          {syncs.map((s) => (
+            <div key={s.id} className="rounded-xl border border-slate-100 p-3 text-sm">
+              <div className="flex items-center justify-between">
+                <span className={`badge ${s.status === 'نجاح' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>{s.status}</span>
+                <span className="text-xs text-slate-400">{formatDateTime(s.created_at)}</span>
+              </div>
+              <p className="text-slate-600 mt-1.5">{s.summary}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </Modal>
+  )
+}
+
 export default function Integrations() {
   const qc = useQueryClient()
   const [showCreate, setShowCreate] = useState(false)
   const [cat, setCat] = useState('')
+  const [historyItem, setHistoryItem] = useState(null)
   const { data, isLoading } = useQuery(['integrations', cat], () => integrationsApi.list(cat ? { category: cat } : {}))
   const conn = useMutation(({ id, connect }) => integrationsApi.setConnection(id, connect), {
     onSuccess: (_, v) => { toast.success(v.connect ? 'تم الربط' : 'تم الفصل'); qc.invalidateQueries('integrations') },
     onError: () => toast.error('فشل'),
   })
   const sync = useMutation((id) => integrationsApi.sync(id), {
-    onSuccess: () => { toast.success('تمت المزامنة'); qc.invalidateQueries('integrations') },
+    onSuccess: (data) => { toast.success(data.summary || 'تمت المزامنة'); qc.invalidateQueries('integrations') },
     onError: (e) => toast.error(e.response?.data?.error || 'فشل'),
   })
   const del = useMutation((id) => integrationsApi.remove(id), {
@@ -97,7 +124,12 @@ export default function Integrations() {
                   <Badge status={it.status} />
                 </div>
                 {it.description && <p className="text-sm text-slate-500 mt-3 leading-relaxed">{it.description}</p>}
-                {it.last_sync && <p className="text-[11px] text-slate-400 mt-2">آخر مزامنة: {formatDate(it.last_sync)}</p>}
+                {it.last_sync && (
+                  <div className="mt-2">
+                    <p className="text-[11px] text-slate-400">آخر مزامنة: {formatDate(it.last_sync)}</p>
+                    {it.last_sync_summary && <p className="text-[11px] text-slate-500 mt-0.5">{it.last_sync_summary}</p>}
+                  </div>
+                )}
                 <div className="flex gap-2 mt-3 pt-3 border-t border-slate-50">
                   {it.is_connected ? (
                     <>
@@ -107,6 +139,7 @@ export default function Integrations() {
                   ) : (
                     <button onClick={() => conn.mutate({ id: it.id, connect: true })} className="flex-1 text-sm px-3 py-2 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center gap-1"><Link2 className="w-4 h-4" /> ربط</button>
                   )}
+                  <button onClick={() => setHistoryItem(it)} className="w-9 rounded-xl hover:bg-slate-100 flex items-center justify-center text-slate-300 hover:text-blue-500" title="سجل المزامنة"><History className="w-4 h-4" /></button>
                   <button onClick={() => window.confirm('حذف التكامل؟') && del.mutate(it.id)} className="w-9 rounded-xl hover:bg-slate-100 flex items-center justify-center text-slate-300 hover:text-rose-500"><Trash2 className="w-4 h-4" /></button>
                 </div>
               </div>
@@ -116,6 +149,7 @@ export default function Integrations() {
       )}
 
       {showCreate && <CreateForm open={showCreate} onClose={() => setShowCreate(false)} />}
+      <SyncHistoryModal integration={historyItem} onClose={() => setHistoryItem(null)} />
     </div>
   )
 }

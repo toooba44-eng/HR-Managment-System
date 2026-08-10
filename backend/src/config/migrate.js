@@ -934,7 +934,22 @@ const migrations = [
     is_connected INTEGER DEFAULT 0,
     status TEXT DEFAULT 'غير متصل' CHECK(status IN ('متصل', 'غير متصل', 'خطأ')),
     last_sync DATETIME,
+    last_sync_summary TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`,
+
+  // One row per "Sync" action on an integration — a real, category-specific
+  // check against actual system data (see routes/integrations.js), not a
+  // no-op timestamp bump, so there's an honest audit trail of what each
+  // sync actually found.
+  `CREATE TABLE IF NOT EXISTS integration_syncs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    integration_id INTEGER NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('نجاح', 'خطأ')),
+    summary TEXT,
+    item_count INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (integration_id) REFERENCES integrations(id) ON DELETE CASCADE
   )`,
 
   // Platform: support tickets (from client organizations)
@@ -1344,6 +1359,7 @@ function runMigrations() {
     `ALTER TABLE payroll_run_items ADD COLUMN employer_gosi REAL DEFAULT 0`,
     `ALTER TABLE users ADD COLUMN two_factor_secret TEXT`,
     `ALTER TABLE users ADD COLUMN two_factor_enabled INTEGER DEFAULT 0`,
+    `ALTER TABLE integrations ADD COLUMN last_sync_summary TEXT`,
   ];
   for (const stmt of columnAdditions) {
     try {
