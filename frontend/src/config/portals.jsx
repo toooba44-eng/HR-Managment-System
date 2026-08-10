@@ -105,6 +105,10 @@ export const PORTALS = {
     roles: ['super_admin'],
     color: '#7c3aed',
     home: '/sa',
+    // Curated shortlist for the mobile bottom tab bar — the handful of
+    // destinations worth one tap on a small screen; everything else stays
+    // reachable through the "المزيد" tab, which opens the full sidebar.
+    primaryNav: ['/sa/companies', '/sa/approvals', '/sa/settings'],
     nav: [
       { to: '/sa', label: 'نظرة عامة', icon: LayoutDashboard, element: <SuperAdminHome /> },
 
@@ -141,6 +145,7 @@ export const PORTALS = {
     roles: ['admin', 'hr_manager'],
     color: '#1d4ed8',
     home: '/',
+    primaryNav: ['/approvals', '/employees', '/hr/payroll'],
     nav: [
       { to: '/', label: 'الصفحة الرئيسية', icon: LayoutDashboard, element: <Dashboard />, exact: true },
       { to: '/approvals', label: 'مركز الموافقات', icon: ClipboardCheck, element: <ApprovalsInbox /> },
@@ -198,6 +203,7 @@ export const PORTALS = {
     roles: ['department_head'],
     color: '#0891b2',
     home: '/',
+    primaryNav: ['/mgr/approvals', '/employees', '/leaves'],
     nav: [
       { to: '/', label: 'لوحة الفريق', icon: LayoutDashboard, element: <Dashboard />, exact: true },
       { to: '/mgr/metrics', label: 'مؤشرات الفريق', icon: TrendingUp, element: <TeamMetrics /> },
@@ -234,6 +240,7 @@ export const PORTALS = {
     roles: ['employee'],
     color: '#16a34a',
     home: '/',
+    primaryNav: ['/attendance', '/leaves', '/ess/payslips'],
     nav: [
       { to: '/', label: 'الرئيسية', icon: LayoutDashboard, element: <Dashboard />, exact: true },
       { to: '/profile', label: 'الملف الشخصي', icon: UserCircle, element: <Profile /> },
@@ -281,6 +288,7 @@ export const PORTALS = {
     roles: ['candidate'],
     color: '#ea580c',
     home: '/cand',
+    primaryNav: ['/cand/jobs', '/cand/applications', '/cand/profile'],
     nav: [
       { to: '/cand', label: 'الرئيسية', icon: LayoutDashboard, element: <CandidateHome /> },
       { to: '/cand/profile', label: 'الملف المهني', icon: UserCircle, element: <CandidateProfile /> },
