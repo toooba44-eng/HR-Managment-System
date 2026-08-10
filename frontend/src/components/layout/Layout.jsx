@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import Topbar from './Topbar'
+import BottomNav from './BottomNav'
 import InstallPrompt from './InstallPrompt'
 import { useAuthStore } from '../../store/authStore'
 import { portalForRole } from '../../config/portals'
@@ -24,10 +25,11 @@ export default function Layout() {
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar onMenuClick={() => setSidebarOpen(true)} title={title} />
-        <main className="flex-1 p-4 lg:p-8 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-4 pb-24 lg:p-8 max-w-7xl w-full mx-auto">
           <Outlet />
         </main>
       </div>
+      <BottomNav onMenuClick={() => setSidebarOpen(true)} />
       <InstallPrompt />
     </div>
   )
