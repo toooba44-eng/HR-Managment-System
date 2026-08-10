@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { Wallet, Users, TrendingDown, Banknote, Plus, Trash2, ArrowLeftCircle, ClipboardList, CheckCircle2, Clock, Landmark, Download, AlertTriangle } from 'lucide-react'
+import { Wallet, Users, TrendingDown, Banknote, Plus, Trash2, ArrowLeftCircle, ClipboardList, CheckCircle2, Clock, Landmark, Download, AlertTriangle, ShieldCheck } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { payrollApi, departmentsApi } from '../../api/endpoints'
 import { downloadWpsFile } from '../../lib/wps'
+import { downloadCSV } from '../../lib/csv'
 import Spinner from '../../components/ui/Spinner'
 import EmptyState from '../../components/ui/EmptyState'
 import Modal from '../../components/ui/Modal'
@@ -161,6 +162,44 @@ function WpsSection({ runId }) {
   )
 }
 
+const GOSI_CSV_COLUMNS = [
+  { key: 'full_name', label: 'الموظف' },
+  { key: 'national_id', label: 'رقم الهوية/الإقامة' },
+  { key: 'nationality', label: 'الجنسية' },
+  { key: 'gosi_wage', label: 'الأجر الخاضع للاشتراك' },
+  { key: 'employee_gosi', label: 'اشتراك الموظف' },
+  { key: 'employer_gosi', label: 'اشتراك المنشأة' },
+  { key: 'total_gosi', label: 'الإجمالي' },
+]
+
+function GosiSection({ runId, month, year }) {
+  const { data, isLoading } = useQuery(['payroll-run-gosi', runId], () => payrollApi.gosi(runId), { enabled: !!runId })
+  if (isLoading || !data) return null
+  const issueCount = data.items.filter((i) => !i.ok).length
+  return (
+    <div className="rounded-xl border border-slate-100 p-3 space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-bold text-slate-700 flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-slate-400" /> تقرير اشتراكات التأمينات الاجتماعية (GOSI)</p>
+        <Button
+          variant={data.ready ? 'primary' : 'secondary'}
+          disabled={!data.ready}
+          onClick={() => { downloadCSV(`GOSI_${year}${String(month).padStart(2, '0')}.csv`, data.items, GOSI_CSV_COLUMNS); toast.success('تم تنزيل التقرير') }}
+        >
+          <Download className="w-4 h-4" /> تنزيل التقرير
+        </Button>
+      </div>
+      <div className="grid grid-cols-3 gap-2 text-xs text-slate-500">
+        <div>اشتراك الموظفين: {formatCurrency(data.totals.employee_gosi)}</div>
+        <div>اشتراك المنشأة: {formatCurrency(data.totals.employer_gosi)}</div>
+        <div>الإجمالي: {formatCurrency(data.totals.total_gosi)}</div>
+      </div>
+      {issueCount > 0 && (
+        <p className="text-xs text-amber-600 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 shrink-0" /> {issueCount} موظف يحتاج بيانات هوية/جنسية صحيحة قبل توليد التقرير</p>
+      )}
+    </div>
+  )
+}
+
 function RunDetailModal({ runId, onClose }) {
   const qc = useQueryClient()
   const { data, isLoading } = useQuery(['payroll-run', runId], () => payrollApi.getRun(runId), { enabled: !!runId })
@@ -220,6 +259,7 @@ function RunDetailModal({ runId, onClose }) {
           </div>
 
           <WpsSection runId={runId} />
+          <GosiSection runId={runId} month={data.month} year={data.year} />
 
           {NEXT_STATUS[data.status] && (
             <div className="flex justify-end pt-2 border-t border-slate-100">

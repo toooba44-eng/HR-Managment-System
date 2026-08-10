@@ -23,7 +23,7 @@ router.get('/', requireRole(...MANAGE), (req, res, next) => {
     if (department_id) { where += ' AND e.department_id = ?'; params.push(department_id); }
 
     const rows = db.prepare(`
-      SELECT e.id, e.full_name, e.job_title, e.employee_number, e.salary, e.allowances,
+      SELECT e.id, e.full_name, e.job_title, e.employee_number, e.salary, e.allowances, e.nationality,
              d.name as department_name,
              c.base_salary, c.housing_allowance, c.transport_allowance, c.other_allowances, c.bonus
       FROM employees e
@@ -118,6 +118,44 @@ router.get('/runs/:id/wps', requireRole(...MANAGE), (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// GOSI (social insurance) contribution report for a run: each employee's
+// subscription wage (basic + housing) and both sides' contributions, split
+// by nationality per the rates in payCalc.js. Flags employees missing the
+// national ID / nationality needed to file the subscription correctly.
+router.get('/runs/:id/gosi', requireRole(...MANAGE), (req, res, next) => {
+  try {
+    const run = db.prepare('SELECT * FROM payroll_runs WHERE id = ?').get(req.params.id);
+    if (!run) return res.status(404).json({ error: 'Not found' });
+
+    const rows = db.prepare(`
+      SELECT i.employee_id, i.basic, i.housing_allowance, i.deductions, i.employer_gosi,
+             e.full_name, e.national_id, e.nationality
+      FROM payroll_run_items i
+      JOIN employees e ON i.employee_id = e.id
+      WHERE i.run_id = ?
+      ORDER BY e.full_name ASC
+    `).all(req.params.id);
+
+    const items = rows.map((r) => {
+      const issues = [];
+      if (!r.national_id || !SAUDI_NATIONAL_ID_RE.test(r.national_id)) issues.push('رقم الهوية/الإقامة مفقود أو غير صالح');
+      if (!r.nationality) issues.push('الجنسية غير مُحدَّدة');
+      return {
+        employee_id: r.employee_id, full_name: r.full_name, national_id: r.national_id, nationality: r.nationality,
+        gosi_wage: r.basic + r.housing_allowance, employee_gosi: r.deductions, employer_gosi: r.employer_gosi,
+        total_gosi: r.deductions + r.employer_gosi, ok: issues.length === 0, issues,
+      };
+    });
+
+    const totals = items.reduce((t, i) => ({
+      gosi_wage: t.gosi_wage + i.gosi_wage, employee_gosi: t.employee_gosi + i.employee_gosi,
+      employer_gosi: t.employer_gosi + i.employer_gosi, total_gosi: t.total_gosi + i.total_gosi,
+    }), { gosi_wage: 0, employee_gosi: 0, employer_gosi: 0, total_gosi: 0 });
+
+    res.json({ run: { id: run.id, month: run.month, year: run.year, status: run.status }, items, totals, ready: items.every((i) => i.ok) });
+  } catch (err) { next(err); }
+});
+
 // One run + its per-employee line items
 router.get('/runs/:id', requireRole(...MANAGE), (req, res, next) => {
   try {
@@ -153,7 +191,7 @@ router.post('/runs', requireRole(...MANAGE), (req, res, next) => {
     if (existing) return res.status(400).json({ error: 'يوجد مسير رواتب لهذا الشهر بالفعل' });
 
     const employees = db.prepare(`
-      SELECT e.id, e.salary, e.allowances,
+      SELECT e.id, e.salary, e.allowances, e.nationality,
              c.base_salary, c.housing_allowance, c.transport_allowance, c.other_allowances, c.bonus
       FROM employees e
       ${ACTIVE_COMP_JOIN}
@@ -172,11 +210,11 @@ router.post('/runs', requireRole(...MANAGE), (req, res, next) => {
     const runId = result.lastInsertRowid;
     const insItem = db.prepare(`
       INSERT INTO payroll_run_items
-        (run_id, employee_id, basic, housing_allowance, transport_allowance, other_allowances, bonus, allowances, deductions, net)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (run_id, employee_id, basic, housing_allowance, transport_allowance, other_allowances, bonus, allowances, deductions, employer_gosi, net)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     for (const i of items) {
-      insItem.run(runId, i.employee_id, i.basic, i.housing_allowance, i.transport_allowance, i.other_allowances, i.bonus, i.allowances, i.deductions, i.net);
+      insItem.run(runId, i.employee_id, i.basic, i.housing_allowance, i.transport_allowance, i.other_allowances, i.bonus, i.allowances, i.deductions, i.employer_gosi, i.net);
     }
 
     res.status(201).json({ message: 'Created', run: { id: runId } });
