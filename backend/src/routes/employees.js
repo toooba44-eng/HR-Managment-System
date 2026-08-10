@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../config/database');
 const { authenticateToken, requireRole, requireOwnershipOrRole } = require('../middleware/auth');
 const { employeeValidation } = require('../middleware/validation');
+const { runWorkflowsFor } = require('../utils/workflowEngine');
 const router = express.Router();
 
 // Apply auth to all routes
@@ -334,6 +335,8 @@ router.post('/', requireRole('admin', 'hr_manager'), employeeValidation.create, 
         SELECT COUNT(*) FROM employees WHERE department_id = ?
       ) WHERE id = ?
     `).run(department_id, department_id);
+
+    runWorkflowsFor('تعيين موظف', result.lastInsertRowid);
 
     res.status(201).json({
       message: 'Employee created successfully',

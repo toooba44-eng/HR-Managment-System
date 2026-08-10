@@ -3,6 +3,7 @@ const db = require('../config/database');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 const { leaveValidation } = require('../middleware/validation');
 const { notifyEmployee } = require('../utils/notify');
+const { runWorkflowsFor } = require('../utils/workflowEngine');
 const router = express.Router();
 
 router.use(authenticateToken);
@@ -157,6 +158,8 @@ router.post('/', leaveValidation.create, (req, res, next) => {
       INSERT INTO leaves (employee_id, type, start_date, end_date, days_count, reason, attachments)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(employee_id, type, start_date, end_date, daysCount, reason, attachments);
+
+    runWorkflowsFor('طلب إجازة', employee_id);
 
     res.status(201).json({
       message: 'Leave request submitted successfully',
