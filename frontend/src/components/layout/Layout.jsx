@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import Topbar from './Topbar'
+import InstallPrompt from './InstallPrompt'
 import { useAuthStore } from '../../store/authStore'
 import { portalForRole } from '../../config/portals'
 
@@ -27,6 +28,7 @@ export default function Layout() {
           <Outlet />
         </main>
       </div>
+      <InstallPrompt />
     </div>
   )
 }

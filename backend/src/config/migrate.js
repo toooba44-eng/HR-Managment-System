@@ -1381,6 +1381,7 @@ function runMigrations() {
     `ALTER TABLE users ADD COLUMN two_factor_secret TEXT`,
     `ALTER TABLE users ADD COLUMN two_factor_enabled INTEGER DEFAULT 0`,
     `ALTER TABLE integrations ADD COLUMN last_sync_summary TEXT`,
+    `ALTER TABLE attendance ADD COLUMN session_start DATETIME`,
   ];
   for (const stmt of columnAdditions) {
     try {

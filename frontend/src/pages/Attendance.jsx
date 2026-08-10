@@ -45,12 +45,13 @@ function CheckInOutCard() {
           {todayRecord && (
             <div className="flex gap-4 mt-2 text-sm text-primary-100 justify-center sm:justify-start">
               <span>دخول: {formatTime(todayRecord.check_in)}</span>
-              {todayRecord.check_out && <span>خروج: {formatTime(todayRecord.check_out)}</span>}
+              {todayRecord.check_out && <span>آخر خروج: {formatTime(todayRecord.check_out)}</span>}
+              {todayRecord.check_out && <span>إجمالي الساعات: {todayRecord.work_hours}</span>}
             </div>
           )}
         </div>
         <div className="flex gap-3">
-          {!todayRecord ? (
+          {!todayRecord || todayRecord.check_out ? (
             <button
               onClick={() => checkIn.mutate()}
               disabled={checkIn.isLoading}
@@ -59,7 +60,7 @@ function CheckInOutCard() {
               <LogIn className="w-5 h-5" />
               تسجيل الدخول
             </button>
-          ) : !todayRecord.check_out ? (
+          ) : (
             <button
               onClick={() => checkOut.mutate()}
               disabled={checkOut.isLoading}
@@ -68,11 +69,6 @@ function CheckInOutCard() {
               <LogOut className="w-5 h-5" />
               تسجيل الخروج
             </button>
-          ) : (
-            <div className="bg-white/15 px-6 py-3 rounded-xl font-bold flex items-center gap-2">
-              <CalendarCheck className="w-5 h-5" />
-              اكتمل اليوم ({todayRecord.work_hours} ساعة)
-            </div>
           )}
         </div>
       </div>

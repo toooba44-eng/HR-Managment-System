@@ -123,17 +123,20 @@ function seedData() {
     const insertAttendance = db.prepare(`INSERT INTO attendance (employee_id, date, check_in, check_out, work_hours, status) VALUES (?, ?, ?, ?, ?, ?)`);
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    // work_hours is 0 for still-open sessions (check_out null) — it only
+    // represents hours accumulated from sessions already closed today, and
+    // checkout adds the active session's duration on top of it.
     const attendanceRecords = [
       [1, today, `${today} 07:55:00`, `${today} 16:05:00`, 8.17, 'حاضر'],
-      [2, today, `${today} 08:00:00`, null, 4.5, 'حاضر'],
+      [2, today, `${today} 08:00:00`, null, 0, 'حاضر'],
       [3, today, `${today} 08:10:00`, `${today} 16:00:00`, 7.83, 'حاضر'],
-      [4, today, `${today} 07:45:00`, null, 4.75, 'حاضر'],
+      [4, today, `${today} 07:45:00`, null, 0, 'حاضر'],
       [5, today, `${today} 08:05:00`, `${today} 16:10:00`, 8.08, 'حاضر'],
-      [6, today, `${today} 08:00:00`, null, 4.5, 'حاضر'],
+      [6, today, `${today} 08:00:00`, null, 0, 'حاضر'],
       [7, today, `${today} 08:20:00`, `${today} 15:50:00`, 7.5, 'حاضر'],
-      [8, today, `${today} 07:50:00`, null, 4.67, 'حاضر'],
+      [8, today, `${today} 07:50:00`, null, 0, 'حاضر'],
       [9, today, `${today} 08:15:00`, `${today} 16:00:00`, 7.75, 'حاضر'],
-      [10, today, `${today} 08:00:00`, null, 4.5, 'حاضر'],
+      [10, today, `${today} 08:00:00`, null, 0, 'حاضر'],
       [1, yesterday, `${yesterday} 08:00:00`, `${yesterday} 16:00:00`, 8.0, 'حاضر'],
       [2, yesterday, `${yesterday} 08:00:00`, `${yesterday} 16:00:00`, 8.0, 'حاضر'],
       [3, yesterday, `${yesterday} 08:00:00`, `${yesterday} 16:00:00`, 8.0, 'حاضر'],
