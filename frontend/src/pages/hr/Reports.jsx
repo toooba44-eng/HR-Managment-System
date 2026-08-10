@@ -3,7 +3,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   PieChart, Pie, Cell,
 } from 'recharts'
-import { Users, UserCheck, Briefcase, Wallet, Receipt, GraduationCap } from 'lucide-react'
+import { Users, UserCheck, Briefcase, Wallet, Receipt, GraduationCap, Sparkles } from 'lucide-react'
 import { reportsApi } from '../../api/endpoints'
 import StatCard from '../../components/ui/StatCard'
 import Spinner from '../../components/ui/Spinner'
@@ -50,6 +50,23 @@ export default function Reports() {
 
   return (
     <div className="space-y-6">
+      {data.insights?.length > 0 && (
+        <div className="card border-r-4 border-violet-400">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="w-5 h-5 text-violet-500" />
+            <h3 className="font-bold text-slate-800">رؤى تلقائية</h3>
+          </div>
+          <ul className="space-y-2">
+            {data.insights.map((text, i) => (
+              <li key={i} className="text-sm text-slate-600 flex items-start gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-violet-400 mt-1.5 shrink-0" />
+                {text}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={Users} label="إجمالي الموظفين" value={data.headcount?.total ?? 0} tone="blue" hint={`${data.headcount?.active ?? 0} نشط`} />
