@@ -254,6 +254,10 @@ export const PORTALS = {
       { section: 'الأداء والتطوير', to: '/ess/courses', label: 'الدورات', icon: GraduationCap, element: <Training /> },
       { section: 'الأداء والتطوير', to: '/ess/my-skills', label: 'مهاراتي', icon: Grid2x2, element: <MySkills /> },
 
+      // Plain employees have nothing to approve on their own, but a manager
+      // can temporarily delegate their approval authority to anyone — this
+      // keeps the inbox reachable for whoever ends up on the receiving end.
+      { section: 'الطلبات والخدمات', to: '/approvals', label: 'مركز الموافقات', icon: ClipboardCheck, element: <ApprovalsInbox /> },
       { section: 'الطلبات والخدمات', to: '/ess/letters', label: 'الشهادات والخطابات', icon: FileText, element: <Requests typeOptions={['شهادة', 'خطاب']} title="الشهادات والخطابات" description="اطلب خطاب تعريف أو شهادة رسمية وتابع حالتها." /> },
       { section: 'الطلبات والخدمات', to: '/ess/data-update', label: 'تحديث البيانات', icon: UserCog, element: <Requests type="تحديث بيانات" title="طلب تحديث البيانات" description="اطلب تعديل بياناتك الشخصية لدى الموارد البشرية." /> },
       { section: 'الطلبات والخدمات', to: '/ess/sign', label: 'توقيع المستندات', icon: FileSignature, element: <Signatures /> },

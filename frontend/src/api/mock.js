@@ -3823,8 +3823,11 @@ export const mockSignaturesApi = {
   },
 }
 
-const myDept = () => {
-  const u = currentUser()
+// Accepts an explicit user (needed when acting as someone else, e.g. a
+// delegated approver) and falls back to the real logged-in user otherwise —
+// every existing myDept() call with no argument is unaffected.
+const myDept = (asUser) => {
+  const u = asUser || currentUser()
   return u ? employees.find((e) => e.id === u.employee_id)?.department_id : null
 }
 const isReviewer = () => ['admin', 'hr_manager', 'super_admin'].includes(currentUser()?.role)
@@ -3835,12 +3838,12 @@ const isReviewer = () => ['admin', 'hr_manager', 'super_admin'].includes(current
 // department could still approve/reject it directly.
 const sameDeptAsMe = (u, employeeId) => {
   if (u.role !== 'department_head') return true
-  const d = myDept()
+  const d = myDept(u)
   return d != null && employees.find((e) => e.id === employeeId)?.department_id === d
 }
 const sameDeptEitherAsMe = (u, employeeIdA, employeeIdB) => {
   if (u.role !== 'department_head') return true
-  const d = myDept()
+  const d = myDept(u)
   if (d == null) return false
   return employees.find((e) => e.id === employeeIdA)?.department_id === d || employees.find((e) => e.id === employeeIdB)?.department_id === d
 }
@@ -3848,7 +3851,7 @@ const sameDeptEitherAsMe = (u, employeeIdA, employeeIdB) => {
 // rather than via an employee lookup.
 const deptIdInMyScope = (u, departmentId) => {
   if (u.role !== 'department_head') return true
-  const d = myDept()
+  const d = myDept(u)
   return d != null && departmentId != null && d === Number(departmentId)
 }
 
@@ -4418,7 +4421,7 @@ const APPROVAL_SOURCES = {
     eligible: (u) => ['admin', 'hr_manager', 'department_head'].includes(u.role),
     pending(u) {
       let rows = leaves.filter((l) => l.status === 'معلقة')
-      if (u.role === 'department_head') rows = rows.filter((l) => employees.find((e) => e.id === l.employee_id)?.department_id === myDept())
+      if (u.role === 'department_head') rows = rows.filter((l) => employees.find((e) => e.id === l.employee_id)?.department_id === myDept(u))
       return rows
     },
     normalize: (r) => ({ title: `طلب إجازة ${r.type}`, subtitle: `${r.days_count} يوم · ${r.start_date} إلى ${r.end_date}`, amount: null }),
@@ -4445,7 +4448,7 @@ const APPROVAL_SOURCES = {
     eligible: (u) => ['admin', 'hr_manager', 'department_head', 'super_admin'].includes(u.role),
     pending(u) {
       let rows = attendanceCorrections.filter((c) => c.status === 'معلق')
-      if (u.role === 'department_head') rows = rows.filter((c) => employees.find((e) => e.id === c.employee_id)?.department_id === myDept())
+      if (u.role === 'department_head') rows = rows.filter((c) => employees.find((e) => e.id === c.employee_id)?.department_id === myDept(u))
       return rows
     },
     normalize: (r) => ({ title: 'تصحيح حضور', subtitle: `${r.date} · ${r.requested_check_in || '—'} إلى ${r.requested_check_out || '—'}`, amount: null }),
@@ -4590,7 +4593,7 @@ const APPROVAL_SOURCES = {
     pending(u) {
       let rows = shiftSwapRequests.filter((r) => r.status === 'بانتظار اعتماد المدير')
       if (u.role === 'department_head') {
-        const d = myDept()
+        const d = myDept(u)
         rows = rows.filter((r) => employees.find((e) => e.id === r.requester_id)?.department_id === d || employees.find((e) => e.id === r.target_id)?.department_id === d)
       }
       return rows.map((r) => {
@@ -4638,7 +4641,7 @@ const APPROVAL_SOURCES = {
     eligible: (u) => ['admin', 'hr_manager', 'department_head', 'super_admin'].includes(u.role),
     pending(u) {
       let rows = timesheets.filter((t) => t.status === 'مقدّم')
-      if (u.role === 'department_head') rows = rows.filter((t) => employees.find((e) => e.id === t.employee_id)?.department_id === myDept())
+      if (u.role === 'department_head') rows = rows.filter((t) => employees.find((e) => e.id === t.employee_id)?.department_id === myDept(u))
       return rows
     },
     normalize: (r) => ({ title: `جدول ساعات: ${r.project}`, subtitle: `${r.date} · ${r.hours} ساعة${r.task ? ' · ' + r.task : ''}`, amount: null }),
@@ -4650,7 +4653,7 @@ const APPROVAL_SOURCES = {
     eligible: (u) => ['admin', 'hr_manager', 'department_head', 'super_admin'].includes(u.role),
     pending(u) {
       let rows = requests.filter((r) => r.status === 'معلقة' && !['عمل إضافي', 'عمل عن بعد'].includes(r.type))
-      if (u.role === 'department_head') rows = rows.filter((r) => employees.find((e) => e.id === r.employee_id)?.department_id === myDept())
+      if (u.role === 'department_head') rows = rows.filter((r) => employees.find((e) => e.id === r.employee_id)?.department_id === myDept(u))
       return rows
     },
     normalize: (r) => ({ title: `${r.type}: ${r.subject}`, subtitle: r.details || '', amount: null }),
@@ -4661,7 +4664,7 @@ const APPROVAL_SOURCES = {
 
 function approvalPendingRequests(u, type) {
   let rows = requests.filter((r) => r.status === 'معلقة' && r.type === type)
-  if (u.role === 'department_head') rows = rows.filter((r) => employees.find((e) => e.id === r.employee_id)?.department_id === myDept())
+  if (u.role === 'department_head') rows = rows.filter((r) => employees.find((e) => e.id === r.employee_id)?.department_id === myDept(u))
   return rows
 }
 function approvalResolveRequest(id, status, u) {
@@ -4673,7 +4676,7 @@ function approvalResolveRequest(id, status, u) {
 }
 function approvalPendingExpenses(u, type) {
   let rows = expenses.filter((x) => x.status === 'معلقة' && x.type === type)
-  if (u.role === 'department_head') rows = rows.filter((x) => employees.find((e) => e.id === x.employee_id)?.department_id === myDept())
+  if (u.role === 'department_head') rows = rows.filter((x) => employees.find((e) => e.id === x.employee_id)?.department_id === myDept(u))
   return rows
 }
 function expenseInMyDept(id, u) {
@@ -4766,24 +4769,80 @@ function approvalNotifyDecision(source, id, decision, u) {
   }
 }
 
+// Resolves an employee to a login-account shape ({ role, employee_id }), so
+// a delegator's identity can be fed into the exact same eligible()/pending()/
+// approve()/reject() every real request uses — mirrors the backend's
+// reviewerUserFor() over the `users` table.
+function reviewerUserFor(employeeId) {
+  const entry = Object.values(users).find((u) => u.employee_id === employeeId)
+  return entry ? { role: entry.role, employee_id: employeeId } : null
+}
+
+let delegationSeq = 1
+const approvalDelegations = []
+const todayStrMock = () => new Date().toISOString().slice(0, 10)
+
+function activeDelegationsTo(employeeId) {
+  if (!employeeId) return []
+  const today = todayStrMock()
+  return approvalDelegations.filter((d) => d.delegate_id === employeeId && d.start_date <= today && d.end_date >= today)
+}
+
+// Real user first if their own role qualifies, then every active delegator
+// too (tried in order until one actually succeeds) — department scope is
+// checked inside approve()/reject() itself, using whichever candidate is
+// passed in.
+function reviewCandidates(u, cfg) {
+  const candidates = []
+  if (cfg.eligible(u)) candidates.push(u)
+  for (const deleg of activeDelegationsTo(u.employee_id)) {
+    const delegatorUser = reviewerUserFor(deleg.delegator_id)
+    if (delegatorUser && cfg.eligible(delegatorUser)) candidates.push(delegatorUser)
+  }
+  return candidates
+}
+
+const CAN_DELEGATE = ['admin', 'hr_manager', 'department_head', 'super_admin']
+
 export const mockApprovalsApi = {
   async mine() {
     await delay()
     const u = currentUser()
-    if (!u) return { items: [], summary: { total: 0, overdue: 0, highPriority: 0, bySource: {} } }
+    if (!u) return { items: [], summary: { total: 0, overdue: 0, highPriority: 0, delegated: 0, bySource: {} } }
     const items = []
+    const seen = new Set()
     for (const [source, cfg] of Object.entries(APPROVAL_SOURCES)) {
       if (!cfg.eligible(u)) continue
-      for (const row of cfg.pending(u)) items.push(approvalBuildItem(source, row))
+      for (const row of cfg.pending(u)) {
+        seen.add(`${source}:${row.id}`)
+        items.push(approvalBuildItem(source, row))
+      }
+    }
+    for (const deleg of activeDelegationsTo(u.employee_id)) {
+      const delegatorUser = reviewerUserFor(deleg.delegator_id)
+      if (!delegatorUser) continue
+      for (const [source, cfg] of Object.entries(APPROVAL_SOURCES)) {
+        if (!cfg.eligible(delegatorUser)) continue
+        for (const row of cfg.pending(delegatorUser)) {
+          const key = `${source}:${row.id}`
+          if (seen.has(key)) continue
+          seen.add(key)
+          const item = approvalBuildItem(source, row)
+          item.delegated_from = empName(deleg.delegator_id)
+          item.delegation_id = deleg.id
+          items.push(item)
+        }
+      }
     }
     items.sort((a, b) => (b.priority === 'مرتفعة') - (a.priority === 'مرتفعة') || b.days_pending - a.days_pending)
     const summary = items.reduce((s, i) => {
       s.total += 1
       if (i.overdue) s.overdue += 1
       if (i.priority === 'مرتفعة') s.highPriority += 1
+      if (i.delegated_from) s.delegated += 1
       s.bySource[i.source] = (s.bySource[i.source] || 0) + 1
       return s
-    }, { total: 0, overdue: 0, highPriority: 0, bySource: {} })
+    }, { total: 0, overdue: 0, highPriority: 0, delegated: 0, bySource: {} })
     return { items, summary }
   },
   async decide(source, id, decision, reason) {
@@ -4791,11 +4850,17 @@ export const mockApprovalsApi = {
     const u = currentUser()
     const cfg = APPROVAL_SOURCES[source]
     if (!cfg) throw notFound()
-    if (!u || !cfg.eligible(u)) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    if (!u) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
     if (!['approve', 'reject'].includes(decision)) throw badReq('Invalid decision')
     const trimmedReason = (reason || '').trim()
     if (decision === 'reject' && !trimmedReason) throw badReq('سبب الرفض مطلوب')
-    const ok = decision === 'approve' ? cfg.approve(id, u) : cfg.reject(id, u)
+    const candidates = reviewCandidates(u, cfg)
+    if (candidates.length === 0) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    let ok = false
+    for (const candidate of candidates) {
+      ok = decision === 'approve' ? cfg.approve(id, candidate) : cfg.reject(id, candidate)
+      if (ok) break
+    }
     if (!ok) throw badReq('لا يمكن تنفيذ هذا الإجراء — قد يكون الطلب غير موجود أو تم البت فيه بالفعل، أو لا يدعم هذا النوع الرفض')
     approvalLogDecision(source, id, decision, trimmedReason, u)
     approvalNotifyDecision(source, id, decision, u)
@@ -4807,8 +4872,12 @@ export const mockApprovalsApi = {
     const list = Array.isArray(items) ? items : []
     const results = list.map(({ source, id }) => {
       const cfg = APPROVAL_SOURCES[source]
-      if (!cfg || !u || !cfg.eligible(u)) return { source, id, ok: false }
-      const ok = cfg.approve(id, u)
+      if (!cfg || !u) return { source, id, ok: false }
+      let ok = false
+      for (const candidate of reviewCandidates(u, cfg)) {
+        ok = cfg.approve(id, candidate)
+        if (ok) break
+      }
       if (ok) approvalLogDecision(source, id, 'approve', '', u)
       return { source, id, ok }
     })
@@ -4817,5 +4886,48 @@ export const mockApprovalsApi = {
   async history() {
     await delay()
     return approvalActionsLog.slice(0, 100).map((h) => ({ ...h, employee_name: empName(h.employee_id), actor_name: empName(h.actor_id), source_label: APPROVAL_SOURCES[h.source]?.label || h.source }))
+  },
+  async delegations() {
+    await delay()
+    const u = currentUser()
+    if (!u?.employee_id) return { given: [], received: [] }
+    const today = todayStrMock()
+    const withNames = (d) => ({ ...d, delegator_name: empName(d.delegator_id), delegate_name: empName(d.delegate_id), is_active: d.start_date <= today && d.end_date >= today })
+    return {
+      given: approvalDelegations.filter((d) => d.delegator_id === u.employee_id).map(withNames).sort((a, b) => b.end_date.localeCompare(a.end_date)),
+      received: approvalDelegations.filter((d) => d.delegate_id === u.employee_id).map(withNames).sort((a, b) => b.end_date.localeCompare(a.end_date)),
+    }
+  },
+  async createDelegation(data) {
+    await delay()
+    const u = currentUser()
+    if (!u || !CAN_DELEGATE.includes(u.role)) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    if (!u.employee_id) throw badReq('No employee associated with this account')
+    const delegateId = Number(data.delegate_id)
+    if (!delegateId) throw badReq('الموظف المفوَّض مطلوب')
+    if (delegateId === u.employee_id) throw badReq('لا يمكن التفويض لنفسك')
+    if (!data.start_date || !data.end_date) throw badReq('تاريخ البداية والنهاية مطلوبان')
+    if (data.end_date < data.start_date) throw badReq('تاريخ النهاية يجب أن يكون بعد تاريخ البداية')
+    if (!employees.some((e) => e.id === delegateId)) { const err = new Error('bad'); err.response = { status: 404, data: { error: 'الموظف غير موجود' } }; throw err }
+    const delegation = { id: delegationSeq++, delegator_id: u.employee_id, delegate_id: delegateId, start_date: data.start_date, end_date: data.end_date, notes: data.notes || null, created_at: nowIso() }
+    approvalDelegations.push(delegation)
+    pushNotification({ employee_id: delegateId }, {
+      title: 'تفويض موافقات جديد',
+      message: `تم تفويضك لاعتماد الطلبات نيابة عن زميلك من ${data.start_date} إلى ${data.end_date}.`,
+      type: 'info',
+      link: '/approvals',
+    })
+    return { message: 'تم التفويض', delegation: { id: delegation.id } }
+  },
+  async removeDelegation(id) {
+    await delay()
+    const u = currentUser()
+    const deleg = approvalDelegations.find((d) => d.id === Number(id))
+    if (!deleg) { const err = new Error('bad'); err.response = { status: 404, data: { error: 'غير موجود' } }; throw err }
+    const isOwner = u?.employee_id === deleg.delegator_id
+    if (!isOwner && !['admin', 'super_admin'].includes(u?.role)) throw { response: { data: { error: 'Access denied' } }, message: 'denied' }
+    const i = approvalDelegations.findIndex((d) => d.id === Number(id))
+    if (i > -1) approvalDelegations.splice(i, 1)
+    return { message: 'تم إلغاء التفويض' }
   },
 }

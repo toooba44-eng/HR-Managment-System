@@ -17,6 +17,29 @@ function deptOf(employeeId) {
   return row ? row.department_id : null;
 }
 
+// Resolves an employee to the login-account shape `req.user` normally has
+// (role + employee_id), so a delegator's identity can be plugged into the
+// exact same eligible()/approve()/reject() functions a real request uses —
+// no separate "delegated" code path to keep in sync.
+function reviewerUserFor(employeeId) {
+  return db.prepare('SELECT id, role, employee_id FROM users WHERE employee_id = ? AND is_active = 1').get(employeeId) || null;
+}
+
+const todayStr = () => new Date().toISOString().slice(0, 10);
+
+// Delegations currently in effect where `employeeId` is the delegate.
+function activeDelegationsTo(employeeId) {
+  if (!employeeId) return [];
+  const today = todayStr();
+  return db.prepare(`
+    SELECT d.*, e.full_name as delegator_name
+    FROM approval_delegations d
+    JOIN employees e ON d.delegator_id = e.id
+    WHERE d.delegate_id = ? AND d.start_date <= ? AND d.end_date >= ?
+    ORDER BY d.end_date ASC
+  `).all(employeeId, today, today);
+}
+
 // A department head's `pending()` list is already scoped to their own
 // department, but the actual approve/reject write below is a separate code
 // path (this file never calls back into the source route) — without this
@@ -480,18 +503,43 @@ function buildItem(source, row) {
 router.get('/mine', (req, res, next) => {
   try {
     const items = [];
+    const seen = new Set();
     for (const [source, cfg] of Object.entries(SOURCES)) {
       if (!cfg.eligible(req.user)) continue;
-      for (const row of cfg.pending(req.user)) items.push(buildItem(source, row));
+      for (const row of cfg.pending(req.user)) {
+        seen.add(`${source}:${row.id}`);
+        items.push(buildItem(source, row));
+      }
     }
+
+    // Anything delegated to me: pulled under the delegator's own identity so
+    // it's exactly what they'd see, minus whatever I already see directly.
+    for (const deleg of activeDelegationsTo(req.user.employee_id)) {
+      const delegatorUser = reviewerUserFor(deleg.delegator_id);
+      if (!delegatorUser) continue;
+      for (const [source, cfg] of Object.entries(SOURCES)) {
+        if (!cfg.eligible(delegatorUser)) continue;
+        for (const row of cfg.pending(delegatorUser)) {
+          const key = `${source}:${row.id}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          const item = buildItem(source, row);
+          item.delegated_from = deleg.delegator_name;
+          item.delegation_id = deleg.id;
+          items.push(item);
+        }
+      }
+    }
+
     items.sort((a, b) => (b.priority === 'مرتفعة') - (a.priority === 'مرتفعة') || b.days_pending - a.days_pending);
     const summary = items.reduce((s, i) => {
       s.total += 1;
       if (i.overdue) s.overdue += 1;
       if (i.priority === 'مرتفعة') s.highPriority += 1;
+      if (i.delegated_from) s.delegated += 1;
       s.bySource[i.source] = (s.bySource[i.source] || 0) + 1;
       return s;
-    }, { total: 0, overdue: 0, highPriority: 0, bySource: {} });
+    }, { total: 0, overdue: 0, highPriority: 0, delegated: 0, bySource: {} });
     res.json({ items, summary });
   } catch (err) { next(err); }
 });
@@ -531,17 +579,38 @@ function notifyDecision(source, id, decision, user) {
   }
 }
 
+// Who can act on `cfg` as this request: the real user if their own role
+// qualifies, plus — since department scope is checked *inside* approve/reject,
+// not here — every active delegator too, so a delegated department head's
+// items still work even though the delegate belongs to a different
+// department. Tried in order until one actually succeeds.
+function reviewCandidates(user, cfg) {
+  const candidates = [];
+  if (cfg.eligible(user)) candidates.push(user);
+  for (const deleg of activeDelegationsTo(user.employee_id)) {
+    const delegatorUser = reviewerUserFor(deleg.delegator_id);
+    if (delegatorUser && cfg.eligible(delegatorUser)) candidates.push(delegatorUser);
+  }
+  return candidates;
+}
+
 router.post('/:source/:id/:decision', (req, res, next) => {
   try {
     const { source, id, decision } = req.params;
     const cfg = SOURCES[source];
     if (!cfg) return res.status(404).json({ error: 'Unknown approval source' });
-    if (!cfg.eligible(req.user)) return res.status(403).json({ error: 'Access denied' });
     if (!['approve', 'reject'].includes(decision)) return res.status(400).json({ error: 'Invalid decision' });
     const reason = (req.body.reason || '').trim();
     if (decision === 'reject' && !reason) return res.status(400).json({ error: 'سبب الرفض مطلوب' });
 
-    const ok = decision === 'approve' ? cfg.approve(id, req.user) : cfg.reject(id, req.user);
+    const candidates = reviewCandidates(req.user, cfg);
+    if (candidates.length === 0) return res.status(403).json({ error: 'Access denied' });
+
+    let ok = false;
+    for (const candidate of candidates) {
+      ok = decision === 'approve' ? cfg.approve(id, candidate) : cfg.reject(id, candidate);
+      if (ok) break;
+    }
     if (!ok) return res.status(400).json({ error: 'لا يمكن تنفيذ هذا الإجراء — قد يكون الطلب غير موجود أو تم البت فيه بالفعل، أو لا يدعم هذا النوع الرفض' });
 
     logDecision(source, id, decision, reason, req.user);
@@ -572,12 +641,84 @@ router.post('/bulk-approve', (req, res, next) => {
     const items = Array.isArray(req.body.items) ? req.body.items : [];
     const results = items.map(({ source, id }) => {
       const cfg = SOURCES[source];
-      if (!cfg || !cfg.eligible(req.user)) return { source, id, ok: false };
-      const ok = cfg.approve(id, req.user);
+      if (!cfg) return { source, id, ok: false };
+      let ok = false;
+      for (const candidate of reviewCandidates(req.user, cfg)) {
+        ok = cfg.approve(id, candidate);
+        if (ok) break;
+      }
       if (ok) logDecision(source, id, 'approve', '', req.user);
       return { source, id, ok };
     });
     res.json({ succeeded: results.filter((r) => r.ok).length, failed: results.filter((r) => !r.ok), results });
+  } catch (err) { next(err); }
+});
+
+// ------------------------- Temporary delegation -------------------------
+
+// Delegations I created, or that were made to me — the two lists the UI
+// needs ("التي فوّضتها" and what's currently delegated to me).
+router.get('/delegations', (req, res, next) => {
+  try {
+    if (!req.user.employee_id) return res.json({ given: [], received: [] });
+    const today = todayStr();
+    const withNames = (where, params) => db.prepare(`
+      SELECT d.*, dr.full_name as delegator_name, dg.full_name as delegate_name,
+             (d.start_date <= ? AND d.end_date >= ?) as is_active
+      FROM approval_delegations d
+      JOIN employees dr ON d.delegator_id = dr.id
+      JOIN employees dg ON d.delegate_id = dg.id
+      ${where}
+      ORDER BY d.end_date DESC
+    `).all(today, today, ...params);
+    res.json({
+      given: withNames('WHERE d.delegator_id = ?', [req.user.employee_id]),
+      received: withNames('WHERE d.delegate_id = ?', [req.user.employee_id]),
+    });
+  } catch (err) { next(err); }
+});
+
+const CAN_DELEGATE = ['admin', 'hr_manager', 'department_head', 'super_admin'];
+
+router.post('/delegations', (req, res, next) => {
+  try {
+    if (!CAN_DELEGATE.includes(req.user.role)) return res.status(403).json({ error: 'Access denied' });
+    if (!req.user.employee_id) return res.status(400).json({ error: 'No employee associated with this account' });
+
+    const delegateId = parseInt(req.body.delegate_id, 10);
+    const { start_date, end_date, notes } = req.body;
+    if (!delegateId) return res.status(400).json({ error: 'الموظف المفوَّض مطلوب' });
+    if (delegateId === req.user.employee_id) return res.status(400).json({ error: 'لا يمكن التفويض لنفسك' });
+    if (!start_date || !end_date) return res.status(400).json({ error: 'تاريخ البداية والنهاية مطلوبان' });
+    if (end_date < start_date) return res.status(400).json({ error: 'تاريخ النهاية يجب أن يكون بعد تاريخ البداية' });
+
+    const delegate = db.prepare('SELECT id FROM employees WHERE id = ?').get(delegateId);
+    if (!delegate) return res.status(404).json({ error: 'الموظف غير موجود' });
+
+    const result = db.prepare(`
+      INSERT INTO approval_delegations (delegator_id, delegate_id, start_date, end_date, notes)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(req.user.employee_id, delegateId, start_date, end_date, notes || null);
+
+    notifyEmployee(delegateId, {
+      title: 'تفويض موافقات جديد',
+      message: `تم تفويضك لاعتماد الطلبات نيابة عن زميلك من ${start_date} إلى ${end_date}.`,
+      type: 'info',
+      link: '/approvals',
+    });
+
+    res.status(201).json({ message: 'تم التفويض', delegation: { id: result.lastInsertRowid } });
+  } catch (err) { next(err); }
+});
+
+router.delete('/delegations/:id', (req, res, next) => {
+  try {
+    const deleg = db.prepare('SELECT * FROM approval_delegations WHERE id = ?').get(req.params.id);
+    if (!deleg) return res.status(404).json({ error: 'Not found' });
+    const isOwner = deleg.delegator_id === req.user.employee_id;
+    if (!isOwner && !['admin', 'super_admin'].includes(req.user.role)) return res.status(403).json({ error: 'Access denied' });
+    db.prepare('DELETE FROM approval_delegations WHERE id = ?').run(req.params.id);
+    res.json({ message: 'تم إلغاء التفويض' });
   } catch (err) { next(err); }
 });
 

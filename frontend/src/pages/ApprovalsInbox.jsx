@@ -1,15 +1,15 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { ClipboardCheck, AlertTriangle, Flame, Check, X, History, Inbox } from 'lucide-react'
+import { ClipboardCheck, AlertTriangle, Flame, Check, X, History, Inbox, UserCog, Plus, Trash2, Share2 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { approvalsApi } from '../api/endpoints'
+import { approvalsApi, employeesApi } from '../api/endpoints'
 import Spinner from '../components/ui/Spinner'
 import EmptyState from '../components/ui/EmptyState'
 import Modal from '../components/ui/Modal'
 import Avatar from '../components/ui/Avatar'
 import StatCard from '../components/ui/StatCard'
-import { Field, Textarea, Button } from '../components/ui/Form'
-import { formatCurrency, formatDateTime } from '../lib/utils'
+import { Field, Input, Select, Textarea, Button } from '../components/ui/Form'
+import { formatCurrency, formatDate, formatDateTime } from '../lib/utils'
 
 const PRIORITY_TONE = {
   مرتفعة: 'bg-rose-50 text-rose-600',
@@ -21,6 +21,7 @@ const FILTERS = [
   { key: 'all', label: 'الكل' },
   { key: 'overdue', label: 'المتأخرة' },
   { key: 'priority', label: 'أولوية مرتفعة' },
+  { key: 'delegated', label: 'فُوِّضت لي' },
 ]
 
 function RejectModal({ item, onClose, onDone }) {
@@ -76,12 +77,115 @@ function HistoryModal({ onClose }) {
   )
 }
 
+function NewDelegationForm({ onDone }) {
+  const qc = useQueryClient()
+  const { data: emps } = useQuery('employees-all', () => employeesApi.list({ limit: 100 }))
+  const [delegateId, setDelegateId] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [notes, setNotes] = useState('')
+
+  const m = useMutation(
+    () => approvalsApi.createDelegation({ delegate_id: delegateId, start_date: startDate, end_date: endDate, notes }),
+    {
+      onSuccess: () => {
+        toast.success('تم التفويض')
+        qc.invalidateQueries('approvals-delegations')
+        setDelegateId(''); setStartDate(''); setEndDate(''); setNotes('')
+        onDone?.()
+      },
+      onError: (e) => toast.error(e.response?.data?.error || 'فشل التفويض'),
+    }
+  )
+
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); if (delegateId && startDate && endDate) m.mutate() }} className="space-y-3 rounded-xl border border-slate-100 p-3">
+      <Field label="فوّض إلى" required>
+        <Select value={delegateId} onChange={(e) => setDelegateId(e.target.value)} required>
+          <option value="">اختر موظفاً</option>
+          {(emps?.employees || []).map((e) => <option key={e.id} value={e.id}>{e.full_name} — {e.job_title}</option>)}
+        </Select>
+      </Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="من تاريخ" required><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required /></Field>
+        <Field label="إلى تاريخ" required><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required /></Field>
+      </div>
+      <Field label="ملاحظات"><Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="اختياري" /></Field>
+      <Button type="submit" loading={m.isLoading} className="w-full"><Plus className="w-4 h-4" /> إضافة تفويض</Button>
+    </form>
+  )
+}
+
+function DelegationsModal({ onClose }) {
+  const qc = useQueryClient()
+  const [showForm, setShowForm] = useState(false)
+  const { data, isLoading } = useQuery('approvals-delegations', () => approvalsApi.delegations())
+  const revoke = useMutation((id) => approvalsApi.removeDelegation(id), {
+    onSuccess: () => { toast.success('تم إلغاء التفويض'); qc.invalidateQueries('approvals-delegations'); qc.invalidateQueries('approvals-mine') },
+    onError: (e) => toast.error(e.response?.data?.error || 'فشل الإلغاء'),
+  })
+
+  const given = data?.given || []
+  const received = data?.received || []
+
+  return (
+    <Modal open onClose={onClose} title="التفويضات المؤقتة" size="lg">
+      {isLoading ? <Spinner /> : (
+        <div className="space-y-5">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-sm font-bold text-slate-700">فوّضتها لغيري</h4>
+              <button onClick={() => setShowForm((s) => !s)} className="text-xs text-primary-600 hover:underline flex items-center gap-1">
+                <Plus className="w-3.5 h-3.5" /> تفويض جديد
+              </button>
+            </div>
+            {showForm && <div className="mb-3"><NewDelegationForm onDone={() => setShowForm(false)} /></div>}
+            {given.length === 0 ? (
+              <p className="text-xs text-slate-400">لم تفوّض أحداً بعد.</p>
+            ) : (
+              <div className="space-y-2">
+                {given.map((d) => (
+                  <div key={d.id} className="flex items-center justify-between gap-2 rounded-xl border border-slate-100 p-2.5 text-sm">
+                    <div>
+                      <p className="font-medium text-slate-700">{d.delegate_name}</p>
+                      <p className="text-xs text-slate-400">{formatDate(d.start_date)} — {formatDate(d.end_date)} {d.is_active && <span className="text-emerald-600">· نشط الآن</span>}</p>
+                    </div>
+                    <button onClick={() => revoke.mutate(d.id)} className="w-7 h-7 rounded-lg hover:bg-rose-50 text-slate-300 hover:text-rose-500 flex items-center justify-center">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div>
+            <h4 className="text-sm font-bold text-slate-700 mb-2">فُوِّضت لي</h4>
+            {received.length === 0 ? (
+              <p className="text-xs text-slate-400">لا يوجد تفويض لك حالياً.</p>
+            ) : (
+              <div className="space-y-2">
+                {received.map((d) => (
+                  <div key={d.id} className="rounded-xl border border-slate-100 p-2.5 text-sm">
+                    <p className="font-medium text-slate-700">نيابة عن {d.delegator_name}</p>
+                    <p className="text-xs text-slate-400">{formatDate(d.start_date)} — {formatDate(d.end_date)} {d.is_active && <span className="text-emerald-600">· نشط الآن</span>}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </Modal>
+  )
+}
+
 export default function ApprovalsInbox() {
   const qc = useQueryClient()
   const [filter, setFilter] = useState('all')
   const [selected, setSelected] = useState(new Set())
   const [rejecting, setRejecting] = useState(null)
   const [showHistory, setShowHistory] = useState(false)
+  const [showDelegations, setShowDelegations] = useState(false)
 
   const { data, isLoading } = useQuery('approvals-mine', () => approvalsApi.mine())
 
@@ -102,8 +206,13 @@ export default function ApprovalsInbox() {
   if (isLoading) return <Spinner fullscreen />
 
   const items = data?.items || []
-  const summary = data?.summary || { total: 0, overdue: 0, highPriority: 0 }
-  const visible = items.filter((i) => (filter === 'overdue' ? i.overdue : filter === 'priority' ? i.priority === 'مرتفعة' : true))
+  const summary = data?.summary || { total: 0, overdue: 0, highPriority: 0, delegated: 0 }
+  const visible = items.filter((i) => (
+    filter === 'overdue' ? i.overdue
+    : filter === 'priority' ? i.priority === 'مرتفعة'
+    : filter === 'delegated' ? !!i.delegated_from
+    : true
+  ))
 
   const toggle = (key) => setSelected((s) => { const next = new Set(s); next.has(key) ? next.delete(key) : next.add(key); return next })
   const selectedItems = items.filter((i) => selected.has(i.key))
@@ -135,6 +244,9 @@ export default function ApprovalsInbox() {
               <Check className="w-4 h-4" /> اعتماد المحدد ({selectedItems.length})
             </Button>
           )}
+          <button onClick={() => setShowDelegations(true)} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-primary-600">
+            <UserCog className="w-4 h-4" /> التفويضات
+          </button>
           <button onClick={() => setShowHistory(true)} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-primary-600">
             <History className="w-4 h-4" /> سجل الموافقات
           </button>
@@ -159,6 +271,9 @@ export default function ApprovalsInbox() {
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="font-bold text-slate-800">{item.title}</h3>
                     <div className="flex items-center gap-1.5">
+                      {item.delegated_from && (
+                        <span className="badge bg-violet-50 text-violet-600 flex items-center gap-1"><Share2 className="w-3 h-3" /> بالنيابة عن {item.delegated_from}</span>
+                      )}
                       {item.overdue && <span className="badge bg-rose-50 text-rose-600">متأخرة</span>}
                       <span className={`badge ${PRIORITY_TONE[item.priority]}`}>{item.priority}</span>
                     </div>
@@ -191,6 +306,7 @@ export default function ApprovalsInbox() {
 
       {rejecting && <RejectModal item={rejecting} onClose={() => setRejecting(null)} onDone={() => { setRejecting(null); invalidate() }} />}
       {showHistory && <HistoryModal onClose={() => setShowHistory(false)} />}
+      {showDelegations && <DelegationsModal onClose={() => setShowDelegations(false)} />}
     </div>
   )
 }
