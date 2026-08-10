@@ -13,6 +13,23 @@ export const useAuthStore = create(
         set({ isLoading: true })
         try {
           const data = await authApi.login({ email, password })
+          if (data.requires_2fa) {
+            set({ isLoading: false })
+            return { requires_2fa: true, pending_token: data.pending_token }
+          }
+          localStorage.setItem('token', data.token)
+          set({ user: data.user, token: data.token, isLoading: false })
+          return data.user
+        } catch (err) {
+          set({ isLoading: false })
+          throw err
+        }
+      },
+
+      verifyTwoFactor: async ({ pending_token, code }) => {
+        set({ isLoading: true })
+        try {
+          const data = await authApi.verifyTwoFactor({ pending_token, code })
           localStorage.setItem('token', data.token)
           set({ user: data.user, token: data.token, isLoading: false })
           return data.user

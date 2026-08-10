@@ -9,6 +9,8 @@ const migrations = [
     role TEXT NOT NULL DEFAULT 'employee' CHECK(role IN ('super_admin', 'admin', 'hr_manager', 'department_head', 'employee', 'candidate')),
     employee_id INTEGER,
     is_active INTEGER DEFAULT 1,
+    two_factor_secret TEXT,
+    two_factor_enabled INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL
@@ -1340,6 +1342,8 @@ function runMigrations() {
     `ALTER TABLE org_settings ADD COLUMN wps_bank_code TEXT`,
     `ALTER TABLE org_settings ADD COLUMN wps_employer_iban TEXT`,
     `ALTER TABLE payroll_run_items ADD COLUMN employer_gosi REAL DEFAULT 0`,
+    `ALTER TABLE users ADD COLUMN two_factor_secret TEXT`,
+    `ALTER TABLE users ADD COLUMN two_factor_enabled INTEGER DEFAULT 0`,
   ];
   for (const stmt of columnAdditions) {
     try {

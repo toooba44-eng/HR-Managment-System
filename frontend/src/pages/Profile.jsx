@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from 'react-query'
-import { Mail, Building2, Briefcase, Lock, KeyRound } from 'lucide-react'
+import { Mail, Building2, Briefcase, Lock, KeyRound, ShieldCheck, ShieldOff, Copy } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { authApi, employeesApi } from '../api/endpoints'
 import { useAuthStore } from '../store/authStore'
@@ -64,6 +64,120 @@ function ChangePassword() {
   )
 }
 
+function TwoFactorSection() {
+  const { user, refreshUser } = useAuthStore()
+  const [setup, setSetup] = useState(null)
+  const [code, setCode] = useState('')
+  const [enabling, setEnabling] = useState(false)
+  const [showDisable, setShowDisable] = useState(false)
+  const [password, setPassword] = useState('')
+  const [disabling, setDisabling] = useState(false)
+
+  const startSetup = async () => {
+    try {
+      const data = await authApi.setupTwoFactor()
+      setSetup(data)
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'فشل بدء الإعداد')
+    }
+  }
+
+  const confirmEnable = async (e) => {
+    e.preventDefault()
+    setEnabling(true)
+    try {
+      await authApi.enableTwoFactor(code)
+      toast.success('تم تفعيل التحقق بخطوتين')
+      setSetup(null)
+      setCode('')
+      await refreshUser()
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'رمز التحقق غير صحيح')
+    } finally {
+      setEnabling(false)
+    }
+  }
+
+  const confirmDisable = async (e) => {
+    e.preventDefault()
+    setDisabling(true)
+    try {
+      await authApi.disableTwoFactor(password)
+      toast.success('تم تعطيل التحقق بخطوتين')
+      setShowDisable(false)
+      setPassword('')
+      await refreshUser()
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'كلمة المرور غير صحيحة')
+    } finally {
+      setDisabling(false)
+    }
+  }
+
+  const copySecret = () => {
+    navigator.clipboard?.writeText(setup.secret)
+    toast.success('تم نسخ المفتاح')
+  }
+
+  return (
+    <div className="card">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="w-5 h-5 text-primary-600" />
+          <h3 className="font-bold text-slate-800">التحقق بخطوتين (2FA)</h3>
+        </div>
+        {user?.two_factor_enabled && <span className="badge bg-emerald-50 text-emerald-600">مُفعَّل</span>}
+      </div>
+
+      {user?.two_factor_enabled ? (
+        showDisable ? (
+          <form onSubmit={confirmDisable} className="space-y-3">
+            <Field label="كلمة المرور لتأكيد التعطيل" required>
+              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            </Field>
+            <div className="flex justify-end gap-3">
+              <Button type="button" variant="secondary" onClick={() => setShowDisable(false)}>إلغاء</Button>
+              <Button type="submit" loading={disabling}><ShieldOff className="w-4 h-4" /> تعطيل</Button>
+            </div>
+          </form>
+        ) : (
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-slate-500">حسابك محمي برمز تحقق من تطبيق مصادقة عند كل تسجيل دخول.</p>
+            <Button variant="secondary" onClick={() => setShowDisable(true)} className="shrink-0"><ShieldOff className="w-4 h-4" /> تعطيل</Button>
+          </div>
+        )
+      ) : setup ? (
+        <form onSubmit={confirmEnable} className="space-y-4">
+          <p className="text-sm text-slate-500">أضف هذا المفتاح إلى تطبيق مصادقة (Google Authenticator أو ما شابه) ثم أدخل الرمز الظاهر للتأكيد.</p>
+          <div className="flex items-center gap-2 rounded-xl bg-slate-50 border border-slate-100 p-3">
+            <code className="text-sm font-mono tracking-wider flex-1 break-all">{setup.secret}</code>
+            <button type="button" onClick={copySecret} className="text-slate-400 hover:text-primary-600 shrink-0"><Copy className="w-4 h-4" /></button>
+          </div>
+          <Field label="رمز التحقق" required>
+            <Input
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="000000"
+              className="text-center tracking-[0.5em] font-mono"
+              maxLength={6}
+              required
+            />
+          </Field>
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="secondary" onClick={() => { setSetup(null); setCode('') }}>إلغاء</Button>
+            <Button type="submit" loading={enabling} disabled={code.length !== 6}>تأكيد التفعيل</Button>
+          </div>
+        </form>
+      ) : (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-slate-500">أضف طبقة حماية إضافية على حسابك باستخدام تطبيق مصادقة.</p>
+          <Button onClick={startSetup} className="shrink-0"><ShieldCheck className="w-4 h-4" /> تفعيل</Button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Profile() {
   const { user } = useAuthStore()
   const { data: emp, isLoading } = useQuery(
@@ -114,6 +228,7 @@ export default function Profile() {
         </div>
       )}
 
+      <TwoFactorSection />
       <ChangePassword />
     </div>
   )
