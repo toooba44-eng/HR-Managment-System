@@ -34,7 +34,7 @@ export const Select = forwardRef(function Select({ className, children, ...props
 export function Button({ variant = 'primary', className, children, loading, ...props }) {
   const base = variant === 'primary' ? 'btn-primary' : 'btn-secondary'
   return (
-    <button className={cn(base, loading && 'opacity-70 cursor-not-allowed', className)} disabled={loading || props.disabled} {...props}>
+    <button className={cn(base, (loading || props.disabled) && 'opacity-70 cursor-not-allowed', className)} disabled={loading || props.disabled} {...props}>
       {loading && (
         <span className="animate-spin rounded-full border-2 border-white/40 border-t-white w-4 h-4" />
       )}
