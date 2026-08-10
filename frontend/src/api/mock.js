@@ -647,7 +647,7 @@ export const mockEmployeesApi = {
   async create(data) {
     await delay()
     const id = Math.max(...employees.map((e) => e.id)) + 1
-    const emp = { id, employee_number: `EMP-${String(id).padStart(3, '0')}`, status: 'نشط', annual_leave_balance: 30, sick_leave_balance: 10, emergency_leave_balance: 5, profile_picture: null, manager_id: null, ...data }
+    const emp = { id, employee_number: `EMP-${String(id).padStart(3, '0')}`, status: 'نشط', annual_leave_balance: orgSettings.annual_leave_days ?? 30, sick_leave_balance: orgSettings.sick_leave_days ?? 10, emergency_leave_balance: 5, profile_picture: null, manager_id: null, ...data }
     employees.push(emp)
     wfRunWorkflowsFor('تعيين موظف', id)
     return { message: 'تم إضافة الموظف (وضع تجريبي)', employee: emp }
@@ -728,7 +728,7 @@ export const mockEmployeesApi = {
         contract_type: 'غير محدد', contract_start: null, contract_end: null, national_id: null,
         date_of_birth: null, marital_status: null, address: null, emergency_contact: null,
         profile_picture: null, nationality: 'سعودي', employee_number: `EMP-${Date.now()}-${i}`,
-        annual_leave_balance: 30, sick_leave_balance: 10, emergency_leave_balance: 5,
+        annual_leave_balance: orgSettings.annual_leave_days ?? 30, sick_leave_balance: orgSettings.sick_leave_days ?? 10, emergency_leave_balance: 5,
         created_at: nowIso(),
       })
       created += 1
