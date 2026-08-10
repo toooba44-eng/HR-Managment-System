@@ -1366,6 +1366,37 @@ Object.assign(mockPayrollApi, {
     if (i > -1) payrollRuns.splice(i, 1)
     return { message: 'تم الحذف' }
   },
+  async wps(id) {
+    await delay()
+    const r = payrollRuns.find((x) => x.id === Number(id))
+    if (!r) throw notFound()
+    const SAUDI_IBAN_RE = /^SA\d{22}$/
+    const SAUDI_NATIONAL_ID_RE = /^[12]\d{9}$/
+    const org = { wps_establishment_id: orgSettings.wps_establishment_id, wps_bank_code: orgSettings.wps_bank_code, wps_employer_iban: orgSettings.wps_employer_iban }
+    const orgIssues = []
+    if (!org.wps_establishment_id) orgIssues.push('رقم المنشأة (المكتب) غير مُعد')
+    if (!org.wps_bank_code) orgIssues.push('رمز البنك غير مُعد')
+    if (!org.wps_employer_iban || !SAUDI_IBAN_RE.test((org.wps_employer_iban || '').replace(/\s/g, '').toUpperCase())) {
+      orgIssues.push('آيبان المنشأة غير مُعد أو غير صالح')
+    }
+    if (!['معتمد', 'مصروف'].includes(r.status)) orgIssues.push('يجب اعتماد المسير قبل توليد الملف')
+
+    const items = r.items.map((i) => {
+      const e = employees.find((x) => x.id === i.employee_id)
+      const iban = (e?.bank_account || '').replace(/\s/g, '').toUpperCase()
+      const issues = []
+      if (!e?.national_id || !SAUDI_NATIONAL_ID_RE.test(e.national_id)) issues.push('رقم الهوية/الإقامة مفقود أو غير صالح')
+      if (!SAUDI_IBAN_RE.test(iban)) issues.push('رقم الآيبان مفقود أو غير صالح')
+      return {
+        employee_id: i.employee_id, full_name: e?.full_name, national_id: e?.national_id, iban,
+        basic: i.basic, housing_allowance: i.housing_allowance, other_earnings: Math.max(0, i.allowances - i.housing_allowance),
+        deductions: i.deductions, net: i.net, ok: issues.length === 0, issues,
+      }
+    }).sort((a, b) => (a.full_name || '').localeCompare(b.full_name || '', 'ar'))
+
+    const ready = orgIssues.length === 0 && items.every((i) => i.ok)
+    return { run: { id: r.id, month: r.month, year: r.year, status: r.status }, org, org_issues: orgIssues, items, ready }
+  },
 })
 
 export const mockTasksApi = {
@@ -3294,6 +3325,9 @@ const orgSettings = {
   remote_work_enabled: 1,
   two_factor_required: 0,
   self_service_enabled: 1,
+  wps_establishment_id: '7001234567',
+  wps_bank_code: 'NCB',
+  wps_employer_iban: 'SA4420000001234567891234',
 }
 const settingsRoles = [
   { role: 'super_admin', label: 'مدير المنصة', scope: 'كامل المنصة', access: ['إدارة المؤسسات', 'الفوترة', 'إعدادات النظام', 'الوصول الكامل'] },

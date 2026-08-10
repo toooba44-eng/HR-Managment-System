@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { Globe, Clock, Shield, ShieldCheck, Save, Users } from 'lucide-react'
+import { Globe, Clock, Shield, ShieldCheck, Save, Users, Landmark } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { settingsApi } from '../../api/endpoints'
 import { useAuthStore } from '../../store/authStore'
@@ -82,6 +82,15 @@ export default function Settings() {
           </div>
         </SectionCard>
       </div>
+
+      <SectionCard icon={Landmark} title="حماية الأجور (WPS)">
+        <p className="text-xs text-slate-400 mb-3">بيانات المنشأة المطلوبة لتوليد ملف حماية الأجور من مسيرات الرواتب المعتمدة.</p>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="رقم المنشأة (المكتب)"><Input value={form.wps_establishment_id || ''} onChange={set('wps_establishment_id')} disabled={!canManage} /></Field>
+          <Field label="رمز البنك"><Input value={form.wps_bank_code || ''} onChange={set('wps_bank_code')} disabled={!canManage} /></Field>
+          <Field label="آيبان المنشأة (SA + 22 رقماً)"><Input value={form.wps_employer_iban || ''} onChange={set('wps_employer_iban')} disabled={!canManage} className="font-mono" /></Field>
+        </div>
+      </SectionCard>
 
       <SectionCard icon={Shield} title="الأمان والسياسات العامة">
         <Toggle label="احتساب العمل الإضافي" hint="تفعيل تسجيل واحتساب ساعات العمل الإضافي" checked={!!form.overtime_enabled} onChange={setBool('overtime_enabled')} disabled={!canManage} />

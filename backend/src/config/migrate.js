@@ -1266,6 +1266,9 @@ const migrations = [
     remote_work_enabled INTEGER DEFAULT 1,
     two_factor_required INTEGER DEFAULT 0,
     self_service_enabled INTEGER DEFAULT 1,
+    wps_establishment_id TEXT,
+    wps_bank_code TEXT,
+    wps_employer_iban TEXT,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`,
 
@@ -1332,6 +1335,9 @@ function runMigrations() {
     `ALTER TABLE payroll_run_items ADD COLUMN other_allowances REAL DEFAULT 0`,
     `ALTER TABLE payroll_run_items ADD COLUMN bonus REAL DEFAULT 0`,
     `ALTER TABLE documents ADD COLUMN reminder_sent_at DATETIME`,
+    `ALTER TABLE org_settings ADD COLUMN wps_establishment_id TEXT`,
+    `ALTER TABLE org_settings ADD COLUMN wps_bank_code TEXT`,
+    `ALTER TABLE org_settings ADD COLUMN wps_employer_iban TEXT`,
   ];
   for (const stmt of columnAdditions) {
     try {

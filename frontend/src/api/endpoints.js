@@ -111,6 +111,7 @@ const realPayrollApi = {
   createRun: (data) => api.post('/payroll/runs', data).then((r) => r.data),
   advanceRun: (id, status) => api.put(`/payroll/runs/${id}/status`, { status }).then((r) => r.data),
   removeRun: (id) => api.delete(`/payroll/runs/${id}`).then((r) => r.data),
+  wps: (id) => api.get(`/payroll/runs/${id}/wps`).then((r) => r.data),
 }
 
 // ---------- Tasks ----------

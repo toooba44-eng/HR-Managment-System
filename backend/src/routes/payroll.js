@@ -71,6 +71,53 @@ router.get('/runs', requireRole(...MANAGE), (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// WPS (Wage Protection System) readiness for a run: checks the org's WPS
+// registration fields and every employee's national ID / IBAN, so HR can
+// fix gaps before generating the salary file for bank submission. Always
+// returns the full checklist regardless of run status — only the file
+// generation itself (client-side, from this same data) requires `ready`.
+const SAUDI_IBAN_RE = /^SA\d{22}$/;
+const SAUDI_NATIONAL_ID_RE = /^[12]\d{9}$/;
+router.get('/runs/:id/wps', requireRole(...MANAGE), (req, res, next) => {
+  try {
+    const run = db.prepare('SELECT * FROM payroll_runs WHERE id = ?').get(req.params.id);
+    if (!run) return res.status(404).json({ error: 'Not found' });
+
+    const org = db.prepare('SELECT wps_establishment_id, wps_bank_code, wps_employer_iban FROM org_settings WHERE id = 1').get() || {};
+    const orgIssues = [];
+    if (!org.wps_establishment_id) orgIssues.push('رقم المنشأة (المكتب) غير مُعد');
+    if (!org.wps_bank_code) orgIssues.push('رمز البنك غير مُعد');
+    if (!org.wps_employer_iban || !SAUDI_IBAN_RE.test((org.wps_employer_iban || '').replace(/\s/g, '').toUpperCase())) {
+      orgIssues.push('آيبان المنشأة غير مُعد أو غير صالح');
+    }
+    if (!['معتمد', 'مصروف'].includes(run.status)) orgIssues.push('يجب اعتماد المسير قبل توليد الملف');
+
+    const rows = db.prepare(`
+      SELECT i.employee_id, i.basic, i.housing_allowance, i.allowances, i.deductions, i.net,
+             e.full_name, e.national_id, e.bank_account
+      FROM payroll_run_items i
+      JOIN employees e ON i.employee_id = e.id
+      WHERE i.run_id = ?
+      ORDER BY e.full_name ASC
+    `).all(req.params.id);
+
+    const items = rows.map((r) => {
+      const iban = (r.bank_account || '').replace(/\s/g, '').toUpperCase();
+      const issues = [];
+      if (!r.national_id || !SAUDI_NATIONAL_ID_RE.test(r.national_id)) issues.push('رقم الهوية/الإقامة مفقود أو غير صالح');
+      if (!SAUDI_IBAN_RE.test(iban)) issues.push('رقم الآيبان مفقود أو غير صالح');
+      return {
+        employee_id: r.employee_id, full_name: r.full_name, national_id: r.national_id, iban,
+        basic: r.basic, housing_allowance: r.housing_allowance, other_earnings: Math.max(0, r.allowances - r.housing_allowance),
+        deductions: r.deductions, net: r.net, ok: issues.length === 0, issues,
+      };
+    });
+
+    const ready = orgIssues.length === 0 && items.every((i) => i.ok);
+    res.json({ run: { id: run.id, month: run.month, year: run.year, status: run.status }, org, org_issues: orgIssues, items, ready });
+  } catch (err) { next(err); }
+});
+
 // One run + its per-employee line items
 router.get('/runs/:id', requireRole(...MANAGE), (req, res, next) => {
   try {
