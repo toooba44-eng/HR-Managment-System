@@ -20,6 +20,13 @@ i18n.use(initReactI18next).init({
   fallbackLng: 'ar',
   interpolation: { escapeValue: false },
   returnEmptyString: false,
+  // Full Arabic sentences are used as translation keys, and some legitimately
+  // contain ':' or '.' (e.g. 'الرد:', 'قدّم طلبك...'). i18next's defaults treat
+  // ':' as a namespace separator and '.' as a nested-key separator, which
+  // silently truncates or breaks lookup for keys containing those characters.
+  // This app never uses namespaces or nested keys, so both are disabled.
+  nsSeparator: false,
+  keySeparator: false,
 })
 
 applyDocumentDirection(savedLang)
