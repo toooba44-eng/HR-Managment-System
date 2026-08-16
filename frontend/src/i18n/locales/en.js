@@ -913,4 +913,21 @@ export default {
   'الوظائف': 'Jobs',
   'الطلبات': 'Applications',
   'لا توجد طلبات توظيف': 'No job applications',
+
+  // ── Grievances (HR) ──────────────────────────────────────────
+  'تسجيل مخالفة/شكوى': 'File a Violation/Complaint',
+  'مخالفة': 'Violation',
+  'الالتزام بالدوام، بيئة العمل...': 'Attendance compliance, work environment...',
+  'تم التسجيل': 'Recorded',
+  'سجل التحقيق — {{name}}': 'Investigation Log — {{name}}',
+  'سرّي — مرئي لفريق الموارد البشرية فقط': 'Confidential — visible to HR team only',
+  'لا توجد ملاحظات بعد.': 'No notes yet.',
+  'أضف ملاحظة تحقيق...': 'Add an investigation note...',
+  'تسجيل جديد': 'New Entry',
+  'لا توجد مخالفات أو شكاوى': 'No violations or complaints',
+  'المحقق: {{name}}': 'Investigator: {{name}}',
+  'الإجراء: {{action}}': 'Action: {{action}}',
+  'التحقيق': 'Investigation',
+  '— محقق —': '— Investigator —',
+  'حذف السجل؟': 'Delete this record?',
 }
