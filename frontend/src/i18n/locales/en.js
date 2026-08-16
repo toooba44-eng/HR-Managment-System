@@ -1152,4 +1152,23 @@ export default {
   'لا توجد خطط تهيئة': 'No onboarding plans',
   'المباشرة: {{date}}': 'Start: {{date}}',
   'المرشد: {{name}}': 'Buddy: {{name}}',
+
+  // ── Policies ─────────────────────────────────────────────────
+  'العنوان_policy': 'Title',
+  'تعديل': 'Edit',
+  'تم تحديث السياسة': 'Policy updated',
+  'تم إنشاء السياسة': 'Policy created',
+  'تعديل سياسة': 'Edit Policy',
+  'سياسة جديدة': 'New Policy',
+  'عام، الحضور، الإجازات...': 'General, Attendance, Leave...',
+  'من أقرّ بالاطلاع: {{title}}': 'Who has acknowledged: {{title}}',
+  'أقرّ {{count}} من أصل {{total}} موظف نشط.': 'Acknowledged by {{count}} of {{total}} active employee(s).',
+  'أقرّوا ({{count}})': 'Acknowledged ({{count}})',
+  'لم يقرّوا بعد ({{count}})': "Haven't acknowledged yet ({{count}})",
+  'لا توجد سياسات': 'No policies',
+  'حذف هذه السياسة؟': 'Delete this policy?',
+  'أقرّ {{count}}': '{{count}} acknowledged',
+  'أقرّ بالاطلاع': 'Acknowledge',
+  'أقررتَ بالاطلاع': 'Acknowledged',
+  'تم تسجيل إقرارك': 'Your acknowledgment was recorded',
 }
