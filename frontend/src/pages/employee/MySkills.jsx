@@ -1,4 +1,5 @@
 import { useQuery } from 'react-query'
+import { useTranslation } from 'react-i18next'
 import { Grid2x2, TrendingDown } from 'lucide-react'
 import { skillsApi } from '../../api/endpoints'
 import Spinner from '../../components/ui/Spinner'
@@ -14,6 +15,7 @@ const LEVEL_TONE = {
 }
 
 export default function MySkills() {
+  const { t } = useTranslation()
   const { data, isLoading } = useQuery('my-skills', () => skillsApi.me())
 
   if (isLoading) return <Spinner fullscreen />
@@ -22,17 +24,17 @@ export default function MySkills() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
-        <StatCard icon={Grid2x2} label="مهارات مُقيَّمة" value={skills.length} tone="blue" />
-        <StatCard icon={TrendingDown} label="فجوات تحتاج تطوير (≤2)" value={data?.gaps ?? 0} tone="rose" />
+        <StatCard icon={Grid2x2} label={t('مهارات مُقيَّمة')} value={skills.length} tone="blue" />
+        <StatCard icon={TrendingDown} label={t('فجوات تحتاج تطوير (≤2)')} value={data?.gaps ?? 0} tone="rose" />
       </div>
 
       {skills.length === 0 ? (
         <div className="card">
-          <EmptyState icon={Grid2x2} title="لا توجد مهارات مُقيَّمة بعد" description="يقوم مديرك المباشر أو الموارد البشرية بتقييم مهاراتك دورياً." />
+          <EmptyState icon={Grid2x2} title={t('لا توجد مهارات مُقيَّمة بعد')} description={t('يقوم مديرك المباشر أو الموارد البشرية بتقييم مهاراتك دورياً.')} />
         </div>
       ) : (
         <div className="card">
-          <h3 className="font-bold text-slate-800 mb-4">مصفوفة مهاراتي</h3>
+          <h3 className="font-bold text-slate-800 mb-4">{t('مصفوفة مهاراتي')}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {skills.map((s) => (
               <div key={s.skill} className={`rounded-xl border p-3 flex items-center justify-between ${LEVEL_TONE[s.level]}`}>
