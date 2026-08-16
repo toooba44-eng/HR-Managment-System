@@ -612,4 +612,15 @@ export default {
   'لا توجد إجازات في هذا الشهر': 'No leaves this month',
   '{{count}} في إجازة': '{{count}} on leave',
   '{{type}} · {{start}} → {{end}} ({{count}} أيام)': '{{type}} · {{start}} → {{end}} ({{count}} days)',
+
+  // ── AI Assistant ──────────────────────────────────────────────
+  'مرحباً! أنا المساعد الذكي لموارد كوانت البشرية. يمكنني الإجابة عن أسئلتك حول رصيد إجازتك، راتبك، حضورك، أو سياسات الشركة.': "Hello! I'm the Quant HR AI assistant. I can answer your questions about your leave balance, salary, attendance, or company policies.",
+  'كم رصيد إجازتي؟': 'How much leave balance do I have?',
+  'كم راتبي الصافي هذا الشهر؟': 'What is my net salary this month?',
+  'هل سجّلت حضوري اليوم؟': 'Did I check in today?',
+  'ما هي سياسة الإجازات؟': 'What is the leave policy?',
+  'تعذّر الحصول على إجابة الآن.': 'Unable to get an answer right now.',
+  'يجيب عن بياناتك الشخصية فقط — لا يتخذ قرارات نهائية بشأن الإجازات أو التوظيف': 'Answers questions about your personal data only — does not make final decisions about leave or employment',
+  'يكتب...': 'Typing...',
+  'اكتب سؤالك هنا...': 'Type your question here...',
 }
