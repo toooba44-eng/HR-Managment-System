@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
+import { useTranslation } from 'react-i18next'
 import { Plus, Check, X, CalendarDays, Ban, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { leavesApi, settingsApi } from '../api/endpoints'
@@ -15,6 +16,7 @@ import { formatDate } from '../lib/utils'
 const LEAVE_TYPES = ['سنوية', 'مرضية', 'طارئة', 'بدون راتب', 'أمومة', 'حج', 'عمرة']
 
 function LeaveRequestForm({ open, onClose }) {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const { user } = useAuthStore()
   const [form, setForm] = useState({ type: 'سنوية', start_date: '', end_date: '', reason: '' })
@@ -23,39 +25,39 @@ function LeaveRequestForm({ open, onClose }) {
     (data) => leavesApi.create({ ...data, employee_id: user.employee_id }),
     {
       onSuccess: () => {
-        toast.success('تم إرسال طلب الإجازة')
+        toast.success(t('تم إرسال طلب الإجازة'))
         qc.invalidateQueries('leaves')
         onClose()
         setForm({ type: 'سنوية', start_date: '', end_date: '', reason: '' })
       },
-      onError: (err) => toast.error(err.response?.data?.error || 'فشل إرسال الطلب'),
+      onError: (err) => toast.error(err.response?.data?.error || t('فشل إرسال الطلب')),
     }
   )
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
   return (
-    <Modal open={open} onClose={onClose} title="طلب إجازة جديد">
+    <Modal open={open} onClose={onClose} title={t('طلب إجازة جديد')}>
       <form onSubmit={(e) => { e.preventDefault(); mutation.mutate(form) }} className="space-y-4">
-        <Field label="نوع الإجازة" required>
+        <Field label={t('نوع الإجازة')} required>
           <Select value={form.type} onChange={set('type')} required>
-            {LEAVE_TYPES.map((t) => <option key={t}>{t}</option>)}
+            {LEAVE_TYPES.map((ty) => <option key={ty} value={ty}>{t(ty)}</option>)}
           </Select>
         </Field>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="من تاريخ" required>
+          <Field label={t('من تاريخ')} required>
             <Input type="date" value={form.start_date} onChange={set('start_date')} required />
           </Field>
-          <Field label="إلى تاريخ" required>
+          <Field label={t('إلى تاريخ')} required>
             <Input type="date" value={form.end_date} onChange={set('end_date')} required />
           </Field>
         </div>
-        <Field label="السبب">
-          <Textarea value={form.reason} onChange={set('reason')} placeholder="اذكر سبب الإجازة (اختياري)" />
+        <Field label={t('السبب')}>
+          <Textarea value={form.reason} onChange={set('reason')} placeholder={t('اذكر سبب الإجازة (اختياري)')} />
         </Field>
         <div className="flex justify-end gap-3 pt-2">
-          <Button type="button" variant="secondary" onClick={onClose}>إلغاء</Button>
-          <Button type="submit" loading={mutation.isLoading}>إرسال الطلب</Button>
+          <Button type="button" variant="secondary" onClick={onClose}>{t('إلغاء')}</Button>
+          <Button type="submit" loading={mutation.isLoading}>{t('إرسال الطلب')}</Button>
         </div>
       </form>
     </Modal>
@@ -63,6 +65,7 @@ function LeaveRequestForm({ open, onClose }) {
 }
 
 function LeaveBalance() {
+  const { t } = useTranslation()
   const { user } = useAuthStore()
   const { data: balance } = useQuery(
     ['leave-balance', user?.employee_id],
@@ -83,7 +86,7 @@ function LeaveBalance() {
       {items.map((i) => (
         <div key={i.label} className={`rounded-2xl p-4 text-center ${i.tone}`}>
           <p className="text-3xl font-extrabold">{i.value ?? 0}</p>
-          <p className="text-xs font-medium mt-1">رصيد {i.label}</p>
+          <p className="text-xs font-medium mt-1">{t(`رصيد ${i.label}`)}</p>
         </div>
       ))}
     </div>
@@ -91,6 +94,7 @@ function LeaveBalance() {
 }
 
 export default function Leaves() {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const { canManage, user } = useAuthStore()
   const [status, setStatus] = useState('')
@@ -103,16 +107,16 @@ export default function Leaves() {
     ({ id, decision }) => leavesApi.approve(id, { status: decision }),
     {
       onSuccess: (_, { decision }) => {
-        toast.success(decision === 'موافقة' ? 'تمت الموافقة على الطلب' : 'تم رفض الطلب')
+        toast.success(decision === 'موافقة' ? t('تمت الموافقة على الطلب') : t('تم رفض الطلب'))
         qc.invalidateQueries('leaves')
       },
-      onError: (err) => toast.error(err.response?.data?.error || 'فشل تحديث الطلب'),
+      onError: (err) => toast.error(err.response?.data?.error || t('فشل تحديث الطلب')),
     }
   )
 
   const cancelMutation = useMutation((id) => leavesApi.cancel(id), {
-    onSuccess: () => { toast.success('تم إلغاء الطلب'); qc.invalidateQueries('leaves') },
-    onError: (err) => toast.error(err.response?.data?.error || 'فشل الإلغاء'),
+    onSuccess: () => { toast.success(t('تم إلغاء الطلب')); qc.invalidateQueries('leaves') },
+    onError: (err) => toast.error(err.response?.data?.error || t('فشل الإلغاء')),
   })
 
   const isSelfServiceUser = user?.role === 'employee'
@@ -126,21 +130,21 @@ export default function Leaves() {
       {selfServiceDisabled && (
         <div className="card border-r-4 border-amber-400 flex items-center gap-2 text-sm text-amber-700">
           <AlertTriangle className="w-5 h-5 shrink-0" />
-          بوابة الخدمة الذاتية غير مفعَّلة حالياً — تواصل مع الموارد البشرية لتقديم طلب إجازة.
+          {t('بوابة الخدمة الذاتية غير مفعَّلة حالياً — تواصل مع الموارد البشرية لتقديم طلب إجازة.')}
         </div>
       )}
 
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
         <Select value={status} onChange={(e) => setStatus(e.target.value)} className="sm:w-48">
-          <option value="">كل الطلبات</option>
-          <option value="معلقة">معلقة</option>
-          <option value="موافقة">موافقة</option>
-          <option value="مرفوضة">مرفوضة</option>
-          <option value="ملغاة">ملغاة</option>
+          <option value="">{t('كل الطلبات')}</option>
+          <option value="معلقة">{t('معلقة')}</option>
+          <option value="موافقة">{t('موافقة')}</option>
+          <option value="مرفوضة">{t('مرفوضة')}</option>
+          <option value="ملغاة">{t('ملغاة')}</option>
         </Select>
         <Button onClick={() => setShowForm(true)} disabled={selfServiceDisabled}>
           <Plus className="w-5 h-5" />
-          طلب إجازة
+          {t('طلب إجازة')}
         </Button>
       </div>
 
@@ -148,7 +152,7 @@ export default function Leaves() {
         <Spinner fullscreen />
       ) : leaves.length === 0 ? (
         <div className="card">
-          <EmptyState icon={CalendarDays} title="لا توجد طلبات إجازة" />
+          <EmptyState icon={CalendarDays} title={t('لا توجد طلبات إجازة')} />
         </div>
       ) : (
         <div className="space-y-3">
@@ -164,34 +168,34 @@ export default function Leaves() {
 
               <div className="flex items-center gap-6 text-sm">
                 <div className="text-center">
-                  <p className="text-slate-400 text-xs">النوع</p>
-                  <p className="font-medium text-slate-700">{l.type}</p>
+                  <p className="text-slate-400 text-xs">{t('النوع')}</p>
+                  <p className="font-medium text-slate-700">{t(l.type)}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-slate-400 text-xs">المدة</p>
-                  <p className="font-medium text-slate-700">{l.days_count} أيام</p>
+                  <p className="text-slate-400 text-xs">{t('المدة')}</p>
+                  <p className="font-medium text-slate-700">{l.days_count} {t('أيام')}</p>
                 </div>
                 <div className="text-center hidden md:block">
-                  <p className="text-slate-400 text-xs">من — إلى</p>
+                  <p className="text-slate-400 text-xs">{t('من — إلى')}</p>
                   <p className="font-medium text-slate-700 text-xs">{formatDate(l.start_date)} — {formatDate(l.end_date)}</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
-                <Badge status={l.status} />
+                <Badge status={l.status}>{t(l.status)}</Badge>
                 {l.status === 'معلقة' && canManage() && (
                   <>
                     <button
                       onClick={() => approveMutation.mutate({ id: l.id, decision: 'موافقة' })}
                       className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center"
-                      title="موافقة"
+                      title={t('موافقة', { context: 'action' })}
                     >
                       <Check className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => approveMutation.mutate({ id: l.id, decision: 'مرفوضة' })}
                       className="w-9 h-9 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center"
-                      title="رفض"
+                      title={t('رفض')}
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -201,7 +205,7 @@ export default function Leaves() {
                   <button
                     onClick={() => cancelMutation.mutate(l.id)}
                     className="w-9 h-9 rounded-lg bg-slate-50 text-slate-500 hover:bg-slate-100 flex items-center justify-center"
-                    title="إلغاء"
+                    title={t('إلغاء')}
                   >
                     <Ban className="w-4 h-4" />
                   </button>
