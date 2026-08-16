@@ -673,4 +673,22 @@ export default {
   'مفتوح': 'Open',
   'قيد المعالجة': 'In Progress',
   'مغلق': 'Closed',
+
+  // ── My Grievances ─────────────────────────────────────────────
+  'شكوى مقدَّمة': 'Filed Complaint',
+  'مخالفة إدارية': 'Administrative Violation',
+  'تم تقديم الشكوى، وسيتم التواصل معك عبر الموارد البشرية': "Your complaint has been filed, and HR will be in touch with you",
+  'تقديم شكوى': 'File a Complaint',
+  'بيئة العمل، زميل، مدير مباشر...': 'Work environment, colleague, direct manager...',
+  'اشرح المشكلة بالتفصيل ليتمكن فريق الموارد البشرية من المتابعة.': 'Explain the issue in detail so the HR team can follow up.',
+  'سيتم التعامل مع شكواك بسرّية تامة من فريق الموارد البشرية.': 'Your complaint will be handled with complete confidentiality by the HR team.',
+  'تقديم': 'Submit',
+  'تم سحب الشكوى': 'Complaint withdrawn',
+  'لا توجد حالات مسجّلة': 'No cases on record',
+  'لا توجد لديك أي شكاوى أو مخالفات مسجّلة حالياً.': "You don't currently have any recorded complaints or violations.",
+  'سحب الشكوى؟': 'Withdraw the complaint?',
+  'سحب الشكوى': 'Withdraw Complaint',
+  'الإجراء المتخذ:': 'Action taken:',
+  'مفتوحة': 'Open',
+  'مغلقة': 'Closed',
 }
