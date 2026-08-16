@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useMutation } from 'react-query'
+import { useTranslation } from 'react-i18next'
 import { Bot, Send, Sparkles, Info } from 'lucide-react'
 import { assistantApi } from '../api/endpoints'
 import { Button } from '../components/ui/Form'
@@ -11,13 +12,14 @@ const WELCOME = {
 }
 
 export default function Assistant() {
+  const { t, i18n } = useTranslation()
   const [messages, setMessages] = useState([WELCOME])
   const [input, setInput] = useState('')
   const endRef = useRef(null)
 
   const ask = useMutation((message) => assistantApi.ask(message), {
     onSuccess: (data) => setMessages((m) => [...m, { role: 'assistant', text: data.answer, suggestions: data.suggestions }]),
-    onError: (err) => setMessages((m) => [...m, { role: 'assistant', text: err.response?.data?.error || 'تعذّر الحصول على إجابة الآن.', error: true }]),
+    onError: (err) => setMessages((m) => [...m, { role: 'assistant', text: err.response?.data?.error || t('تعذّر الحصول على إجابة الآن.'), error: true }]),
   })
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, ask.isLoading])
@@ -35,8 +37,8 @@ export default function Assistant() {
       <div className="card mb-3 flex items-center gap-3 bg-gradient-to-l from-violet-50 to-blue-50 border-violet-100">
         <div className="w-11 h-11 rounded-2xl bg-violet-600 text-white flex items-center justify-center shrink-0"><Bot className="w-6 h-6" /></div>
         <div className="flex-1">
-          <p className="font-bold text-slate-800">المساعد الذكي</p>
-          <p className="text-xs text-slate-500 flex items-center gap-1"><Info className="w-3 h-3" /> يجيب عن بياناتك الشخصية فقط — لا يتخذ قرارات نهائية بشأن الإجازات أو التوظيف</p>
+          <p className="font-bold text-slate-800">{t('المساعد الذكي')}</p>
+          <p className="text-xs text-slate-500 flex items-center gap-1"><Info className="w-3 h-3" /> {t('يجيب عن بياناتك الشخصية فقط — لا يتخذ قرارات نهائية بشأن الإجازات أو التوظيف')}</p>
         </div>
       </div>
 
@@ -44,12 +46,12 @@ export default function Assistant() {
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === 'user' ? 'justify-start' : 'justify-end'}`}>
             <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-line ${m.role === 'user' ? 'bg-slate-100 text-slate-700' : m.error ? 'bg-rose-50 text-rose-600' : 'bg-violet-600 text-white'}`}>
-              {m.text}
+              {t(m.text)}
               {m.suggestions && (
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {m.suggestions.map((s) => (
                     <button key={s} onClick={() => send(s)} className="text-[11px] px-2.5 py-1 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors">
-                      {s}
+                      {t(s)}
                     </button>
                   ))}
                 </div>
@@ -60,7 +62,7 @@ export default function Assistant() {
         {ask.isLoading && (
           <div className="flex justify-end">
             <div className="rounded-2xl px-4 py-2.5 bg-violet-600 text-white flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 animate-pulse" /> <span className="text-sm">يكتب...</span>
+              <Sparkles className="w-3.5 h-3.5 animate-pulse" /> <span className="text-sm">{t('يكتب...')}</span>
             </div>
           </div>
         )}
@@ -71,9 +73,9 @@ export default function Assistant() {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="اكتب سؤالك هنا..."
+          placeholder={t('اكتب سؤالك هنا...')}
           className="input-field flex-1"
-          dir="rtl"
+          dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}
         />
         <Button type="submit" loading={ask.isLoading}><Send className="w-4 h-4" /></Button>
       </form>
