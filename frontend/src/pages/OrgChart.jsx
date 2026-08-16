@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Network, Search, ChevronDown, ChevronLeft, Users, UserCircle, UserCog } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { employeesApi, departmentsApi } from '../api/endpoints'
@@ -18,6 +19,7 @@ function collectIds(node) {
 }
 
 function ReassignModal({ node, allEmployees, departments, onClose }) {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const excluded = useMemo(() => new Set(collectIds(node)), [node])
   const [departmentId, setDepartmentId] = useState(node.department_id ?? '')
@@ -30,39 +32,39 @@ function ReassignModal({ node, allEmployees, departments, onClose }) {
     }),
     {
       onSuccess: () => {
-        toast.success('تم نقل الموظف بنجاح')
+        toast.success(t('تم نقل الموظف بنجاح'))
         qc.invalidateQueries('org-chart')
         qc.invalidateQueries('employees')
         onClose()
       },
-      onError: (err) => toast.error(err.response?.data?.error || 'فشل النقل'),
+      onError: (err) => toast.error(err.response?.data?.error || t('فشل النقل')),
     }
   )
 
   const managerOptions = allEmployees.filter((e) => !excluded.has(e.id))
 
   return (
-    <Modal open onClose={onClose} title={`نقل ${node.full_name}`}>
+    <Modal open onClose={onClose} title={t('نقل {{name}}', { name: node.full_name })}>
       <form onSubmit={(e) => { e.preventDefault(); mutation.mutate() }} className="space-y-4">
-        <Field label="الإدارة">
+        <Field label={t('الإدارة')}>
           <Select value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
-            <option value="">بدون إدارة</option>
+            <option value="">{t('بدون إدارة')}</option>
             {departments.map((d) => (
               <option key={d.id} value={d.id}>{d.name}</option>
             ))}
           </Select>
         </Field>
-        <Field label="المدير المباشر">
+        <Field label={t('المدير المباشر')}>
           <Select value={managerId} onChange={(e) => setManagerId(e.target.value)}>
-            <option value="">لا يوجد — على قمة الهرم</option>
+            <option value="">{t('لا يوجد — على قمة الهرم')}</option>
             {managerOptions.map((e) => (
               <option key={e.id} value={e.id}>{e.full_name} — {e.job_title}</option>
             ))}
           </Select>
         </Field>
         <div className="flex justify-end gap-3 pt-2">
-          <Button type="button" variant="secondary" onClick={onClose}>إلغاء</Button>
-          <Button type="submit" loading={mutation.isLoading}>حفظ النقل</Button>
+          <Button type="button" variant="secondary" onClick={onClose}>{t('إلغاء')}</Button>
+          <Button type="submit" loading={mutation.isLoading}>{t('حفظ النقل')}</Button>
         </div>
       </form>
     </Modal>
@@ -70,6 +72,7 @@ function ReassignModal({ node, allEmployees, departments, onClose }) {
 }
 
 function Node({ node, depth, expandedAll, query, onReassign }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(true)
   const hasChildren = node.children && node.children.length > 0
   const isOpen = expandedAll ?? open
@@ -90,12 +93,12 @@ function Node({ node, depth, expandedAll, query, onReassign }) {
         </div>
         {node.department_name && <span className="badge hidden sm:inline-block" style={{ backgroundColor: `${node.department_color}18`, color: node.department_color || '#64748b' }}>{node.department_name}</span>}
         {hasChildren && (
-          <span className="flex items-center gap-1 text-xs text-slate-400 shrink-0" title="إجمالي التابعين"><Users className="w-3.5 h-3.5" /> {node.total_reports}</span>
+          <span className="flex items-center gap-1 text-xs text-slate-400 shrink-0" title={t('إجمالي التابعين')}><Users className="w-3.5 h-3.5" /> {node.total_reports}</span>
         )}
         <button
           onClick={() => onReassign(node)}
           className="w-7 h-7 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center justify-center text-slate-400 shrink-0"
-          title="نقل الموظف لإدارة/مدير آخر"
+          title={t('نقل الموظف لإدارة/مدير آخر')}
         >
           <UserCog className="w-4 h-4" />
         </button>
@@ -110,6 +113,7 @@ function Node({ node, depth, expandedAll, query, onReassign }) {
 }
 
 export default function OrgChart() {
+  const { t } = useTranslation()
   const { data, isLoading } = useQuery('org-chart', () => employeesApi.orgChart())
   const { data: departments = [] } = useQuery('departments', departmentsApi.list)
   const [query, setQuery] = useState('')
@@ -132,27 +136,27 @@ export default function OrgChart() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Users} label="إجمالي الموظفين" value={stats.total} tone="blue" />
-        <StatCard icon={UserCircle} label="المدراء" value={stats.managers} tone="violet" />
-        <StatCard icon={Network} label="المستويات الإدارية" value={stats.levels} tone="green" />
-        <StatCard icon={UserCircle} label="قمة الهرم" value={stats.heads} tone="amber" />
+        <StatCard icon={Users} label={t('إجمالي الموظفين')} value={stats.total} tone="blue" />
+        <StatCard icon={UserCircle} label={t('المدراء')} value={stats.managers} tone="violet" />
+        <StatCard icon={Network} label={t('المستويات الإدارية')} value={stats.levels} tone="green" />
+        <StatCard icon={UserCircle} label={t('قمة الهرم')} value={stats.heads} tone="amber" />
       </div>
 
       <div className="card">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div className="relative flex-1 min-w-[200px] max-w-sm">
             <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="ابحث عن موظف…" className="input-field w-full pr-9" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('ابحث عن موظف…')} className="input-field w-full pr-9" />
           </div>
           <div className="flex gap-2">
-            <button onClick={() => setExpandedAll(true)} className="text-sm px-3 py-2 rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100">توسيع الكل</button>
-            <button onClick={() => setExpandedAll(false)} className="text-sm px-3 py-2 rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100">طيّ الكل</button>
-            <button onClick={() => setExpandedAll(null)} className="text-sm px-3 py-2 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100">إعادة تعيين</button>
+            <button onClick={() => setExpandedAll(true)} className="text-sm px-3 py-2 rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100">{t('توسيع الكل')}</button>
+            <button onClick={() => setExpandedAll(false)} className="text-sm px-3 py-2 rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100">{t('طيّ الكل')}</button>
+            <button onClick={() => setExpandedAll(null)} className="text-sm px-3 py-2 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100">{t('إعادة تعيين')}</button>
           </div>
         </div>
 
         {tree.length === 0 ? (
-          <EmptyState icon={Network} title="لا يوجد هيكل تنظيمي" />
+          <EmptyState icon={Network} title={t('لا يوجد هيكل تنظيمي')} />
         ) : (
           <div className="space-y-2 overflow-x-auto">
             {tree.map((n) => <Node key={n.id} node={n} depth={0} expandedAll={expandedAll} query={query.trim()} onReassign={setReassignNode} />)}
