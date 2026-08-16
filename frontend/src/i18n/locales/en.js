@@ -630,4 +630,23 @@ export default {
   'لا توجد مهارات مُقيَّمة بعد': 'No skills assessed yet',
   'يقوم مديرك المباشر أو الموارد البشرية بتقييم مهاراتك دورياً.': 'Your direct manager or HR assesses your skills periodically.',
   'مصفوفة مهاراتي': 'My Skills Matrix',
+
+  // ── My Asset Requests ─────────────────────────────────────────
+  'أجهزة حاسب': 'Computer Equipment',
+  'أجهزة جوال': 'Mobile Devices',
+  'ملحقات': 'Accessories',
+  'أجهزة مكتبية': 'Office Equipment',
+  'أخرى': 'Other',
+  'تم إرسال الطلب': 'Request submitted',
+  'طلب أصل جديد': 'New Asset Request',
+  'العنصر المطلوب': 'Requested Item',
+  'مثال: لابتوب بمواصفات أعلى': 'e.g. a higher-spec laptop',
+  'التصنيف': 'Category',
+  'التكلفة التقديرية': 'Estimated Cost',
+  'المبرر': 'Justification',
+  'لا توجد طلبات': 'No requests',
+  'قدّم طلبك الأول عبر زر «طلب أصل جديد».': 'Submit your first request via the "New Asset Request" button.',
+  'التكلفة التقديرية: {{amount}}': 'Estimated cost: {{amount}}',
+  'معتمد': 'Approved',
+  'معلق_asset': 'Pending',
 }
