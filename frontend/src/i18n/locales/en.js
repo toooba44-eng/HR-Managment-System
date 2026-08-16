@@ -899,4 +899,18 @@ export default {
   'الاستحقاق: {{date}}': 'Due: {{date}}',
   'حذف الهدف؟': 'Delete this goal?',
   'نسبة الإنجاز': 'Progress',
+
+  // ── Recruitment ────────────────────────────────────────────────
+  'التوظيف': 'Recruitment',
+  'تعديل وظيفة': 'Edit Job',
+  'وظيفة جديدة': 'New Job',
+  'تم نشر الوظيفة': 'Job posted',
+  'مقابلة': 'Interview',
+  'مقبول': 'Accepted',
+  'لا توجد وظائف': 'No jobs',
+  'متقدّم': 'applicant',
+  'حذف الوظيفة؟': 'Delete this job?',
+  'الوظائف': 'Jobs',
+  'الطلبات': 'Applications',
+  'لا توجد طلبات توظيف': 'No job applications',
 }
