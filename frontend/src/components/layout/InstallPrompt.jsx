@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Download, X } from 'lucide-react'
 
 const DISMISS_KEY = 'quant-hr-install-dismissed-at'
@@ -21,6 +22,7 @@ function isStandalone() {
 // the browser's own mini-infobar, so it matches the app's look and can be
 // dismissed with a cooldown instead of reappearing every load.
 export default function InstallPrompt() {
+  const { t } = useTranslation()
   const [deferredEvent, setDeferredEvent] = useState(null)
 
   useEffect(() => {
@@ -62,26 +64,26 @@ export default function InstallPrompt() {
         <Download className="w-5 h-5" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-bold text-slate-800 text-sm">ثبّت تطبيق Quant HR</p>
+        <p className="font-bold text-slate-800 text-sm">{t('ثبّت تطبيق Quant HR')}</p>
         <p className="text-xs text-slate-500 mt-0.5">
-          أضِف التطبيق إلى شاشتك الرئيسية للوصول السريع والعمل حتى مع اتصال ضعيف.
+          {t('أضِف التطبيق إلى شاشتك الرئيسية للوصول السريع والعمل حتى مع اتصال ضعيف.')}
         </p>
         <div className="flex gap-2 mt-3">
           <button
             onClick={install}
             className="px-3 py-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold transition-colors"
           >
-            تثبيت
+            {t('تثبيت')}
           </button>
           <button
             onClick={dismiss}
             className="px-3 py-1.5 rounded-lg text-slate-500 text-xs font-semibold hover:bg-slate-100"
           >
-            لاحقاً
+            {t('لاحقاً')}
           </button>
         </div>
       </div>
-      <button onClick={dismiss} className="text-slate-300 hover:text-slate-500 shrink-0" aria-label="إغلاق">
+      <button onClick={dismiss} className="text-slate-300 hover:text-slate-500 shrink-0" aria-label={t('إغلاق')}>
         <X className="w-4 h-4" />
       </button>
     </div>

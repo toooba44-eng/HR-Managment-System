@@ -134,7 +134,11 @@ router.get('/hr-overview', requireRole('admin', 'hr_manager', 'super_admin', 'de
     const leavers = val("SELECT COUNT(*) as count FROM employees WHERE status IN ('مستقيل', 'مفصول')");
     const newHires30 = val("SELECT COUNT(*) as count FROM employees WHERE hire_date >= date('now','-30 days')");
     const newHires90 = val("SELECT COUNT(*) as count FROM employees WHERE hire_date >= date('now','-90 days')");
-    const probation = val("SELECT COUNT(*) as count FROM employees WHERE status = 'نشط' AND hire_date >= date('now','-3 months')");
+    const probationMonths = one('SELECT probation_months FROM org_settings WHERE id = 1').probation_months || 3;
+    const probation = val(
+      "SELECT COUNT(*) as count FROM employees WHERE status = 'نشط' AND hire_date >= date('now', '-' || ? || ' months')",
+      probationMonths
+    );
     const turnover = total ? Math.round((leavers / total) * 1000) / 10 : 0;
 
     const att = one(`

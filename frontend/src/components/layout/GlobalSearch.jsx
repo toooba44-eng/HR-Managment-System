@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from 'react-query'
+import { useTranslation } from 'react-i18next'
 import { Search, X, FileText } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { portalForRole } from '../../config/portals'
@@ -19,6 +20,7 @@ function useDebounced(value, delay = 250) {
 }
 
 export default function GlobalSearch() {
+  const { t } = useTranslation()
   const { user } = useAuthStore()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
@@ -31,7 +33,7 @@ export default function GlobalSearch() {
   const navItems = portalForRole(user?.role).nav
 
   const pageResults = query.trim().length > 0
-    ? navItems.filter((n) => n.label.includes(query.trim())).slice(0, 6)
+    ? navItems.filter((n) => n.label.includes(query.trim()) || t(n.label).includes(query.trim())).slice(0, 6)
     : []
 
   const { data } = useQuery(
@@ -84,7 +86,7 @@ export default function GlobalSearch() {
       <button
         onClick={() => setOpen(true)}
         className="w-10 h-10 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-500"
-        title="بحث (Ctrl+K)"
+        title={t('بحث (Ctrl+K)')}
       >
         <Search className="w-5 h-5" />
       </button>
@@ -99,7 +101,7 @@ export default function GlobalSearch() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={onInputKeyDown}
-                placeholder="ابحث عن صفحة أو موظف..."
+                placeholder={t('ابحث عن صفحة أو موظف...')}
                 className="flex-1 outline-none text-sm"
               />
               <button onClick={close} className="text-slate-400 hover:text-slate-600 shrink-0"><X className="w-4 h-4" /></button>
@@ -107,14 +109,14 @@ export default function GlobalSearch() {
 
             <div className="max-h-96 overflow-y-auto">
               {query.trim().length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-8">اكتب للبحث عن صفحة{canSearchEmployees ? ' أو موظف' : ''}</p>
+                <p className="text-sm text-slate-400 text-center py-8">{t('اكتب للبحث عن صفحة')}{canSearchEmployees ? ' ' + t('أو موظف') : ''}</p>
               ) : results.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-8">لا توجد نتائج</p>
+                <p className="text-sm text-slate-400 text-center py-8">{t('لا توجد نتائج')}</p>
               ) : (
                 <>
                   {pageResults.length > 0 && (
                     <div className="py-2">
-                      <p className="px-4 py-1 text-[11px] font-bold text-slate-400">الصفحات</p>
+                      <p className="px-4 py-1 text-[11px] font-bold text-slate-400">{t('الصفحات')}</p>
                       {pageResults.map((r, i) => (
                         <button
                           key={r.to}
@@ -122,14 +124,14 @@ export default function GlobalSearch() {
                           className={`w-full text-right px-4 py-2.5 flex items-center gap-3 ${activeIndex === i ? 'bg-primary-50' : 'hover:bg-slate-50'}`}
                         >
                           {r.icon ? <r.icon className="w-4 h-4 text-slate-400 shrink-0" /> : <FileText className="w-4 h-4 text-slate-400 shrink-0" />}
-                          <span className="text-sm text-slate-700">{r.label}</span>
+                          <span className="text-sm text-slate-700">{t(r.label)}</span>
                         </button>
                       ))}
                     </div>
                   )}
                   {employeeResults.length > 0 && (
                     <div className="py-2 border-t border-slate-50">
-                      <p className="px-4 py-1 text-[11px] font-bold text-slate-400">الموظفون</p>
+                      <p className="px-4 py-1 text-[11px] font-bold text-slate-400">{t('الموظفون')}</p>
                       {employeeResults.map((r, i) => {
                         const idx = pageResults.length + i
                         return (

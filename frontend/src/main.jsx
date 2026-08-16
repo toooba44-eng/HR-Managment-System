@@ -4,6 +4,7 @@ import { BrowserRouter, HashRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from 'react-query'
 import { Toaster } from 'react-hot-toast'
 import App from './App.jsx'
+import './i18n'
 import './index.css'
 
 // The static GitHub Pages demo uses hash routing so deep links work without

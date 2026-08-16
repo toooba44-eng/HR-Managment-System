@@ -1,5 +1,6 @@
 import { useQuery } from 'react-query'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, CartesianGrid, Legend,
@@ -44,12 +45,13 @@ function MiniStat({ icon: Icon, label, value, tone = 'text-slate-500' }) {
 }
 
 function DistroCard({ title, data }) {
+  const { t } = useTranslation()
   const rows = (data || []).filter((d) => d.count > 0)
   const total = rows.reduce((s, r) => s + r.count, 0)
   return (
     <div className="card">
-      <h3 className="font-bold text-slate-800 mb-4">{title}</h3>
-      {rows.length === 0 ? <EmptyState title="لا توجد بيانات" /> : (
+      <h3 className="font-bold text-slate-800 mb-4">{t(title)}</h3>
+      {rows.length === 0 ? <EmptyState title={t('لا توجد بيانات')} /> : (
         <div className="space-y-2.5">
           {rows.map((r, i) => (
             <div key={r.name}>
@@ -69,6 +71,7 @@ function DistroCard({ title, data }) {
 }
 
 function HrDashboard() {
+  const { t } = useTranslation()
   const { data, isLoading } = useQuery('hr-overview', dashboardApi.hrOverview)
   if (isLoading) return <Spinner fullscreen />
   const w = data?.workforce || {}
@@ -87,7 +90,7 @@ function HrDashboard() {
         {QUICK_ACTIONS.map((q) => (
           <Link key={q.label} to={q.to} className="card !p-3 flex flex-col items-center gap-2 hover:shadow-md transition-shadow text-center">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${q.tone}`}><q.icon className="w-5 h-5" /></div>
-            <span className="text-xs font-medium text-slate-600 leading-tight">{q.label}</span>
+            <span className="text-xs font-medium text-slate-600 leading-tight">{t(q.label)}</span>
           </Link>
         ))}
       </div>
@@ -95,7 +98,7 @@ function HrDashboard() {
       {/* Alerts */}
       {alerts.length > 0 && (
         <div className="card border-r-4 border-amber-400">
-          <div className="flex items-center gap-2 mb-2"><AlertTriangle className="w-5 h-5 text-amber-500" /><h3 className="font-bold text-slate-800">تنبيهات مهمة</h3></div>
+          <div className="flex items-center gap-2 mb-2"><AlertTriangle className="w-5 h-5 text-amber-500" /><h3 className="font-bold text-slate-800">{t('تنبيهات مهمة')}</h3></div>
           <div className="flex flex-wrap gap-2">
             {alerts.map((al, i) => {
               const tone = al.severity === 'تحذير' ? 'bg-amber-50 text-amber-700 hover:bg-amber-100' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
@@ -111,41 +114,41 @@ function HrDashboard() {
 
       {/* Workforce KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Users} label="إجمالي الموظفين" value={w.total ?? 0} tone="blue" hint={`${w.active ?? 0} نشط`} />
-        <StatCard icon={UserPlus} label="موظفون جدد (30 يوم)" value={w.newHires30 ?? 0} tone="green" hint={`${w.newHires90 ?? 0} خلال 90 يوم`} />
-        <StatCard icon={ShieldCheck} label="تحت التجربة" value={w.probation ?? 0} tone="violet" />
-        <StatCard icon={Repeat} label="معدل الدوران" value={`${w.turnover ?? 0}%`} tone="amber" hint={`${w.leavers ?? 0} مغادر`} />
+        <StatCard icon={Users} label={t('إجمالي الموظفين')} value={w.total ?? 0} tone="blue" hint={`${w.active ?? 0} ${t('نشط')}`} />
+        <StatCard icon={UserPlus} label={t('موظفون جدد (30 يوم)')} value={w.newHires30 ?? 0} tone="green" hint={`${w.newHires90 ?? 0} ${t('خلال 90 يوم')}`} />
+        <StatCard icon={ShieldCheck} label={t('تحت التجربة')} value={w.probation ?? 0} tone="violet" />
+        <StatCard icon={Repeat} label={t('معدل الدوران')} value={`${w.turnover ?? 0}%`} tone="amber" hint={`${w.leavers ?? 0} ${t('مغادر')}`} />
       </div>
 
       {/* Attendance today */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-slate-800">حضور اليوم</h3>
-          <Link to="/attendance" className="text-xs text-blue-600 hover:underline">عرض التفاصيل</Link>
+          <h3 className="font-bold text-slate-800">{t('حضور اليوم')}</h3>
+          <Link to="/attendance" className="text-xs text-blue-600 hover:underline">{t('عرض التفاصيل')}</Link>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-          <MiniStat icon={UserCheck} label="حاضر" value={a.present ?? 0} tone="text-emerald-500" />
-          <MiniStat icon={Clock} label="متأخر" value={a.late ?? 0} tone="text-amber-500" />
-          <MiniStat icon={UserMinus} label="غائب" value={a.absent ?? 0} tone="text-rose-500" />
-          <MiniStat icon={Video} label="عن بُعد" value={a.remote ?? 0} tone="text-blue-500" />
-          <MiniStat icon={CalendarClock} label="في إجازة" value={a.onLeave ?? 0} tone="text-violet-500" />
+          <MiniStat icon={UserCheck} label={t('حاضر')} value={a.present ?? 0} tone="text-emerald-500" />
+          <MiniStat icon={Clock} label={t('متأخر')} value={a.late ?? 0} tone="text-amber-500" />
+          <MiniStat icon={UserMinus} label={t('غائب')} value={a.absent ?? 0} tone="text-rose-500" />
+          <MiniStat icon={Video} label={t('عن بُعد')} value={a.remote ?? 0} tone="text-blue-500" />
+          <MiniStat icon={CalendarClock} label={t('في إجازة')} value={a.onLeave ?? 0} tone="text-violet-500" />
         </div>
       </div>
 
       {/* Action items */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <Link to="/leaves"><StatCard icon={ClipboardList} label="طلبات تحتاج موافقة" value={act.pendingApprovals ?? 0} tone="amber" /></Link>
-        <Link to="/hr/documents"><StatCard icon={FileWarning} label="مستندات قاربت الانتهاء" value={act.expiringDocs ?? 0} tone="rose" /></Link>
-        <Link to="/hr/recruitment"><StatCard icon={Briefcase} label="شواغر التوظيف" value={act.openJobs ?? 0} tone="blue" /></Link>
-        <Link to="/mgr/interviews"><StatCard icon={Video} label="مقابلات اليوم" value={act.todayInterviews ?? 0} tone="violet" /></Link>
-        <Link to="/hr/performance"><StatCard icon={AlertTriangle} label="تقييمات متأخرة" value={act.overdueReviews ?? 0} tone="rose" /></Link>
+        <Link to="/leaves"><StatCard icon={ClipboardList} label={t('طلبات تحتاج موافقة')} value={act.pendingApprovals ?? 0} tone="amber" /></Link>
+        <Link to="/hr/documents"><StatCard icon={FileWarning} label={t('مستندات قاربت الانتهاء')} value={act.expiringDocs ?? 0} tone="rose" /></Link>
+        <Link to="/hr/recruitment"><StatCard icon={Briefcase} label={t('شواغر التوظيف')} value={act.openJobs ?? 0} tone="blue" /></Link>
+        <Link to="/mgr/interviews"><StatCard icon={Video} label={t('مقابلات اليوم')} value={act.todayInterviews ?? 0} tone="violet" /></Link>
+        <Link to="/hr/performance"><StatCard icon={AlertTriangle} label={t('تقييمات متأخرة')} value={act.overdueReviews ?? 0} tone="rose" /></Link>
       </div>
 
       {/* Trend + department distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="card lg:col-span-2">
           <div className="flex items-center justify-between mb-6">
-            <div><h3 className="font-bold text-slate-800">اتجاه التوظيف والاستقالات</h3><p className="text-sm text-slate-400">آخر 6 أشهر</p></div>
+            <div><h3 className="font-bold text-slate-800">{t('اتجاه التوظيف والاستقالات')}</h3><p className="text-sm text-slate-400">{t('آخر 6 أشهر')}</p></div>
             <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center"><TrendingUp className="w-5 h-5" /></div>
           </div>
           <div dir="ltr">
@@ -156,16 +159,16 @@ function HrDashboard() {
                 <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} allowDecimals={false} />
                 <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }} />
                 <Legend />
-                <Bar dataKey="تعيينات" fill="#22c55e" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="استقالات" fill="#ef4444" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="تعيينات" name={t('تعيينات')} fill="#22c55e" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="استقالات" name={t('استقالات')} fill="#ef4444" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         <div className="card">
-          <h3 className="font-bold text-slate-800 mb-4">توزيع الموظفين حسب الإدارة</h3>
-          {deptPie.length === 0 ? <EmptyState title="لا توجد إدارات" /> : (
+          <h3 className="font-bold text-slate-800 mb-4">{t('توزيع الموظفين حسب الإدارة')}</h3>
+          {deptPie.length === 0 ? <EmptyState title={t('لا توجد إدارات')} /> : (
             <div dir="ltr">
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
@@ -191,8 +194,8 @@ function HrDashboard() {
       {/* Celebrations */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card">
-          <div className="flex items-center gap-2 mb-4"><Cake className="w-5 h-5 text-pink-500" /><h3 className="font-bold text-slate-800">أعياد الميلاد هذا الشهر</h3></div>
-          {!cel.birthdays?.length ? <EmptyState icon={Gift} title="لا توجد أعياد ميلاد" /> : (
+          <div className="flex items-center gap-2 mb-4"><Cake className="w-5 h-5 text-pink-500" /><h3 className="font-bold text-slate-800">{t('أعياد الميلاد هذا الشهر')}</h3></div>
+          {!cel.birthdays?.length ? <EmptyState icon={Gift} title={t('لا توجد أعياد ميلاد')} /> : (
             <div className="space-y-3">
               {cel.birthdays.map((b, i) => (
                 <div key={i} className="flex items-center gap-3">
@@ -205,14 +208,14 @@ function HrDashboard() {
           )}
         </div>
         <div className="card">
-          <div className="flex items-center gap-2 mb-4"><Award className="w-5 h-5 text-amber-500" /><h3 className="font-bold text-slate-800">ذكرى الانضمام هذا الشهر</h3></div>
-          {!cel.anniversaries?.length ? <EmptyState icon={Award} title="لا توجد مناسبات" /> : (
+          <div className="flex items-center gap-2 mb-4"><Award className="w-5 h-5 text-amber-500" /><h3 className="font-bold text-slate-800">{t('ذكرى الانضمام هذا الشهر')}</h3></div>
+          {!cel.anniversaries?.length ? <EmptyState icon={Award} title={t('لا توجد مناسبات')} /> : (
             <div className="space-y-3">
               {cel.anniversaries.map((b, i) => (
                 <div key={i} className="flex items-center gap-3">
                   <Avatar name={b.full_name} src={b.profile_picture} size="sm" />
                   <p className="flex-1 text-sm font-medium text-slate-700">{b.full_name}</p>
-                  <span className="badge bg-amber-50 text-amber-700">{b.years} سنوات</span>
+                  <span className="badge bg-amber-50 text-amber-700">{b.years} {t('سنوات')}</span>
                 </div>
               ))}
             </div>
@@ -224,6 +227,7 @@ function HrDashboard() {
 }
 
 function EmployeeDashboard() {
+  const { t } = useTranslation()
   const { data: stats, isLoading } = useQuery('dashboard-stats', dashboardApi.stats)
   const { data: chart = [] } = useQuery('attendance-chart', dashboardApi.attendanceChart)
   const { data: distribution = [] } = useQuery('dept-distribution', dashboardApi.departmentDistribution)
@@ -231,25 +235,25 @@ function EmployeeDashboard() {
 
   if (isLoading) return <Spinner fullscreen />
 
-  const chartData = chart.map((d) => ({ name: WEEKDAYS[new Date(d.date).getDay()], حاضر: d.present || 0, غائب: d.absent || 0, متأخر: d.late || 0 }))
+  const chartData = chart.map((d) => ({ name: t(WEEKDAYS[new Date(d.date).getDay()]), حاضر: d.present || 0, غائب: d.absent || 0, متأخر: d.late || 0 }))
   const pieData = distribution.map((d) => ({ name: d.name, value: d.count, color: d.color || '#3B82F6' }))
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Users} label="إجمالي الموظفين" value={stats?.employees?.total ?? 0} tone="blue" hint={`${stats?.employees?.newThisMonth ?? 0} جديد هذا الشهر`} />
-        <StatCard icon={UserCheck} label="حاضر اليوم" value={stats?.attendance?.present ?? 0} tone="green" hint={`${stats?.attendance?.remote ?? 0} عن بعد`} />
-        <StatCard icon={CalendarClock} label="إجازات معلقة" value={stats?.pendingLeaves ?? 0} tone="amber" />
-        <StatCard icon={Building2} label="الإدارات" value={stats?.departments ?? 0} tone="violet" />
+        <StatCard icon={Users} label={t('إجمالي الموظفين')} value={stats?.employees?.total ?? 0} tone="blue" hint={`${stats?.employees?.newThisMonth ?? 0} ${t('جديد هذا الشهر')}`} />
+        <StatCard icon={UserCheck} label={t('حاضر اليوم')} value={stats?.attendance?.present ?? 0} tone="green" hint={`${stats?.attendance?.remote ?? 0} ${t('عن بعد')}`} />
+        <StatCard icon={CalendarClock} label={t('إجازات معلقة')} value={stats?.pendingLeaves ?? 0} tone="amber" />
+        <StatCard icon={Building2} label={t('الإدارات')} value={stats?.departments ?? 0} tone="violet" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="card lg:col-span-2">
           <div className="flex items-center justify-between mb-6">
-            <div><h3 className="font-bold text-slate-800">الحضور الأسبوعي</h3><p className="text-sm text-slate-400">آخر 7 أيام</p></div>
+            <div><h3 className="font-bold text-slate-800">{t('الحضور الأسبوعي')}</h3><p className="text-sm text-slate-400">{t('آخر 7 أيام')}</p></div>
             <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center"><TrendingUp className="w-5 h-5" /></div>
           </div>
-          {chartData.length === 0 ? <EmptyState title="لا توجد بيانات حضور" /> : (
+          {chartData.length === 0 ? <EmptyState title={t('لا توجد بيانات حضور')} /> : (
             <div dir="ltr">
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={chartData} barGap={4}>
@@ -257,9 +261,9 @@ function EmployeeDashboard() {
                   <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                   <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }} />
-                  <Bar dataKey="حاضر" fill="#22c55e" radius={[6, 6, 0, 0]} />
-                  <Bar dataKey="متأخر" fill="#f59e0b" radius={[6, 6, 0, 0]} />
-                  <Bar dataKey="غائب" fill="#ef4444" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="حاضر" name={t('حاضر')} fill="#22c55e" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="متأخر" name={t('متأخر')} fill="#f59e0b" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="غائب" name={t('غائب')} fill="#ef4444" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -267,8 +271,8 @@ function EmployeeDashboard() {
         </div>
 
         <div className="card">
-          <h3 className="font-bold text-slate-800 mb-6">توزيع الموظفين</h3>
-          {pieData.length === 0 ? <EmptyState title="لا توجد إدارات" /> : (
+          <h3 className="font-bold text-slate-800 mb-6">{t('توزيع الموظفين')}</h3>
+          {pieData.length === 0 ? <EmptyState title={t('لا توجد إدارات')} /> : (
             <>
               <div dir="ltr">
                 <ResponsiveContainer width="100%" height={200}>
@@ -295,8 +299,8 @@ function EmployeeDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card">
-          <h3 className="font-bold text-slate-800 mb-4">النشاط الأخير</h3>
-          {!stats?.recentActivity?.length ? <EmptyState icon={Clock} title="لا يوجد نشاط اليوم" /> : (
+          <h3 className="font-bold text-slate-800 mb-4">{t('النشاط الأخير')}</h3>
+          {!stats?.recentActivity?.length ? <EmptyState icon={Clock} title={t('لا يوجد نشاط اليوم')} /> : (
             <div className="space-y-3">
               {stats.recentActivity.map((a, i) => (
                 <div key={i} className="flex items-center gap-3 py-2">
@@ -309,13 +313,13 @@ function EmployeeDashboard() {
           )}
         </div>
         <div className="card">
-          <h3 className="font-bold text-slate-800 mb-4">الإجازات القادمة</h3>
-          {!upcoming.length ? <EmptyState icon={CalendarClock} title="لا توجد إجازات قادمة" /> : (
+          <h3 className="font-bold text-slate-800 mb-4">{t('الإجازات القادمة')}</h3>
+          {!upcoming.length ? <EmptyState icon={CalendarClock} title={t('لا توجد إجازات قادمة')} /> : (
             <div className="space-y-3">
               {upcoming.map((l) => (
                 <div key={l.id} className="flex items-center gap-3 py-2">
                   <Avatar name={l.full_name} src={l.profile_picture} size="sm" />
-                  <div className="flex-1 min-w-0"><p className="text-sm font-medium text-slate-700 truncate">{l.full_name}</p><p className="text-xs text-slate-400">{l.type} · {l.days_count} أيام</p></div>
+                  <div className="flex-1 min-w-0"><p className="text-sm font-medium text-slate-700 truncate">{l.full_name}</p><p className="text-xs text-slate-400">{t(l.type)} · {l.days_count} {t('أيام')}</p></div>
                   <span className="text-xs text-slate-500">{formatDate(l.start_date)}</span>
                 </div>
               ))}

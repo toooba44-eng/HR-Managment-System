@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
+import { useTranslation } from 'react-i18next'
 import { LogIn, LogOut, CalendarCheck, Clock } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { attendanceApi } from '../api/endpoints'
@@ -12,6 +13,7 @@ import StatCard from '../components/ui/StatCard'
 import { formatDate, formatTime } from '../lib/utils'
 
 function CheckInOutCard() {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const { user } = useAuthStore()
   const employeeId = user?.employee_id
@@ -26,12 +28,12 @@ function CheckInOutCard() {
   const todayRecord = mine.find((r) => r.date === today)
 
   const checkIn = useMutation(() => attendanceApi.checkIn({ employee_id: employeeId, location: 'المكتب' }), {
-    onSuccess: () => { toast.success('تم تسجيل الدخول'); qc.invalidateQueries(['my-attendance', employeeId]); qc.invalidateQueries('attendance') },
-    onError: (err) => toast.error(err.response?.data?.error || 'فشل تسجيل الدخول'),
+    onSuccess: () => { toast.success(t('تم تسجيل الدخول', { context: 'attendance' })); qc.invalidateQueries(['my-attendance', employeeId]); qc.invalidateQueries('attendance') },
+    onError: (err) => toast.error(err.response?.data?.error || t('فشل تسجيل الدخول', { context: 'attendance' })),
   })
   const checkOut = useMutation(() => attendanceApi.checkOut({ employee_id: employeeId }), {
-    onSuccess: () => { toast.success('تم تسجيل الخروج'); qc.invalidateQueries(['my-attendance', employeeId]); qc.invalidateQueries('attendance') },
-    onError: (err) => toast.error(err.response?.data?.error || 'فشل تسجيل الخروج'),
+    onSuccess: () => { toast.success(t('تم تسجيل الخروج', { context: 'attendance' })); qc.invalidateQueries(['my-attendance', employeeId]); qc.invalidateQueries('attendance') },
+    onError: (err) => toast.error(err.response?.data?.error || t('فشل تسجيل الخروج', { context: 'attendance' })),
   })
 
   if (!employeeId) return null
@@ -40,13 +42,13 @@ function CheckInOutCard() {
     <div className="card bg-gradient-to-br from-primary-600 to-primary-800 text-white">
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="text-center sm:text-right">
-          <p className="text-primary-100 text-sm">تسجيل حضورك اليوم</p>
+          <p className="text-primary-100 text-sm">{t('تسجيل حضورك اليوم')}</p>
           <p className="text-2xl font-extrabold">{formatDate(today)}</p>
           {todayRecord && (
             <div className="flex gap-4 mt-2 text-sm text-primary-100 justify-center sm:justify-start">
-              <span>دخول: {formatTime(todayRecord.check_in)}</span>
-              {todayRecord.check_out && <span>آخر خروج: {formatTime(todayRecord.check_out)}</span>}
-              {todayRecord.check_out && <span>إجمالي الساعات: {todayRecord.work_hours}</span>}
+              <span>{t('دخول')}: {formatTime(todayRecord.check_in)}</span>
+              {todayRecord.check_out && <span>{t('آخر خروج')}: {formatTime(todayRecord.check_out)}</span>}
+              {todayRecord.check_out && <span>{t('إجمالي الساعات')}: {todayRecord.work_hours}</span>}
             </div>
           )}
         </div>
@@ -58,7 +60,7 @@ function CheckInOutCard() {
               className="bg-white text-primary-700 px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-primary-50 transition-colors disabled:opacity-60"
             >
               <LogIn className="w-5 h-5" />
-              تسجيل الدخول
+              {t('تسجيل الدخول', { context: 'attendance' })}
             </button>
           ) : (
             <button
@@ -67,7 +69,7 @@ function CheckInOutCard() {
               className="bg-white text-rose-600 px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-rose-50 transition-colors disabled:opacity-60"
             >
               <LogOut className="w-5 h-5" />
-              تسجيل الخروج
+              {t('تسجيل الخروج', { context: 'attendance' })}
             </button>
           )}
         </div>
@@ -77,6 +79,7 @@ function CheckInOutCard() {
 }
 
 export default function Attendance() {
+  const { t } = useTranslation()
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const { data, isLoading } = useQuery(['attendance', date], () => attendanceApi.list({ date, limit: 100 }))
 
@@ -88,15 +91,15 @@ export default function Attendance() {
       <CheckInOutCard />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={CalendarCheck} label="الحاضرون" value={summary.present || 0} tone="green" />
-        <StatCard icon={Clock} label="المتأخرون" value={summary.late || 0} tone="amber" />
-        <StatCard icon={LogOut} label="الغائبون" value={summary.absent || 0} tone="rose" />
-        <StatCard icon={LogIn} label="عن بعد" value={summary.remote || 0} tone="cyan" />
+        <StatCard icon={CalendarCheck} label={t('الحاضرون')} value={summary.present || 0} tone="green" />
+        <StatCard icon={Clock} label={t('المتأخرون')} value={summary.late || 0} tone="amber" />
+        <StatCard icon={LogOut} label={t('الغائبون')} value={summary.absent || 0} tone="rose" />
+        <StatCard icon={LogIn} label={t('عن بعد')} value={summary.remote || 0} tone="cyan" />
       </div>
 
       <div className="card">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-4">
-          <h3 className="font-bold text-slate-800">سجل الحضور</h3>
+          <h3 className="font-bold text-slate-800">{t('سجل الحضور')}</h3>
           <input
             type="date"
             value={date}
@@ -108,18 +111,18 @@ export default function Attendance() {
         {isLoading ? (
           <Spinner fullscreen />
         ) : records.length === 0 ? (
-          <EmptyState icon={CalendarCheck} title="لا توجد سجلات حضور لهذا اليوم" />
+          <EmptyState icon={CalendarCheck} title={t('لا توجد سجلات حضور لهذا اليوم')} />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-right text-slate-400 border-b border-slate-100">
-                  <th className="pb-3 font-medium">الموظف</th>
-                  <th className="pb-3 font-medium">الإدارة</th>
-                  <th className="pb-3 font-medium">الدخول</th>
-                  <th className="pb-3 font-medium">الخروج</th>
-                  <th className="pb-3 font-medium">الساعات</th>
-                  <th className="pb-3 font-medium">الحالة</th>
+                  <th className="pb-3 font-medium">{t('الموظف')}</th>
+                  <th className="pb-3 font-medium">{t('الإدارة')}</th>
+                  <th className="pb-3 font-medium">{t('الدخول')}</th>
+                  <th className="pb-3 font-medium">{t('الخروج')}</th>
+                  <th className="pb-3 font-medium">{t('الساعات')}</th>
+                  <th className="pb-3 font-medium">{t('الحالة')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -138,7 +141,7 @@ export default function Attendance() {
                     <td className="py-3 text-slate-600">{formatTime(r.check_in)}</td>
                     <td className="py-3 text-slate-600">{formatTime(r.check_out)}</td>
                     <td className="py-3 text-slate-600">{r.work_hours || 0}</td>
-                    <td className="py-3"><Badge status={r.status} /></td>
+                    <td className="py-3"><Badge status={r.status}>{t(r.status)}</Badge></td>
                   </tr>
                 ))}
               </tbody>

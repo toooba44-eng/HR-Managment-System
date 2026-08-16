@@ -1,16 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
+import { useTranslation } from 'react-i18next'
 import { Menu, Bell, CheckCheck } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { notificationsApi } from '../../api/endpoints'
 import { timeAgo } from '../../lib/utils'
 import Avatar from '../ui/Avatar'
 import GlobalSearch from './GlobalSearch'
+import LanguageToggle from './LanguageToggle'
 
 const TYPE_DOT = { success: 'bg-emerald-500', error: 'bg-rose-500', warning: 'bg-amber-500', info: 'bg-blue-500' }
 
 function NotificationsBell() {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   const navigate = useNavigate()
@@ -57,19 +60,19 @@ function NotificationsBell() {
       {open && (
         <div className="absolute left-0 mt-2 w-80 max-w-[90vw] bg-white rounded-xl shadow-lg border border-slate-100 z-30 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-            <span className="text-sm font-bold text-slate-700">الإشعارات</span>
+            <span className="text-sm font-bold text-slate-700">{t('الإشعارات')}</span>
             {unreadCount > 0 && (
               <button
                 onClick={() => markAllRead.mutate()}
                 className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
               >
-                <CheckCheck className="w-3.5 h-3.5" /> تعليم الكل كمقروء
+                <CheckCheck className="w-3.5 h-3.5" /> {t('تعليم الكل كمقروء')}
               </button>
             )}
           </div>
           <div className="max-h-96 overflow-y-auto">
             {notifications.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-8">لا توجد إشعارات</p>
+              <p className="text-sm text-slate-400 text-center py-8">{t('لا توجد إشعارات')}</p>
             ) : (
               notifications.map((n) => (
                 <button
@@ -94,6 +97,7 @@ function NotificationsBell() {
 }
 
 export default function Topbar({ onMenuClick, title }) {
+  const { t } = useTranslation()
   const { user } = useAuthStore()
 
   return (
@@ -111,8 +115,9 @@ export default function Topbar({ onMenuClick, title }) {
 
         <div className="flex items-center gap-3">
           <GlobalSearch />
+          <LanguageToggle />
           <NotificationsBell />
-          <Link to="/profile" className="hidden sm:flex items-center gap-2 hover:bg-slate-50 rounded-lg px-2 py-1 transition-colors" title="ملفي الشخصي">
+          <Link to="/profile" className="hidden sm:flex items-center gap-2 hover:bg-slate-50 rounded-lg px-2 py-1 transition-colors" title={t('ملفي الشخصي')}>
             <Avatar name={user?.full_name} src={user?.profile_picture} size="sm" />
             <span className="text-sm font-medium text-slate-700">{user?.full_name}</span>
           </Link>

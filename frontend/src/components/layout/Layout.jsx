@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import Sidebar from './Sidebar'
 import Topbar from './Topbar'
 import BottomNav from './BottomNav'
@@ -9,6 +10,7 @@ import { useAuthStore } from '../../store/authStore'
 import { portalForRole } from '../../config/portals'
 
 export default function Layout() {
+  const { t } = useTranslation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const location = useLocation()
   const { user } = useAuthStore()
@@ -20,6 +22,7 @@ export default function Layout() {
   if (location.pathname.startsWith('/employees/')) title = 'ملف الموظف'
   if (location.pathname === '/profile') title = 'ملفي الشخصي'
   if (location.pathname === '/hr/policies') title = 'السياسات'
+  title = t(title)
 
   return (
     <div className="flex min-h-screen bg-slate-50">
