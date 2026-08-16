@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
+import { useTranslation } from 'react-i18next'
 import { Megaphone, Plus, Pin, Trash2, CheckCircle2, Users, Check } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { announcementsApi } from '../../api/endpoints'
@@ -14,39 +15,40 @@ import { formatDate } from '../../lib/utils'
 const CAN_POST = ['super_admin', 'admin', 'hr_manager']
 
 function AnnouncementForm({ open, onClose }) {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const [form, setForm] = useState({ title: '', body: '', is_pinned: false, requires_acknowledgment: false })
 
   const mutation = useMutation((data) => announcementsApi.create(data), {
     onSuccess: () => {
-      toast.success('تم نشر الإعلان')
+      toast.success(t('تم نشر الإعلان'))
       qc.invalidateQueries('announcements')
       onClose()
       setForm({ title: '', body: '', is_pinned: false, requires_acknowledgment: false })
     },
-    onError: (err) => toast.error(err.response?.data?.error || 'فشل النشر'),
+    onError: (err) => toast.error(err.response?.data?.error || t('فشل النشر')),
   })
 
   return (
-    <Modal open={open} onClose={onClose} title="إعلان جديد">
+    <Modal open={open} onClose={onClose} title={t('إعلان جديد')}>
       <form onSubmit={(e) => { e.preventDefault(); mutation.mutate(form) }} className="space-y-4">
-        <Field label="العنوان" required>
+        <Field label={t('العنوان', { context: 'announcement' })} required>
           <Input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} required />
         </Field>
-        <Field label="النص" required>
+        <Field label={t('النص')} required>
           <Textarea value={form.body} onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))} rows={4} required />
         </Field>
         <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
           <input type="checkbox" checked={form.is_pinned} onChange={(e) => setForm((f) => ({ ...f, is_pinned: e.target.checked }))} className="w-4 h-4 rounded" />
-          تثبيت الإعلان في الأعلى
+          {t('تثبيت الإعلان في الأعلى')}
         </label>
         <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
           <input type="checkbox" checked={form.requires_acknowledgment} onChange={(e) => setForm((f) => ({ ...f, requires_acknowledgment: e.target.checked }))} className="w-4 h-4 rounded" />
-          يتطلب إقرار الموظفين بالاطلاع
+          {t('يتطلب إقرار الموظفين بالاطلاع')}
         </label>
         <div className="flex justify-end gap-3 pt-2">
-          <Button type="button" variant="secondary" onClick={onClose}>إلغاء</Button>
-          <Button type="submit" loading={mutation.isLoading}>نشر</Button>
+          <Button type="button" variant="secondary" onClick={onClose}>{t('إلغاء')}</Button>
+          <Button type="submit" loading={mutation.isLoading}>{t('نشر')}</Button>
         </div>
       </form>
     </Modal>
@@ -54,18 +56,19 @@ function AnnouncementForm({ open, onClose }) {
 }
 
 function ReadsModal({ announcement, onClose }) {
+  const { t } = useTranslation()
   const { data, isLoading } = useQuery(['announcement-reads', announcement.id], () => announcementsApi.reads(announcement.id))
   return (
-    <Modal open onClose={onClose} title={`من اطّلع على: ${announcement.title}`}>
+    <Modal open onClose={onClose} title={t('من اطّلع على: {{title}}', { title: announcement.title })}>
       {isLoading ? <Spinner /> : (
         <div className="space-y-4">
           <p className="text-sm text-slate-500">
-            اطّلع <span className="font-bold text-emerald-600">{data.readers.length}</span> من أصل <span className="font-bold text-slate-700">{data.total}</span> موظف نشط.
+            {t('اطّلع {{readers}} من أصل {{total}} موظف نشط.', { readers: data.readers.length, total: data.total })}
           </p>
           <div>
-            <p className="text-xs font-medium text-slate-400 mb-2">اطّلعوا ({data.readers.length})</p>
+            <p className="text-xs font-medium text-slate-400 mb-2">{t('اطّلعوا ({{count}})', { count: data.readers.length })}</p>
             <div className="space-y-1.5 max-h-40 overflow-y-auto">
-              {data.readers.length === 0 && <p className="text-xs text-slate-400">لا أحد بعد.</p>}
+              {data.readers.length === 0 && <p className="text-xs text-slate-400">{t('لا أحد بعد.')}</p>}
               {data.readers.map((r) => (
                 <div key={r.employee_id} className="flex items-center justify-between gap-2 text-sm">
                   <div className="flex items-center gap-2"><Avatar name={r.full_name} size="sm" /><span className="text-slate-700">{r.full_name}</span></div>
@@ -76,7 +79,7 @@ function ReadsModal({ announcement, onClose }) {
           </div>
           {data.notRead.length > 0 && (
             <div>
-              <p className="text-xs font-medium text-slate-400 mb-2">لم يطّلعوا بعد ({data.notRead.length})</p>
+              <p className="text-xs font-medium text-slate-400 mb-2">{t('لم يطّلعوا بعد ({{count}})', { count: data.notRead.length })}</p>
               <div className="space-y-1.5 max-h-40 overflow-y-auto">
                 {data.notRead.map((e) => (
                   <div key={e.employee_id} className="flex items-center gap-2 text-sm">
@@ -94,6 +97,7 @@ function ReadsModal({ announcement, onClose }) {
 }
 
 export default function Announcements() {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const { user } = useAuthStore()
   const [showForm, setShowForm] = useState(false)
@@ -103,13 +107,13 @@ export default function Announcements() {
   const { data: items = [], isLoading } = useQuery('announcements', announcementsApi.list)
 
   const removeMutation = useMutation((id) => announcementsApi.remove(id), {
-    onSuccess: () => { toast.success('تم الحذف'); qc.invalidateQueries('announcements') },
-    onError: () => toast.error('فشل الحذف'),
+    onSuccess: () => { toast.success(t('تم الحذف')); qc.invalidateQueries('announcements') },
+    onError: () => toast.error(t('فشل الحذف')),
   })
 
   const readMutation = useMutation((id) => announcementsApi.markRead(id), {
-    onSuccess: () => { toast.success('تم تسجيل اطلاعك'); qc.invalidateQueries('announcements') },
-    onError: (err) => toast.error(err.response?.data?.error || 'فشلت العملية'),
+    onSuccess: () => { toast.success(t('تم تسجيل اطلاعك')); qc.invalidateQueries('announcements') },
+    onError: (err) => toast.error(err.response?.data?.error || t('فشلت العملية')),
   })
 
   if (isLoading) return <Spinner fullscreen />
@@ -120,13 +124,13 @@ export default function Announcements() {
         <div className="flex justify-end">
           <Button onClick={() => setShowForm(true)}>
             <Plus className="w-5 h-5" />
-            إعلان جديد
+            {t('إعلان جديد')}
           </Button>
         </div>
       )}
 
       {items.length === 0 ? (
-        <div className="card"><EmptyState icon={Megaphone} title="لا توجد إعلانات" /></div>
+        <div className="card"><EmptyState icon={Megaphone} title={t('لا توجد إعلانات')} /></div>
       ) : (
         <div className="space-y-4">
           {items.map((a) => (
@@ -137,15 +141,15 @@ export default function Announcements() {
                   <h3 className="font-bold text-slate-800">{a.title}</h3>
                   {!!a.requires_acknowledgment && (
                     <span className={`badge ${a.read_by_me ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
-                      {a.read_by_me ? 'تم الاطلاع' : 'يتطلب إقراراً'}
+                      {a.read_by_me ? t('تم الاطلاع') : t('يتطلب إقراراً')}
                     </span>
                   )}
                 </div>
                 {canPost && (
                   <button
-                    onClick={() => window.confirm('حذف هذا الإعلان؟') && removeMutation.mutate(a.id)}
+                    onClick={() => window.confirm(t('حذف هذا الإعلان؟')) && removeMutation.mutate(a.id)}
                     className="text-slate-300 hover:text-rose-500"
-                    title="حذف"
+                    title={t('حذف')}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -155,23 +159,23 @@ export default function Announcements() {
               <div className="flex items-center justify-between gap-3 mt-4 pt-3 border-t border-slate-100">
                 <div className="flex items-center gap-2 text-xs text-slate-400">
                   {a.created_by_name && <Avatar name={a.created_by_name} size="sm" />}
-                  <span>{a.created_by_name || 'النظام'}</span>
+                  <span>{a.created_by_name || t('النظام')}</span>
                   <span>·</span>
                   <span>{formatDate(a.created_at)}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   {canPost && (
                     <button onClick={() => setViewingReads(a)} className="flex items-center gap-1 text-xs text-slate-400 hover:text-primary-600">
-                      <Users className="w-3.5 h-3.5" /> اطّلع {a.read_count || 0}
+                      <Users className="w-3.5 h-3.5" /> {t('اطّلع {{count}}', { count: a.read_count || 0 })}
                     </button>
                   )}
                   {!!a.requires_acknowledgment && !a.read_by_me && (
                     <Button variant="secondary" className="!py-1.5 !px-3 text-xs" onClick={() => readMutation.mutate(a.id)} loading={readMutation.isLoading}>
-                      <Check className="w-4 h-4" /> تم الاطلاع
+                      <Check className="w-4 h-4" /> {t('تم الاطلاع')}
                     </Button>
                   )}
                   {!!a.requires_acknowledgment && !!a.read_by_me && (
-                    <span className="flex items-center gap-1 text-xs text-emerald-600"><CheckCircle2 className="w-4 h-4" /> تم إقرارك</span>
+                    <span className="flex items-center gap-1 text-xs text-emerald-600"><CheckCircle2 className="w-4 h-4" /> {t('تم إقرارك')}</span>
                   )}
                 </div>
               </div>
