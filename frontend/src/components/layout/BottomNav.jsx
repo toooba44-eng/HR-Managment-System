@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Menu } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { portalForRole } from '../../config/portals'
@@ -8,6 +9,7 @@ import { cn } from '../../lib/utils'
 // a curated shortlist of its most-used destinations (portal.primaryNav),
 // with a final tab that opens the full sidebar for everything else.
 export default function BottomNav({ onMenuClick }) {
+  const { t } = useTranslation()
   const { user } = useAuthStore()
   const portal = portalForRole(user?.role)
 
@@ -36,7 +38,7 @@ export default function BottomNav({ onMenuClick }) {
           }
         >
           <item.icon className="w-5 h-5" />
-          <span className="truncate max-w-full px-1">{item.label}</span>
+          <span className="truncate max-w-full px-1">{t(item.label)}</span>
         </NavLink>
       ))}
       <button
@@ -45,7 +47,7 @@ export default function BottomNav({ onMenuClick }) {
         className="flex-1 flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium text-slate-400"
       >
         <Menu className="w-5 h-5" />
-        <span>المزيد</span>
+        <span>{t('المزيد')}</span>
       </button>
     </nav>
   )

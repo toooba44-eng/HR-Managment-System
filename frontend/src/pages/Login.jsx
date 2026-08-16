@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useLocation, Navigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Mail, Lock, Eye, EyeOff, LogIn, ShieldCheck } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../store/authStore'
@@ -17,6 +18,7 @@ const DEMO_ACCOUNTS = [
 ]
 
 export default function Login() {
+  const { t } = useTranslation()
   const { login, verifyTwoFactor, token, isLoading } = useAuthStore()
   const navigate = useNavigate()
   const location = useLocation()
@@ -29,7 +31,7 @@ export default function Login() {
   if (token) return <Navigate to="/" replace />
 
   const goHome = (u) => {
-    toast.success('تم تسجيل الدخول بنجاح')
+    toast.success(t('تم تسجيل الدخول بنجاح'))
     navigate(location.state?.from?.pathname || portalForRole(u.role).home, { replace: true })
   }
 
@@ -43,7 +45,7 @@ export default function Login() {
       }
       goHome(result)
     } catch (err) {
-      toast.error(err.response?.data?.error || 'فشل تسجيل الدخول')
+      toast.error(err.response?.data?.error || t('فشل تسجيل الدخول'))
     }
   }
 
@@ -53,7 +55,7 @@ export default function Login() {
       const u = await verifyTwoFactor({ pending_token: pendingToken, code })
       goHome(u)
     } catch (err) {
-      toast.error(err.response?.data?.error || 'رمز التحقق غير صحيح')
+      toast.error(err.response?.data?.error || t('رمز التحقق غير صحيح'))
     }
   }
 
@@ -76,13 +78,13 @@ export default function Login() {
         </div>
         <div className="relative">
           <h1 className="text-4xl font-extrabold leading-tight mb-4">
-            نظام إدارة الموارد البشرية
+            {t('نظام إدارة الموارد البشرية')}
           </h1>
           <p className="text-primary-100 text-lg leading-relaxed">
-            إدارة الموظفين، الحضور، الإجازات، والإدارات في منصة واحدة متكاملة وسهلة الاستخدام.
+            {t('إدارة الموظفين، الحضور، الإجازات، والإدارات في منصة واحدة متكاملة وسهلة الاستخدام')}.
           </p>
         </div>
-        <p className="text-primary-200 text-sm relative">© 2026 Quant HR. جميع الحقوق محفوظة.</p>
+        <p className="text-primary-200 text-sm relative">© 2026 Quant HR. {t('جميع الحقوق محفوظة')}.</p>
       </div>
 
       {/* Form panel */}
@@ -100,11 +102,11 @@ export default function Login() {
               <>
                 <div className="flex items-center gap-2 mb-1">
                   <ShieldCheck className="w-6 h-6 text-primary-600" />
-                  <h2 className="text-2xl font-extrabold text-slate-800">التحقق بخطوتين</h2>
+                  <h2 className="text-2xl font-extrabold text-slate-800">{t('التحقق بخطوتين')}</h2>
                 </div>
-                <p className="text-slate-400 mb-4">أدخل الرمز المكوّن من 6 أرقام من تطبيق المصادقة</p>
+                <p className="text-slate-400 mb-4">{t('أدخل الرمز المكوّن من 6 أرقام من تطبيق المصادقة')}</p>
                 <form onSubmit={handleVerify} className="space-y-4">
-                  <Field label="رمز التحقق" required>
+                  <Field label={t('رمز التحقق')} required>
                     <Input
                       value={code}
                       onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
@@ -117,26 +119,26 @@ export default function Login() {
                   </Field>
                   <Button type="submit" loading={isLoading} className="w-full" disabled={code.length !== 6}>
                     <ShieldCheck className="w-5 h-5" />
-                    تحقق
+                    {t('تحقق')}
                   </Button>
                   <button type="button" onClick={() => { setPendingToken(null); setCode('') }} className="text-sm text-slate-400 hover:text-slate-600 w-full text-center">
-                    الرجوع لتسجيل الدخول
+                    {t('الرجوع لتسجيل الدخول')}
                   </button>
                 </form>
               </>
             ) : (
               <>
-                <h2 className="text-2xl font-extrabold text-slate-800 mb-1">مرحباً بعودتك</h2>
-                <p className="text-slate-400 mb-4">سجّل الدخول للمتابعة إلى حسابك</p>
+                <h2 className="text-2xl font-extrabold text-slate-800 mb-1">{t('مرحباً بعودتك')}</h2>
+                <p className="text-slate-400 mb-4">{t('سجّل الدخول للمتابعة إلى حسابك')}</p>
 
                 {DEMO && (
                   <div className="mb-5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs leading-relaxed p-3">
-                    🧪 <span className="font-bold">نسخة تجريبية</span> — تعمل بالكامل داخل المتصفح ببيانات وهمية دون خادم فعلي. التعديلات مؤقتة ولا تُحفظ. استخدم أحد الحسابات التجريبية بالأسفل.
+                    🧪 <span className="font-bold">{t('نسخة تجريبية')}</span> — {t('تعمل بالكامل داخل المتصفح ببيانات وهمية دون خادم فعلي. التعديلات مؤقتة ولا تُحفظ. استخدم أحد الحسابات التجريبية بالأسفل.')}
                   </div>
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  <Field label="البريد الإلكتروني" required>
+                  <Field label={t('البريد الإلكتروني')} required>
                     <div className="relative">
                       <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                       <Input
@@ -150,7 +152,7 @@ export default function Login() {
                     </div>
                   </Field>
 
-                  <Field label="كلمة المرور" required>
+                  <Field label={t('كلمة المرور')} required>
                     <div className="relative">
                       <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                       <Input
@@ -173,14 +175,14 @@ export default function Login() {
 
                   <Button type="submit" loading={isLoading} className="w-full">
                     <LogIn className="w-5 h-5" />
-                    تسجيل الدخول
+                    {t('تسجيل الدخول')}
                   </Button>
                 </form>
               </>
             )}
 
             {!pendingToken && <div className="mt-6 pt-6 border-t border-slate-100">
-              <p className="text-xs text-slate-400 mb-3 text-center">حسابات تجريبية (اضغط للتعبئة)</p>
+              <p className="text-xs text-slate-400 mb-3 text-center">{t('حسابات تجريبية')} ({t('اضغط للتعبئة')})</p>
               <div className="grid grid-cols-3 gap-2">
                 {DEMO_ACCOUNTS.map((acc) => (
                   <button
@@ -188,7 +190,7 @@ export default function Login() {
                     onClick={() => fillDemo(acc)}
                     className="text-xs py-2 px-2 rounded-lg border border-slate-200 hover:border-primary-400 hover:bg-primary-50 text-slate-600 transition-colors"
                   >
-                    {acc.label}
+                    {t(acc.label)}
                   </button>
                 ))}
               </div>

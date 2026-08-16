@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { LogOut, X, ChevronDown } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { portalForRole } from '../../config/portals'
@@ -26,6 +27,7 @@ function isItemActive(item, pathname) {
 }
 
 export default function Sidebar({ open, onClose }) {
+  const { t } = useTranslation()
   const { user, logout } = useAuthStore()
   const portal = portalForRole(user?.role)
   const location = useLocation()
@@ -75,7 +77,7 @@ export default function Sidebar({ open, onClose }) {
               Q
             </div>
             <div className="min-w-0">
-              <h1 className="font-extrabold text-slate-800 leading-tight truncate">{portal.name}</h1>
+              <h1 className="font-extrabold text-slate-800 leading-tight truncate">{t(portal.name)}</h1>
               <p className="text-xs text-slate-400">Quant HR · {portal.subtitle}</p>
             </div>
           </div>
@@ -96,7 +98,7 @@ export default function Sidebar({ open, onClose }) {
                   aria-expanded={openSections.has(group.section)}
                   className="w-full flex items-center justify-between gap-2 px-4 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-wide hover:text-slate-600 transition-colors"
                 >
-                  <span className="truncate">{group.section}</span>
+                  <span className="truncate">{t(group.section)}</span>
                   <ChevronDown
                     className={cn(
                       'w-3.5 h-3.5 shrink-0 transition-transform duration-200',
@@ -115,7 +117,7 @@ export default function Sidebar({ open, onClose }) {
                         className={({ isActive }) => cn('nav-item', isActive && 'active')}
                       >
                         <item.icon className="w-5 h-5 shrink-0" />
-                        <span className="truncate">{item.label}</span>
+                        <span className="truncate">{t(item.label)}</span>
                       </NavLink>
                     ))}
                   </div>
@@ -132,7 +134,7 @@ export default function Sidebar({ open, onClose }) {
                     className={({ isActive }) => cn('nav-item', isActive && 'active')}
                   >
                     <item.icon className="w-5 h-5 shrink-0" />
-                    <span className="truncate">{item.label}</span>
+                    <span className="truncate">{t(item.label)}</span>
                   </NavLink>
                 ))}
               </Fragment>
@@ -146,7 +148,7 @@ export default function Sidebar({ open, onClose }) {
             <Avatar name={user?.full_name || user?.email} src={user?.profile_picture} size="md" />
             <div className="min-w-0 flex-1">
               <p className="font-semibold text-slate-800 text-sm truncate">{user?.full_name || user?.email}</p>
-              <p className="text-xs text-slate-400">{ROLE_LABELS[user?.role] || user?.role}</p>
+              <p className="text-xs text-slate-400">{t(ROLE_LABELS[user?.role] || user?.role)}</p>
             </div>
           </div>
           <button
@@ -154,7 +156,7 @@ export default function Sidebar({ open, onClose }) {
             className="nav-item w-full text-rose-500 hover:bg-rose-50 hover:text-rose-600"
           >
             <LogOut className="w-5 h-5" />
-            تسجيل الخروج
+            {t('تسجيل الخروج')}
           </button>
         </div>
       </aside>
