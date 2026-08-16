@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from 'react-query'
+import { useTranslation } from 'react-i18next'
 import { Wallet, Download, Building2, CreditCard } from 'lucide-react'
 import { payslipsApi } from '../../api/endpoints'
 import { useAuthStore } from '../../store/authStore'
@@ -10,6 +11,7 @@ import Badge from '../../components/ui/Badge'
 import { formatCurrency } from '../../lib/utils'
 
 function PayslipDetail({ slip, employee, onClose }) {
+  const { t } = useTranslation()
   if (!slip) return null
   const rows = [
     { label: 'الراتب الأساسي', value: slip.basic, positive: true },
@@ -20,27 +22,27 @@ function PayslipDetail({ slip, employee, onClose }) {
     { label: 'التأمينات (GOSI)', value: -slip.deductions, positive: false },
   ].filter((r) => r.value)
   return (
-    <Modal open={!!slip} onClose={onClose} title={`قسيمة راتب — ${slip.month} ${slip.year}`}>
+    <Modal open={!!slip} onClose={onClose} title={t('قسيمة راتب — {{month}} {{year}}', { month: slip.month, year: slip.year })}>
       <div className="space-y-4">
         <div className="flex items-center justify-between text-sm">
           <div>
             <p className="font-bold text-slate-800">{employee.full_name}</p>
             <p className="text-slate-400">{employee.job_title} · {employee.employee_number}</p>
           </div>
-          <Badge status={slip.status} />
+          <Badge status={slip.status}>{t(slip.status)}</Badge>
         </div>
 
         <div className="rounded-xl border border-slate-100 divide-y divide-slate-50">
           {rows.map((r) => (
             <div key={r.label} className="flex items-center justify-between px-4 py-3 text-sm">
-              <span className="text-slate-600">{r.label}</span>
+              <span className="text-slate-600">{t(r.label)}</span>
               <span className={r.positive ? 'text-slate-800 font-medium' : 'text-rose-500 font-medium'}>
                 {formatCurrency(r.value)}
               </span>
             </div>
           ))}
           <div className="flex items-center justify-between px-4 py-3 bg-emerald-50">
-            <span className="font-bold text-emerald-700">صافي الراتب</span>
+            <span className="font-bold text-emerald-700">{t('صافي الراتب')}</span>
             <span className="font-extrabold text-emerald-700">{formatCurrency(slip.net)}</span>
           </div>
         </div>
@@ -55,7 +57,7 @@ function PayslipDetail({ slip, employee, onClose }) {
           className="btn-secondary w-full"
         >
           <Download className="w-4 h-4" />
-          طباعة / تنزيل PDF
+          {t('طباعة / تنزيل PDF')}
         </button>
       </div>
     </Modal>
@@ -63,6 +65,7 @@ function PayslipDetail({ slip, employee, onClose }) {
 }
 
 export default function Payslips() {
+  const { t } = useTranslation()
   const { user } = useAuthStore()
   const [selected, setSelected] = useState(null)
 
@@ -73,7 +76,7 @@ export default function Payslips() {
   )
 
   if (!user?.employee_id) {
-    return <div className="card"><EmptyState icon={Wallet} title="لا يوجد سجل رواتب لهذا الحساب" /></div>
+    return <div className="card"><EmptyState icon={Wallet} title={t('لا يوجد سجل رواتب لهذا الحساب')} /></div>
   }
   if (isLoading) return <Spinner fullscreen />
 
@@ -84,26 +87,30 @@ export default function Payslips() {
     <div className="space-y-6">
       {payslips[0] && (
         <div className="card bg-gradient-to-br from-emerald-600 to-emerald-800 text-white">
-          <p className="text-emerald-100 text-sm">صافي راتب آخر شهر ({payslips[0].month})</p>
+          <p className="text-emerald-100 text-sm">{t('صافي راتب آخر شهر ({{month}})', { month: payslips[0].month })}</p>
           <p className="text-3xl font-extrabold mt-1">{formatCurrency(payslips[0].net)}</p>
           <p className="text-emerald-100 text-xs mt-2">
-            أساسي {formatCurrency(payslips[0].basic)} + بدلات {formatCurrency(payslips[0].allowances)} − تأمينات {formatCurrency(payslips[0].deductions)}
+            {t('أساسي {{basic}} + بدلات {{allowances}} − تأمينات {{deductions}}', {
+              basic: formatCurrency(payslips[0].basic),
+              allowances: formatCurrency(payslips[0].allowances),
+              deductions: formatCurrency(payslips[0].deductions),
+            })}
           </p>
         </div>
       )}
 
       {payslips.length === 0 ? (
-        <div className="card"><EmptyState icon={Wallet} title="لا توجد قسائم" /></div>
+        <div className="card"><EmptyState icon={Wallet} title={t('لا توجد قسائم')} /></div>
       ) : (
         <div className="card overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-right text-slate-400 border-b border-slate-100">
-                <th className="pb-3 font-medium">الشهر</th>
-                <th className="pb-3 font-medium">الأساسي</th>
-                <th className="pb-3 font-medium">البدلات</th>
-                <th className="pb-3 font-medium">الاستقطاعات</th>
-                <th className="pb-3 font-medium">الصافي</th>
+                <th className="pb-3 font-medium">{t('الشهر')}</th>
+                <th className="pb-3 font-medium">{t('الأساسي')}</th>
+                <th className="pb-3 font-medium">{t('البدلات')}</th>
+                <th className="pb-3 font-medium">{t('الاستقطاعات')}</th>
+                <th className="pb-3 font-medium">{t('الصافي')}</th>
                 <th className="pb-3 font-medium"></th>
               </tr>
             </thead>
@@ -115,7 +122,7 @@ export default function Payslips() {
                   <td className="py-3 text-slate-600">{formatCurrency(p.allowances)}</td>
                   <td className="py-3 text-rose-500">−{formatCurrency(p.deductions)}</td>
                   <td className="py-3 font-bold text-emerald-600">{formatCurrency(p.net)}</td>
-                  <td className="py-3 text-primary-600 text-xs">عرض</td>
+                  <td className="py-3 text-primary-600 text-xs">{t('عرض')}</td>
                 </tr>
               ))}
             </tbody>
