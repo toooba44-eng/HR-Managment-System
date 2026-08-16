@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
+import { useTranslation } from 'react-i18next'
 import { ScrollText, Plus, Pencil, Trash2, Users, Check, CheckCircle2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { policiesApi } from '../../api/endpoints'
@@ -14,6 +15,7 @@ import { formatDate } from '../../lib/utils'
 const MANAGE = ['super_admin', 'admin', 'hr_manager']
 
 function PolicyForm({ open, onClose, editing }) {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const [form, setForm] = useState(
     editing || { title: '', category: '', body: '' }
@@ -23,29 +25,29 @@ function PolicyForm({ open, onClose, editing }) {
     (data) => (editing ? policiesApi.update(editing.id, data) : policiesApi.create(data)),
     {
       onSuccess: () => {
-        toast.success(editing ? 'تم تحديث السياسة' : 'تم إنشاء السياسة')
+        toast.success(editing ? t('تم تحديث السياسة') : t('تم إنشاء السياسة'))
         qc.invalidateQueries('policies')
         onClose()
       },
-      onError: (err) => toast.error(err.response?.data?.error || 'فشلت العملية'),
+      onError: (err) => toast.error(err.response?.data?.error || t('فشلت العملية')),
     }
   )
 
   return (
-    <Modal open={open} onClose={onClose} title={editing ? 'تعديل سياسة' : 'سياسة جديدة'}>
+    <Modal open={open} onClose={onClose} title={editing ? t('تعديل سياسة') : t('سياسة جديدة')}>
       <form onSubmit={(e) => { e.preventDefault(); mutation.mutate(form) }} className="space-y-4">
-        <Field label="العنوان" required>
+        <Field label={t('العنوان', { context: 'policy' })} required>
           <Input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} required />
         </Field>
-        <Field label="التصنيف">
-          <Input value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} placeholder="عام، الحضور، الإجازات..." />
+        <Field label={t('التصنيف')}>
+          <Input value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} placeholder={t('عام، الحضور، الإجازات...')} />
         </Field>
-        <Field label="النص" required>
+        <Field label={t('النص')} required>
           <Textarea value={form.body} onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))} rows={5} required />
         </Field>
         <div className="flex justify-end gap-3 pt-2">
-          <Button type="button" variant="secondary" onClick={onClose}>إلغاء</Button>
-          <Button type="submit" loading={mutation.isLoading}>حفظ</Button>
+          <Button type="button" variant="secondary" onClick={onClose}>{t('إلغاء')}</Button>
+          <Button type="submit" loading={mutation.isLoading}>{t('حفظ')}</Button>
         </div>
       </form>
     </Modal>
@@ -53,18 +55,19 @@ function PolicyForm({ open, onClose, editing }) {
 }
 
 function AcknowledgmentsModal({ policy, onClose }) {
+  const { t } = useTranslation()
   const { data, isLoading } = useQuery(['policy-acknowledgments', policy.id], () => policiesApi.acknowledgments(policy.id))
   return (
-    <Modal open onClose={onClose} title={`من أقرّ بالاطلاع: ${policy.title}`}>
+    <Modal open onClose={onClose} title={t('من أقرّ بالاطلاع: {{title}}', { title: policy.title })}>
       {isLoading ? <Spinner /> : (
         <div className="space-y-4">
           <p className="text-sm text-slate-500">
-            أقرّ <span className="font-bold text-emerald-600">{data.ackers.length}</span> من أصل <span className="font-bold text-slate-700">{data.total}</span> موظف نشط.
+            {t('أقرّ {{count}} من أصل {{total}} موظف نشط.', { count: data.ackers.length, total: data.total })}
           </p>
           <div>
-            <p className="text-xs font-medium text-slate-400 mb-2">أقرّوا ({data.ackers.length})</p>
+            <p className="text-xs font-medium text-slate-400 mb-2">{t('أقرّوا ({{count}})', { count: data.ackers.length })}</p>
             <div className="space-y-1.5 max-h-40 overflow-y-auto">
-              {data.ackers.length === 0 && <p className="text-xs text-slate-400">لا أحد بعد.</p>}
+              {data.ackers.length === 0 && <p className="text-xs text-slate-400">{t('لا أحد بعد.')}</p>}
               {data.ackers.map((a) => (
                 <div key={a.employee_id} className="flex items-center justify-between gap-2 text-sm">
                   <div className="flex items-center gap-2"><Avatar name={a.full_name} size="sm" /><span className="text-slate-700">{a.full_name}</span></div>
@@ -75,7 +78,7 @@ function AcknowledgmentsModal({ policy, onClose }) {
           </div>
           {data.notAcked.length > 0 && (
             <div>
-              <p className="text-xs font-medium text-slate-400 mb-2">لم يقرّوا بعد ({data.notAcked.length})</p>
+              <p className="text-xs font-medium text-slate-400 mb-2">{t('لم يقرّوا بعد ({{count}})', { count: data.notAcked.length })}</p>
               <div className="space-y-1.5 max-h-40 overflow-y-auto">
                 {data.notAcked.map((e) => (
                   <div key={e.employee_id} className="flex items-center gap-2 text-sm">
@@ -93,6 +96,7 @@ function AcknowledgmentsModal({ policy, onClose }) {
 }
 
 export default function Policies() {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const { user } = useAuthStore()
   const canManage = MANAGE.includes(user?.role)
@@ -103,13 +107,13 @@ export default function Policies() {
   const { data: items = [], isLoading } = useQuery('policies', policiesApi.list)
 
   const removeMutation = useMutation((id) => policiesApi.remove(id), {
-    onSuccess: () => { toast.success('تم الحذف'); qc.invalidateQueries('policies') },
-    onError: () => toast.error('فشل الحذف'),
+    onSuccess: () => { toast.success(t('تم الحذف')); qc.invalidateQueries('policies') },
+    onError: () => toast.error(t('فشل الحذف')),
   })
 
   const ackMutation = useMutation((id) => policiesApi.acknowledge(id), {
-    onSuccess: () => { toast.success('تم تسجيل إقرارك'); qc.invalidateQueries('policies') },
-    onError: (err) => toast.error(err.response?.data?.error || 'فشلت العملية'),
+    onSuccess: () => { toast.success(t('تم تسجيل إقرارك')); qc.invalidateQueries('policies') },
+    onError: (err) => toast.error(err.response?.data?.error || t('فشلت العملية')),
   })
 
   if (isLoading) return <Spinner fullscreen />
@@ -121,12 +125,12 @@ export default function Policies() {
     <div className="space-y-6">
       {canManage && (
         <div className="flex justify-end">
-          <Button onClick={openNew}><Plus className="w-5 h-5" /> سياسة جديدة</Button>
+          <Button onClick={openNew}><Plus className="w-5 h-5" /> {t('سياسة جديدة')}</Button>
         </div>
       )}
 
       {items.length === 0 ? (
-        <div className="card"><EmptyState icon={ScrollText} title="لا توجد سياسات" /></div>
+        <div className="card"><EmptyState icon={ScrollText} title={t('لا توجد سياسات')} /></div>
       ) : (
         <div className="space-y-3">
           {items.map((p) => (
@@ -143,10 +147,10 @@ export default function Policies() {
                 </div>
                 {canManage && (
                   <div className="flex gap-1 shrink-0">
-                    <button onClick={() => openEdit(p)} className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-primary-600" title="تعديل">
+                    <button onClick={() => openEdit(p)} className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-primary-600" title={t('تعديل')}>
                       <Pencil className="w-4 h-4" />
                     </button>
-                    <button onClick={() => window.confirm('حذف هذه السياسة؟') && removeMutation.mutate(p.id)} className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-rose-500" title="حذف">
+                    <button onClick={() => window.confirm(t('حذف هذه السياسة؟')) && removeMutation.mutate(p.id)} className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-rose-500" title={t('حذف')}>
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -157,17 +161,17 @@ export default function Policies() {
                 <div>
                   {canManage && (
                     <button onClick={() => setViewingAcks(p)} className="flex items-center gap-1 text-xs text-slate-400 hover:text-primary-600">
-                      <Users className="w-3.5 h-3.5" /> أقرّ {p.ack_count || 0}
+                      <Users className="w-3.5 h-3.5" /> {t('أقرّ {{count}}', { count: p.ack_count || 0 })}
                     </button>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
                   {!p.acked_by_me ? (
                     <Button variant="secondary" className="!py-1.5 !px-3 text-xs" onClick={() => ackMutation.mutate(p.id)} loading={ackMutation.isLoading}>
-                      <Check className="w-4 h-4" /> أقرّ بالاطلاع
+                      <Check className="w-4 h-4" /> {t('أقرّ بالاطلاع')}
                     </Button>
                   ) : (
-                    <span className="flex items-center gap-1 text-xs text-emerald-600"><CheckCircle2 className="w-4 h-4" /> أقررتَ بالاطلاع</span>
+                    <span className="flex items-center gap-1 text-xs text-emerald-600"><CheckCircle2 className="w-4 h-4" /> {t('أقررتَ بالاطلاع')}</span>
                   )}
                 </div>
               </div>
