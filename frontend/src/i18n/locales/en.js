@@ -552,4 +552,17 @@ export default {
   'مُتلف': 'Damaged',
   'ترقية': 'Promotion',
   'نقل': 'Transfer',
+
+  // ── Departments ───────────────────────────────────────────────
+  'تم إنشاء الإدارة': 'Department created',
+  'فشل الإنشاء': 'Creation failed',
+  'إضافة إدارة جديدة': 'Add New Department',
+  'اسم الإدارة': 'Department Name',
+  'الوصف': 'Description',
+  'اللون': 'Color',
+  'حفظ': 'Save',
+  '{{count}} إدارة': '{{count}} department(s)',
+  'إدارة جديدة': 'New Department',
+  'بدون وصف': 'No description',
+  '{{count}} موظف': '{{count}} employee(s)',
 }

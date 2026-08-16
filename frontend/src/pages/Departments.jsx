@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
+import { useTranslation } from 'react-i18next'
 import { Building2, Plus, Users, UserCog } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { departmentsApi } from '../api/endpoints'
@@ -13,29 +14,30 @@ import { Field, Input, Textarea, Button } from '../components/ui/Form'
 const COLORS = ['#3B82F6', '#22c55e', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#ec4899', '#14b8a6']
 
 function DepartmentForm({ open, onClose }) {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const [form, setForm] = useState({ name: '', description: '', color: COLORS[0] })
 
   const mutation = useMutation((data) => departmentsApi.create(data), {
     onSuccess: () => {
-      toast.success('تم إنشاء الإدارة')
+      toast.success(t('تم إنشاء الإدارة'))
       qc.invalidateQueries('departments')
       onClose()
       setForm({ name: '', description: '', color: COLORS[0] })
     },
-    onError: (err) => toast.error(err.response?.data?.error || 'فشل الإنشاء'),
+    onError: (err) => toast.error(err.response?.data?.error || t('فشل الإنشاء')),
   })
 
   return (
-    <Modal open={open} onClose={onClose} title="إضافة إدارة جديدة">
+    <Modal open={open} onClose={onClose} title={t('إضافة إدارة جديدة')}>
       <form onSubmit={(e) => { e.preventDefault(); mutation.mutate(form) }} className="space-y-4">
-        <Field label="اسم الإدارة" required>
+        <Field label={t('اسم الإدارة')} required>
           <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required />
         </Field>
-        <Field label="الوصف">
+        <Field label={t('الوصف')}>
           <Textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
         </Field>
-        <Field label="اللون">
+        <Field label={t('اللون')}>
           <div className="flex gap-2 flex-wrap">
             {COLORS.map((c) => (
               <button
@@ -49,8 +51,8 @@ function DepartmentForm({ open, onClose }) {
           </div>
         </Field>
         <div className="flex justify-end gap-3 pt-2">
-          <Button type="button" variant="secondary" onClick={onClose}>إلغاء</Button>
-          <Button type="submit" loading={mutation.isLoading}>حفظ</Button>
+          <Button type="button" variant="secondary" onClick={onClose}>{t('إلغاء')}</Button>
+          <Button type="submit" loading={mutation.isLoading}>{t('حفظ')}</Button>
         </div>
       </form>
     </Modal>
@@ -58,6 +60,7 @@ function DepartmentForm({ open, onClose }) {
 }
 
 export default function Departments() {
+  const { t } = useTranslation()
   const { isHR } = useAuthStore()
   const [showForm, setShowForm] = useState(false)
   const { data: departments = [], isLoading } = useQuery('departments', departmentsApi.list)
@@ -67,18 +70,18 @@ export default function Departments() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <p className="text-slate-500 text-sm">{departments.length} إدارة</p>
+        <p className="text-slate-500 text-sm">{t('{{count}} إدارة', { count: departments.length })}</p>
         {isHR() && (
           <Button onClick={() => setShowForm(true)}>
             <Plus className="w-5 h-5" />
-            إدارة جديدة
+            {t('إدارة جديدة')}
           </Button>
         )}
       </div>
 
       {departments.length === 0 ? (
         <div className="card">
-          <EmptyState icon={Building2} title="لا توجد إدارات" />
+          <EmptyState icon={Building2} title={t('لا توجد إدارات')} />
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -94,14 +97,14 @@ export default function Departments() {
                 <div className="flex-1 min-w-0">
                   <h3 className="font-bold text-slate-800 truncate">{d.name}</h3>
                   <p className="text-sm text-slate-400 line-clamp-2 min-h-[2.5rem]">
-                    {d.description || 'بدون وصف'}
+                    {d.description || t('بدون وصف')}
                   </p>
                 </div>
               </div>
               <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm text-slate-500">
                   <Users className="w-4 h-4" />
-                  {d.employee_count || 0} موظف
+                  {t('{{count}} موظف', { count: d.employee_count || 0 })}
                 </div>
                 {d.manager_name && (
                   <div className="flex items-center gap-2">
