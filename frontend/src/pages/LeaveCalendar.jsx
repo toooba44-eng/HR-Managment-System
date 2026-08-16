@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from 'react-query'
+import { useTranslation } from 'react-i18next'
 import { ChevronRight, ChevronLeft, CalendarDays, Users, AlertTriangle } from 'lucide-react'
 import { leavesApi } from '../api/endpoints'
 import Spinner from '../components/ui/Spinner'
@@ -11,9 +12,9 @@ const TYPE_TONE = {
   سنوية: '#3b82f6', مرضية: '#f59e0b', طارئة: '#ef4444', أمومة: '#ec4899', أبوة: '#8b5cf6',
   زواج: '#10b981', وفاة: '#64748b', 'بدون راتب': '#94a3b8', دراسة: '#06b6d4',
 }
-const monthLabel = (ym) => {
+const monthLabel = (ym, lang) => {
   const [y, m] = ym.split('-').map(Number)
-  return new Intl.DateTimeFormat('ar-SA', { year: 'numeric', month: 'long' }).format(new Date(y, m - 1, 1))
+  return new Intl.DateTimeFormat(lang === 'en' ? 'en-US' : 'ar-SA', { year: 'numeric', month: 'long' }).format(new Date(y, m - 1, 1))
 }
 const shiftMonth = (ym, delta) => {
   const [y, m] = ym.split('-').map(Number)
@@ -22,6 +23,7 @@ const shiftMonth = (ym, delta) => {
 }
 
 export default function LeaveCalendar() {
+  const { t, i18n } = useTranslation()
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7))
   const { data, isLoading } = useQuery(['leave-calendar', month], () => leavesApi.calendar(month))
 
@@ -49,23 +51,23 @@ export default function LeaveCalendar() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatCard icon={Users} label="موظفون في إجازة" value={s.people ?? 0} tone="blue" />
-        <StatCard icon={CalendarDays} label="إجمالي الطلبات" value={s.total ?? 0} tone="violet" />
-        <StatCard icon={AlertTriangle} label="أعلى تزامن (يوم)" value={s.peak ?? 0} tone="amber" />
+        <StatCard icon={Users} label={t('موظفون في إجازة')} value={s.people ?? 0} tone="blue" />
+        <StatCard icon={CalendarDays} label={t('إجمالي الطلبات')} value={s.total ?? 0} tone="violet" />
+        <StatCard icon={AlertTriangle} label={t('أعلى تزامن (يوم)')} value={s.peak ?? 0} tone="amber" />
       </div>
 
       <div className="card">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-slate-800">{monthLabel(month)}</h3>
+          <h3 className="font-bold text-slate-800">{monthLabel(month, i18n.language)}</h3>
           <div className="flex items-center gap-2">
             <button onClick={() => setMonth((mo) => shiftMonth(mo, -1))} className="w-9 h-9 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-500"><ChevronRight className="w-5 h-5" /></button>
-            <button onClick={() => setMonth(new Date().toISOString().slice(0, 7))} className="text-sm px-3 py-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100">الشهر الحالي</button>
+            <button onClick={() => setMonth(new Date().toISOString().slice(0, 7))} className="text-sm px-3 py-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100">{t('الشهر الحالي')}</button>
             <button onClick={() => setMonth((mo) => shiftMonth(mo, 1))} className="w-9 h-9 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-500"><ChevronLeft className="w-5 h-5" /></button>
           </div>
         </div>
 
         {rows.length === 0 ? (
-          <EmptyState icon={CalendarDays} title="لا توجد إجازات في هذا الشهر" />
+          <EmptyState icon={CalendarDays} title={t('لا توجد إجازات في هذا الشهر')} />
         ) : (
           <div className="overflow-x-auto">
             <div className="min-w-[720px]">
@@ -78,7 +80,7 @@ export default function LeaveCalendar() {
                     const cnt = perDay[i]?.count || 0
                     const heat = cnt === 0 ? '' : cnt === 1 ? 'bg-blue-100' : cnt === 2 ? 'bg-amber-200' : 'bg-rose-300'
                     return (
-                      <div key={d} className={`text-center text-[10px] py-1 rounded-t ${isWeekend(d) ? 'text-slate-300' : 'text-slate-400'} ${heat}`} title={`${cnt} في إجازة`}>{d}</div>
+                      <div key={d} className={`text-center text-[10px] py-1 rounded-t ${isWeekend(d) ? 'text-slate-300' : 'text-slate-400'} ${heat}`} title={t('{{count}} في إجازة', { count: cnt })}>{d}</div>
                     )
                   })}
                 </div>
@@ -105,9 +107,9 @@ export default function LeaveCalendar() {
                             key={l.id}
                             className={`h-6 rounded-md flex items-center px-1.5 overflow-hidden ${l.status === 'معلقة' ? 'border-2 border-dashed' : ''}`}
                             style={{ gridColumn: `${startD} / ${endD + 1}`, gridRow: 1, backgroundColor: l.status === 'معلقة' ? 'transparent' : color, borderColor: color }}
-                            title={`${l.type} · ${l.start_date} → ${l.end_date} (${l.days_count} أيام)`}
+                            title={t('{{type}} · {{start}} → {{end}} ({{count}} أيام)', { type: t(l.type), start: l.start_date, end: l.end_date, count: l.days_count })}
                           >
-                            <span className={`text-[10px] font-medium truncate ${l.status === 'معلقة' ? 'text-slate-600' : 'text-white'}`}>{l.type}</span>
+                            <span className={`text-[10px] font-medium truncate ${l.status === 'معلقة' ? 'text-slate-600' : 'text-white'}`}>{t(l.type)}</span>
                           </div>
                         )
                       })}
@@ -122,9 +124,9 @@ export default function LeaveCalendar() {
         {/* Legend */}
         <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-slate-100">
           {Object.entries(TYPE_TONE).slice(0, 6).map(([type, color]) => (
-            <div key={type} className="flex items-center gap-1.5 text-xs text-slate-500"><span className="w-3 h-3 rounded" style={{ backgroundColor: color }} /> {type}</div>
+            <div key={type} className="flex items-center gap-1.5 text-xs text-slate-500"><span className="w-3 h-3 rounded" style={{ backgroundColor: color }} /> {t(type)}</div>
           ))}
-          <div className="flex items-center gap-1.5 text-xs text-slate-500"><span className="w-3 h-3 rounded border-2 border-dashed border-slate-400" /> معلقة</div>
+          <div className="flex items-center gap-1.5 text-xs text-slate-500"><span className="w-3 h-3 rounded border-2 border-dashed border-slate-400" /> {t('معلقة')}</div>
         </div>
       </div>
     </div>

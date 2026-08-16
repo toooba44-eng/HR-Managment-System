@@ -600,4 +600,16 @@ export default {
   'طيّ الكل': 'Collapse All',
   'إعادة تعيين': 'Reset',
   'لا يوجد هيكل تنظيمي': 'No organizational structure',
+
+  // ── Leave Calendar ────────────────────────────────────────────
+  'أبوة': 'Paternity',
+  'زواج': 'Marriage',
+  'وفاة': 'Bereavement',
+  'دراسة': 'Study',
+  'موظفون في إجازة': 'Employees on Leave',
+  'أعلى تزامن (يوم)': 'Peak Concurrency (day)',
+  'الشهر الحالي': 'Current Month',
+  'لا توجد إجازات في هذا الشهر': 'No leaves this month',
+  '{{count}} في إجازة': '{{count}} on leave',
+  '{{type}} · {{start}} → {{end}} ({{count}} أيام)': '{{type}} · {{start}} → {{end}} ({{count}} days)',
 }
