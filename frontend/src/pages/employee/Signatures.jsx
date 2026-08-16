@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
+import { useTranslation } from 'react-i18next'
 import { FileSignature, Plus, Trash2, PenLine, X, FileCheck2, Clock, Files, Users } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { signaturesApi, employeesApi } from '../../api/endpoints'
@@ -17,36 +18,37 @@ const MANAGE = ['admin', 'hr_manager', 'super_admin']
 const DOC_TYPES = ['عقد', 'ملحق', 'سياسة', 'إقرار', 'خطاب', 'أخرى']
 
 function RequestModal({ onClose }) {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const { data: emps } = useQuery('employees-all', () => employeesApi.list({ limit: 100 }))
   const [form, setForm] = useState({ employee_id: '', title: '', doc_type: 'عقد', countersigner_id: '' })
   const m = useMutation((d) => signaturesApi.create({ ...d, countersigner_id: d.countersigner_id || null }), {
-    onSuccess: () => { toast.success('تم إرسال طلب التوقيع'); qc.invalidateQueries('signatures'); onClose() },
-    onError: (e) => toast.error(e.response?.data?.error || 'فشلت العملية'),
+    onSuccess: () => { toast.success(t('تم إرسال طلب التوقيع')); qc.invalidateQueries('signatures'); onClose() },
+    onError: (e) => toast.error(e.response?.data?.error || t('فشلت العملية')),
   })
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
   const empOptions = emps?.employees || []
   return (
-    <Modal open onClose={onClose} title="طلب توقيع مستند">
+    <Modal open onClose={onClose} title={t('طلب توقيع مستند')}>
       <form onSubmit={(e) => { e.preventDefault(); m.mutate(form) }} className="space-y-4">
-        <Field label="الموظف (الموقّع الأول)" required>
+        <Field label={t('الموظف (الموقّع الأول)')} required>
           <Select value={form.employee_id} onChange={set('employee_id')} required>
-            <option value="">اختر</option>
+            <option value="">{t('اختر')}</option>
             {empOptions.map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}
           </Select>
         </Field>
-        <Field label="عنوان المستند" required><Input value={form.title} onChange={set('title')} required /></Field>
-        <Field label="النوع"><Select value={form.doc_type} onChange={set('doc_type')}>{DOC_TYPES.map((t) => <option key={t}>{t}</option>)}</Select></Field>
-        <Field label="موقّع مساعد (اختياري)">
+        <Field label={t('عنوان المستند')} required><Input value={form.title} onChange={set('title')} required /></Field>
+        <Field label={t('النوع')}><Select value={form.doc_type} onChange={set('doc_type')}>{DOC_TYPES.map((ty) => <option key={ty} value={ty}>{t(ty)}</option>)}</Select></Field>
+        <Field label={t('موقّع مساعد (اختياري)')}>
           <Select value={form.countersigner_id} onChange={set('countersigner_id')}>
-            <option value="">— بدون —</option>
+            <option value="">{t('— بدون —')}</option>
             {empOptions.filter((e) => String(e.id) !== String(form.employee_id)).map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}
           </Select>
         </Field>
-        {form.countersigner_id && <p className="text-xs text-slate-400">سيوقّع الموقّع المساعد بعد توقيع الموظف الأول.</p>}
+        {form.countersigner_id && <p className="text-xs text-slate-400">{t('سيوقّع الموقّع المساعد بعد توقيع الموظف الأول.')}</p>}
         <div className="flex justify-end gap-3 pt-2">
-          <Button type="button" variant="secondary" onClick={onClose}>إلغاء</Button>
-          <Button type="submit" loading={m.isLoading}>إرسال</Button>
+          <Button type="button" variant="secondary" onClick={onClose}>{t('إلغاء')}</Button>
+          <Button type="submit" loading={m.isLoading}>{t('إرسال')}</Button>
         </div>
       </form>
     </Modal>
@@ -54,15 +56,16 @@ function RequestModal({ onClose }) {
 }
 
 export default function Signatures() {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const { user } = useAuthStore()
   const canManage = MANAGE.includes(user?.role)
   const [showRequest, setShowRequest] = useState(false)
   const { data, isLoading } = useQuery('signatures', () => signaturesApi.list())
-  const sign = useMutation((id) => signaturesApi.sign(id), { onSuccess: () => { toast.success('تم التوقيع'); qc.invalidateQueries('signatures') }, onError: (e) => toast.error(e.response?.data?.error || 'فشل') })
-  const countersign = useMutation((id) => signaturesApi.countersign(id), { onSuccess: () => { toast.success('تم التوقيع المساعد'); qc.invalidateQueries('signatures') }, onError: (e) => toast.error(e.response?.data?.error || 'فشل') })
-  const decline = useMutation((id) => signaturesApi.decline(id), { onSuccess: () => { toast.success('تم الرفض'); qc.invalidateQueries('signatures') }, onError: (e) => toast.error(e.response?.data?.error || 'فشل') })
-  const del = useMutation((id) => signaturesApi.remove(id), { onSuccess: () => { toast.success('تم الحذف'); qc.invalidateQueries('signatures') }, onError: () => toast.error('فشل') })
+  const sign = useMutation((id) => signaturesApi.sign(id), { onSuccess: () => { toast.success(t('تم التوقيع')); qc.invalidateQueries('signatures') }, onError: (e) => toast.error(e.response?.data?.error || t('فشل')) })
+  const countersign = useMutation((id) => signaturesApi.countersign(id), { onSuccess: () => { toast.success(t('تم التوقيع المساعد')); qc.invalidateQueries('signatures') }, onError: (e) => toast.error(e.response?.data?.error || t('فشل')) })
+  const decline = useMutation((id) => signaturesApi.decline(id), { onSuccess: () => { toast.success(t('تم الرفض')); qc.invalidateQueries('signatures') }, onError: (e) => toast.error(e.response?.data?.error || t('فشل')) })
+  const del = useMutation((id) => signaturesApi.remove(id), { onSuccess: () => { toast.success(t('تم الحذف')); qc.invalidateQueries('signatures') }, onError: () => toast.error(t('فشل')) })
 
   if (isLoading) return <Spinner fullscreen />
   const items = data?.signatures || []
@@ -71,26 +74,26 @@ export default function Signatures() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-3 gap-4">
-        <StatCard icon={Files} label="إجمالي المستندات" value={s.total ?? 0} tone="blue" />
-        <StatCard icon={Clock} label="بانتظار التوقيع" value={s.pending ?? 0} tone="amber" />
-        <StatCard icon={FileCheck2} label="موقّعة" value={s.signed ?? 0} tone="green" />
+        <StatCard icon={Files} label={t('إجمالي المستندات')} value={s.total ?? 0} tone="blue" />
+        <StatCard icon={Clock} label={t('بانتظار التوقيع')} value={s.pending ?? 0} tone="amber" />
+        <StatCard icon={FileCheck2} label={t('موقّعة')} value={s.signed ?? 0} tone="green" />
       </div>
 
-      {canManage && <div className="flex justify-end"><Button onClick={() => setShowRequest(true)}><Plus className="w-5 h-5" /> طلب توقيع</Button></div>}
+      {canManage && <div className="flex justify-end"><Button onClick={() => setShowRequest(true)}><Plus className="w-5 h-5" /> {t('طلب توقيع')}</Button></div>}
 
       {items.length === 0 ? (
-        <div className="card"><EmptyState icon={FileSignature} title="لا توجد مستندات للتوقيع" /></div>
+        <div className="card"><EmptyState icon={FileSignature} title={t('لا توجد مستندات للتوقيع')} /></div>
       ) : (
         <div className="card overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-right text-slate-400 border-b border-slate-100">
-                {canManage && <th className="pb-3 font-medium">الموظف</th>}
-                <th className="pb-3 font-medium">المستند</th>
-                <th className="pb-3 font-medium">النوع</th>
-                <th className="pb-3 font-medium">الموقّع المساعد</th>
-                <th className="pb-3 font-medium">تاريخ الإتمام</th>
-                <th className="pb-3 font-medium">الحالة</th>
+                {canManage && <th className="pb-3 font-medium">{t('الموظف')}</th>}
+                <th className="pb-3 font-medium">{t('المستند')}</th>
+                <th className="pb-3 font-medium">{t('النوع')}</th>
+                <th className="pb-3 font-medium">{t('الموقّع المساعد')}</th>
+                <th className="pb-3 font-medium">{t('تاريخ الإتمام')}</th>
+                <th className="pb-3 font-medium">{t('الحالة')}</th>
                 <th className="pb-3 font-medium"></th>
               </tr>
             </thead>
@@ -106,33 +109,33 @@ export default function Signatures() {
                     <td className="py-3">
                       <div className="flex items-center gap-2 text-slate-700"><FileSignature className="w-4 h-4 text-slate-300" /> {sg.title}</div>
                     </td>
-                    <td className="py-3 text-slate-500">{sg.doc_type}</td>
+                    <td className="py-3 text-slate-500">{t(sg.doc_type)}</td>
                     <td className="py-3 text-slate-500">
                       {sg.countersigner_name ? (
                         <span className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-slate-300" /> {sg.countersigner_name}
-                          {sg.countersigner_status === 'موقّع' && <span className="badge bg-emerald-50 text-emerald-600 text-[10px]">وقّع</span>}
-                          {sg.countersigner_status === 'بانتظار التوقيع' && <span className="badge bg-amber-50 text-amber-600 text-[10px]">دوره الآن</span>}
-                          {sg.countersigner_status === 'بانتظار الموظف' && <span className="badge bg-slate-100 text-slate-400 text-[10px]">بانتظار الموظف</span>}
+                          {sg.countersigner_status === 'موقّع' && <span className="badge bg-emerald-50 text-emerald-600 text-[10px]">{t('وقّع')}</span>}
+                          {sg.countersigner_status === 'بانتظار التوقيع' && <span className="badge bg-amber-50 text-amber-600 text-[10px]">{t('دوره الآن')}</span>}
+                          {sg.countersigner_status === 'بانتظار الموظف' && <span className="badge bg-slate-100 text-slate-400 text-[10px]">{t('بانتظار الموظف')}</span>}
                         </span>
                       ) : '—'}
                     </td>
                     <td className="py-3 text-slate-500">{sg.signed_at ? formatDate(sg.signed_at) : '—'}</td>
-                    <td className="py-3"><Badge status={sg.status} /></td>
+                    <td className="py-3"><Badge status={sg.status}>{t(sg.status)}</Badge></td>
                     <td className="py-3">
                       <div className="flex gap-1 justify-end">
                         {myTurnToSign && (
                           <>
-                            <button onClick={() => sign.mutate(sg.id)} className="text-xs px-2 py-1 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center gap-1"><PenLine className="w-3.5 h-3.5" /> توقيع</button>
+                            <button onClick={() => sign.mutate(sg.id)} className="text-xs px-2 py-1 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center gap-1"><PenLine className="w-3.5 h-3.5" /> {t('توقيع')}</button>
                             <button onClick={() => decline.mutate(sg.id)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-rose-500"><X className="w-4 h-4" /></button>
                           </>
                         )}
                         {myTurnToCountersign && (
                           <>
-                            <button onClick={() => countersign.mutate(sg.id)} className="text-xs px-2 py-1 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center gap-1"><PenLine className="w-3.5 h-3.5" /> توقيع مساعد</button>
+                            <button onClick={() => countersign.mutate(sg.id)} className="text-xs px-2 py-1 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center gap-1"><PenLine className="w-3.5 h-3.5" /> {t('توقيع مساعد')}</button>
                             <button onClick={() => decline.mutate(sg.id)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-rose-500"><X className="w-4 h-4" /></button>
                           </>
                         )}
-                        {canManage && <button onClick={() => window.confirm('حذف الطلب؟') && del.mutate(sg.id)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-300 hover:text-rose-500"><Trash2 className="w-4 h-4" /></button>}
+                        {canManage && <button onClick={() => window.confirm(t('حذف الطلب؟')) && del.mutate(sg.id)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-300 hover:text-rose-500"><Trash2 className="w-4 h-4" /></button>}
                       </div>
                     </td>
                   </tr>
