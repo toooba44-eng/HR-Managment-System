@@ -863,4 +863,22 @@ export default {
   'الأدوار والصلاحيات': 'Roles & Permissions',
   'النطاق: {{scope}}': 'Scope: {{scope}}',
   'نموذج الصلاحيات ثابت حسب الأدوار المعرّفة في النظام.': 'The permissions model is fixed according to the roles defined in the system.',
+
+  // ── Report Builder ────────────────────────────────────────────
+  'فشل تشغيل التقرير': 'Failed to run report',
+  'مصدر البيانات': 'Data Source',
+  'الحقول': 'Fields',
+  'لم تُحدَّد حقول — ستظهر جميع الحقول.': 'No fields selected — all fields will be shown.',
+  'التجميع': 'Grouping',
+  'بدون تجميع (جدول تفصيلي)': 'No grouping (detailed table)',
+  'حسب {{field}}': 'By {{field}}',
+  'عوامل التصفية': 'Filters',
+  'إضافة': 'Add',
+  'قيمة': 'Value',
+  'لا توجد عوامل تصفية.': 'No filters.',
+  'تشغيل التقرير': 'Run Report',
+  'النتيجة': 'Result',
+  'شغّل التقرير لعرض النتائج': 'Run the report to see results',
+  'اختر مصدر البيانات والحقول ثم اضغط تشغيل': 'Choose the data source and fields, then click Run',
+  'لا توجد نتائج مطابقة': 'No matching results',
 }

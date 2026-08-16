@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation } from 'react-query'
+import { useTranslation } from 'react-i18next'
 import { Database, Plus, Trash2, Play, Download, Filter, Layers, Table2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { reportsApi } from '../../api/endpoints'
@@ -8,6 +9,7 @@ import EmptyState from '../../components/ui/EmptyState'
 import { Input, Select, Button } from '../../components/ui/Form'
 
 export default function ReportBuilder() {
+  const { t } = useTranslation()
   const { data: meta, isLoading } = useQuery('report-datasets', () => reportsApi.datasets())
   const [dataset, setDataset] = useState('employees')
   const [fields, setFields] = useState([])
@@ -22,7 +24,7 @@ export default function ReportBuilder() {
 
   const run = useMutation(() => reportsApi.run({ dataset, fields, filters: filters.filter((f) => f.field && f.value !== ''), group_by: groupBy || undefined }), {
     onSuccess: (r) => setResult(r),
-    onError: (e) => toast.error(e.response?.data?.error || 'فشل تشغيل التقرير'),
+    onError: (e) => toast.error(e.response?.data?.error || t('فشل تشغيل التقرير')),
   })
 
   const changeDataset = (key) => { setDataset(key); setFields([]); setFilters([]); setGroupBy(''); setResult(null) }
@@ -51,14 +53,14 @@ export default function ReportBuilder() {
         {/* Builder panel */}
         <div className="lg:col-span-1 space-y-4">
           <div className="card">
-            <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-3"><Database className="w-5 h-5 text-slate-400" /> مصدر البيانات</h3>
+            <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-3"><Database className="w-5 h-5 text-slate-400" /> {t('مصدر البيانات')}</h3>
             <Select value={dataset} onChange={(e) => changeDataset(e.target.value)}>
               {datasets.map((d) => <option key={d.key} value={d.key}>{d.label}</option>)}
             </Select>
           </div>
 
           <div className="card">
-            <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-3"><Table2 className="w-5 h-5 text-slate-400" /> الحقول</h3>
+            <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-3"><Table2 className="w-5 h-5 text-slate-400" /> {t('الحقول')}</h3>
             <div className="space-y-1.5">
               {dsFields.map((f) => (
                 <label key={f.key} className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
@@ -67,21 +69,21 @@ export default function ReportBuilder() {
                 </label>
               ))}
             </div>
-            {fields.length === 0 && !groupBy && <p className="text-[11px] text-slate-400 mt-2">لم تُحدَّد حقول — ستظهر جميع الحقول.</p>}
+            {fields.length === 0 && !groupBy && <p className="text-[11px] text-slate-400 mt-2">{t('لم تُحدَّد حقول — ستظهر جميع الحقول.')}</p>}
           </div>
 
           <div className="card">
-            <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-3"><Layers className="w-5 h-5 text-slate-400" /> التجميع</h3>
+            <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-3"><Layers className="w-5 h-5 text-slate-400" /> {t('التجميع')}</h3>
             <Select value={groupBy} onChange={(e) => setGroupBy(e.target.value)}>
-              <option value="">بدون تجميع (جدول تفصيلي)</option>
-              {dsFields.map((f) => <option key={f.key} value={f.key}>حسب {f.label}</option>)}
+              <option value="">{t('بدون تجميع (جدول تفصيلي)')}</option>
+              {dsFields.map((f) => <option key={f.key} value={f.key}>{t('حسب {{field}}', { field: f.label })}</option>)}
             </Select>
           </div>
 
           <div className="card">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2"><Filter className="w-5 h-5 text-slate-400" /> عوامل التصفية</h3>
-              <button onClick={addFilter} className="text-xs text-blue-600 hover:underline flex items-center gap-1"><Plus className="w-3.5 h-3.5" /> إضافة</button>
+              <h3 className="font-bold text-slate-800 flex items-center gap-2"><Filter className="w-5 h-5 text-slate-400" /> {t('عوامل التصفية')}</h3>
+              <button onClick={addFilter} className="text-xs text-blue-600 hover:underline flex items-center gap-1"><Plus className="w-3.5 h-3.5" /> {t('إضافة')}</button>
             </div>
             <div className="space-y-2">
               {filters.map((f, i) => (
@@ -92,28 +94,28 @@ export default function ReportBuilder() {
                   <Select value={f.op} onChange={(e) => setFilter(i, { op: e.target.value })} className="!py-1.5 text-xs w-20">
                     {operators.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
                   </Select>
-                  <Input value={f.value} onChange={(e) => setFilter(i, { value: e.target.value })} className="!py-1.5 text-xs w-24" placeholder="قيمة" />
+                  <Input value={f.value} onChange={(e) => setFilter(i, { value: e.target.value })} className="!py-1.5 text-xs w-24" placeholder={t('قيمة')} />
                   <button onClick={() => removeFilter(i)} className="text-slate-300 hover:text-rose-500"><Trash2 className="w-4 h-4" /></button>
                 </div>
               ))}
-              {filters.length === 0 && <p className="text-[11px] text-slate-400">لا توجد عوامل تصفية.</p>}
+              {filters.length === 0 && <p className="text-[11px] text-slate-400">{t('لا توجد عوامل تصفية.')}</p>}
             </div>
           </div>
 
-          <Button onClick={() => run.mutate()} loading={run.isLoading} className="w-full"><Play className="w-5 h-5" /> تشغيل التقرير</Button>
+          <Button onClick={() => run.mutate()} loading={run.isLoading} className="w-full"><Play className="w-5 h-5" /> {t('تشغيل التقرير')}</Button>
         </div>
 
         {/* Result panel */}
         <div className="lg:col-span-2">
           <div className="card min-h-[300px]">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-slate-800">النتيجة {result ? `(${result.total})` : ''}</h3>
-              {result?.rows?.length > 0 && <Button variant="secondary" onClick={exportCsv}><Download className="w-4 h-4" /> تصدير CSV</Button>}
+              <h3 className="font-bold text-slate-800">{t('النتيجة')} {result ? `(${result.total})` : ''}</h3>
+              {result?.rows?.length > 0 && <Button variant="secondary" onClick={exportCsv}><Download className="w-4 h-4" /> {t('تصدير')} CSV</Button>}
             </div>
             {!result ? (
-              <EmptyState icon={Play} title="شغّل التقرير لعرض النتائج" description="اختر مصدر البيانات والحقول ثم اضغط تشغيل" />
+              <EmptyState icon={Play} title={t('شغّل التقرير لعرض النتائج')} description={t('اختر مصدر البيانات والحقول ثم اضغط تشغيل')} />
             ) : result.rows.length === 0 ? (
-              <EmptyState icon={Database} title="لا توجد نتائج مطابقة" />
+              <EmptyState icon={Database} title={t('لا توجد نتائج مطابقة')} />
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
