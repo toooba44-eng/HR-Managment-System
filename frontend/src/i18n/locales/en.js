@@ -565,4 +565,21 @@ export default {
   'إدارة جديدة': 'New Department',
   'بدون وصف': 'No description',
   '{{count}} موظف': '{{count}} employee(s)',
+
+  // ── Attendance Corrections ───────────────────────────────────
+  'تم إرسال طلب التصحيح': 'Correction request submitted',
+  'طلب تصحيح حضور': 'Attendance Correction Request',
+  'وقت الدخول الصحيح': 'Correct Check-in Time',
+  'وقت الخروج الصحيح': 'Correct Check-out Time',
+  'عند الاعتماد سيُحدَّث سجل الحضور لليوم المحدد تلقائياً.': 'Once approved, the attendance record for the selected day will be updated automatically.',
+  'إرسال': 'Submit',
+  'تم التحديث': 'Updated successfully',
+  'فشل': 'Failed',
+  'تم الحذف': 'Deleted successfully',
+  'إجمالي الطلبات': 'Total Requests',
+  'قيد المراجعة': 'Under Review',
+  'طلب تصحيح': 'Request Correction',
+  'لا توجد طلبات تصحيح': 'No correction requests',
+  'حذف الطلب؟': 'Delete this request?',
+  'معلق_correction': 'Pending',
 }
