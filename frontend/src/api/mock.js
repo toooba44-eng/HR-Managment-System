@@ -555,7 +555,7 @@ export const mockDashboardApi = {
         leavers,
         newHires30: employees.filter((e) => daysSince(e.hire_date) <= 30).length,
         newHires90: employees.filter((e) => daysSince(e.hire_date) <= 90).length,
-        probation: active.filter((e) => daysSince(e.hire_date) <= 90).length,
+        probation: active.filter((e) => daysSince(e.hire_date) <= (orgSettings.probation_months || 3) * 30).length,
         turnover: total ? Math.round((leavers / total) * 1000) / 10 : 0,
       },
       attendanceToday: { present: attSum('حاضر'), late: attSum('تأخر'), absent: attSum('غائب'), remote: attSum('عمل عن بعد'), onLeave: employees.filter((e) => e.status === 'إجازة').length },
