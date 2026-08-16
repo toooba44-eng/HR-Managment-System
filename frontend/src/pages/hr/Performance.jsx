@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
+import { useTranslation } from 'react-i18next'
 import { Target, Plus, Trash2, TrendingUp, CheckCircle2, Loader } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { goalsApi, employeesApi } from '../../api/endpoints'
@@ -16,6 +17,7 @@ import { formatDate } from '../../lib/utils'
 const MANAGE = ['admin', 'hr_manager', 'department_head', 'super_admin']
 
 function GoalForm({ open, onClose, forSelf }) {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const { data: emps } = useQuery('employees-for-goals', () => employeesApi.list({ limit: 100 }), { enabled: open && !forSelf })
   const [form, setForm] = useState({ employee_id: '', title: '', description: '', weight: 100, target_date: '' })
@@ -24,31 +26,31 @@ function GoalForm({ open, onClose, forSelf }) {
     employee_id: forSelf ? undefined : Number(data.employee_id),
     weight: Number(data.weight),
   }), {
-    onSuccess: () => { toast.success(forSelf ? 'تم إضافة هدفك' : 'تم إسناد الهدف'); qc.invalidateQueries('goals'); onClose() },
-    onError: (err) => toast.error(err.response?.data?.error || 'فشلت العملية'),
+    onSuccess: () => { toast.success(forSelf ? t('تم إضافة هدفك') : t('تم إسناد الهدف')); qc.invalidateQueries('goals'); onClose() },
+    onError: (err) => toast.error(err.response?.data?.error || t('فشلت العملية')),
   })
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
   const employees = emps?.employees || []
   return (
-    <Modal open={open} onClose={onClose} title={forSelf ? 'إضافة هدف لنفسي' : 'إسناد هدف'}>
+    <Modal open={open} onClose={onClose} title={forSelf ? t('إضافة هدف لنفسي') : t('إسناد هدف')}>
       <form onSubmit={(e) => { e.preventDefault(); mutation.mutate(form) }} className="space-y-4">
         {!forSelf && (
-          <Field label="الموظف" required>
+          <Field label={t('الموظف')} required>
             <Select value={form.employee_id} onChange={set('employee_id')} required>
-              <option value="">اختر</option>
+              <option value="">{t('اختر')}</option>
               {employees.map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}
             </Select>
           </Field>
         )}
-        <Field label="عنوان الهدف" required><Input value={form.title} onChange={set('title')} required /></Field>
-        <Field label="الوصف"><Textarea value={form.description} onChange={set('description')} rows={2} /></Field>
+        <Field label={t('عنوان الهدف')} required><Input value={form.title} onChange={set('title')} required /></Field>
+        <Field label={t('الوصف')}><Textarea value={form.description} onChange={set('description')} rows={2} /></Field>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="الوزن (%)"><Input type="number" min="1" max="100" value={form.weight} onChange={set('weight')} /></Field>
-          <Field label="تاريخ الاستحقاق"><Input type="date" value={form.target_date} onChange={set('target_date')} /></Field>
+          <Field label={t('الوزن (%)')}><Input type="number" min="1" max="100" value={form.weight} onChange={set('weight')} /></Field>
+          <Field label={t('تاريخ الاستحقاق')}><Input type="date" value={form.target_date} onChange={set('target_date')} /></Field>
         </div>
         <div className="flex justify-end gap-3 pt-2">
-          <Button type="button" variant="secondary" onClick={onClose}>إلغاء</Button>
-          <Button type="submit" loading={mutation.isLoading}>{forSelf ? 'إضافة' : 'إسناد'}</Button>
+          <Button type="button" variant="secondary" onClick={onClose}>{t('إلغاء')}</Button>
+          <Button type="submit" loading={mutation.isLoading}>{forSelf ? t('إضافة') : t('إسناد')}</Button>
         </div>
       </form>
     </Modal>
@@ -56,6 +58,7 @@ function GoalForm({ open, onClose, forSelf }) {
 }
 
 export default function Performance() {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const { user } = useAuthStore()
   const canManage = MANAGE.includes(user?.role)
@@ -64,11 +67,11 @@ export default function Performance() {
   const { data, isLoading } = useQuery('goals', () => goalsApi.list())
   const updateMutation = useMutation(({ id, ...body }) => goalsApi.update(id, body), {
     onSuccess: () => qc.invalidateQueries('goals'),
-    onError: (err) => toast.error(err.response?.data?.error || 'فشل التحديث'),
+    onError: (err) => toast.error(err.response?.data?.error || t('فشل التحديث')),
   })
   const removeMutation = useMutation((id) => goalsApi.remove(id), {
-    onSuccess: () => { toast.success('تم الحذف'); qc.invalidateQueries('goals') },
-    onError: () => toast.error('فشل الحذف'),
+    onSuccess: () => { toast.success(t('تم الحذف')); qc.invalidateQueries('goals') },
+    onError: () => toast.error(t('فشل الحذف')),
   })
 
   if (isLoading) return <Spinner fullscreen />
@@ -78,18 +81,18 @@ export default function Performance() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Target} label="إجمالي الأهداف" value={s.total ?? 0} tone="blue" />
-        <StatCard icon={Loader} label="قيد التنفيذ" value={s.inProgress ?? 0} tone="amber" />
-        <StatCard icon={CheckCircle2} label="مكتملة" value={s.completed ?? 0} tone="green" />
-        <StatCard icon={TrendingUp} label="متوسط الإنجاز" value={`${s.avgProgress ?? 0}%`} tone="violet" />
+        <StatCard icon={Target} label={t('إجمالي الأهداف')} value={s.total ?? 0} tone="blue" />
+        <StatCard icon={Loader} label={t('قيد التنفيذ')} value={s.inProgress ?? 0} tone="amber" />
+        <StatCard icon={CheckCircle2} label={t('مكتملة')} value={s.completed ?? 0} tone="green" />
+        <StatCard icon={TrendingUp} label={t('متوسط الإنجاز')} value={`${s.avgProgress ?? 0}%`} tone="violet" />
       </div>
 
       <div className="flex justify-end">
-        <Button onClick={() => setShowForm(true)}><Plus className="w-5 h-5" /> {canManage ? 'إسناد هدف' : 'إضافة هدف لنفسي'}</Button>
+        <Button onClick={() => setShowForm(true)}><Plus className="w-5 h-5" /> {canManage ? t('إسناد هدف') : t('إضافة هدف لنفسي')}</Button>
       </div>
 
       {goals.length === 0 ? (
-        <div className="card"><EmptyState icon={Target} title="لا توجد أهداف" /></div>
+        <div className="card"><EmptyState icon={Target} title={t('لا توجد أهداف')} /></div>
       ) : (
         <div className="space-y-3">
           {goals.map((g) => (
@@ -98,24 +101,24 @@ export default function Performance() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-bold text-slate-800">{g.title}</h3>
-                    <Badge status={g.status} />
-                    <span className="badge bg-slate-100 text-slate-600">وزن {g.weight}%</span>
+                    <Badge status={g.status}>{t(g.status)}</Badge>
+                    <span className="badge bg-slate-100 text-slate-600">{t('وزن {{weight}}%', { weight: g.weight })}</span>
                   </div>
                   {g.description && <p className="text-sm text-slate-600 mt-1">{g.description}</p>}
                   <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-slate-400">
                     {canManage && g.full_name && <span className="flex items-center gap-1"><Avatar name={g.full_name} size="sm" /> {g.full_name}</span>}
-                    {g.target_date && <span>الاستحقاق: {formatDate(g.target_date)}</span>}
+                    {g.target_date && <span>{t('الاستحقاق: {{date}}', { date: formatDate(g.target_date) })}</span>}
                   </div>
                 </div>
                 {(canManage || (g.employee_id === user?.employee_id && g.status === 'لم تبدأ')) && (
-                  <button onClick={() => window.confirm('حذف الهدف؟') && removeMutation.mutate(g.id)} className="text-slate-300 hover:text-rose-500 shrink-0"><Trash2 className="w-4 h-4" /></button>
+                  <button onClick={() => window.confirm(t('حذف الهدف؟')) && removeMutation.mutate(g.id)} className="text-slate-300 hover:text-rose-500 shrink-0"><Trash2 className="w-4 h-4" /></button>
                 )}
               </div>
 
               {/* Progress */}
               <div className="mt-4">
                 <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="text-slate-500">نسبة الإنجاز</span>
+                  <span className="text-slate-500">{t('نسبة الإنجاز')}</span>
                   <span className="font-bold text-slate-700">{g.progress}%</span>
                 </div>
                 <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden">

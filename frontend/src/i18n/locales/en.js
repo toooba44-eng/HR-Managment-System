@@ -881,4 +881,22 @@ export default {
   'شغّل التقرير لعرض النتائج': 'Run the report to see results',
   'اختر مصدر البيانات والحقول ثم اضغط تشغيل': 'Choose the data source and fields, then click Run',
   'لا توجد نتائج مطابقة': 'No matching results',
+
+  // ── Performance / Goals ───────────────────────────────────────
+  'لم تبدأ': 'Not Started',
+  'تم إضافة هدفك': 'Your goal has been added',
+  'تم إسناد الهدف': 'Goal assigned',
+  'إضافة هدف لنفسي': 'Add a Goal for Myself',
+  'إسناد هدف': 'Assign a Goal',
+  'عنوان الهدف': 'Goal Title',
+  'الوزن (%)': 'Weight (%)',
+  'تاريخ الاستحقاق': 'Due Date',
+  'إسناد': 'Assign',
+  'إجمالي الأهداف': 'Total Goals',
+  'متوسط الإنجاز': 'Average Progress',
+  'لا توجد أهداف': 'No goals',
+  'وزن {{weight}}%': 'Weight {{weight}}%',
+  'الاستحقاق: {{date}}': 'Due: {{date}}',
+  'حذف الهدف؟': 'Delete this goal?',
+  'نسبة الإنجاز': 'Progress',
 }
