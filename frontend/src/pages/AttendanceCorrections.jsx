@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
+import { useTranslation } from 'react-i18next'
 import { ClipboardCheck, Plus, Check, X, Trash2, Clock, LogIn, LogOut } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { attendanceApi } from '../api/endpoints'
@@ -16,26 +17,27 @@ import { formatDate } from '../lib/utils'
 const MANAGE = ['admin', 'hr_manager', 'department_head', 'super_admin']
 
 function RequestModal({ onClose }) {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const [form, setForm] = useState({ date: '', requested_check_in: '', requested_check_out: '', reason: '' })
   const m = useMutation((d) => attendanceApi.requestCorrection(d), {
-    onSuccess: () => { toast.success('تم إرسال طلب التصحيح'); qc.invalidateQueries('attendance-corrections'); onClose() },
-    onError: (e) => toast.error(e.response?.data?.error || 'فشلت العملية'),
+    onSuccess: () => { toast.success(t('تم إرسال طلب التصحيح')); qc.invalidateQueries('attendance-corrections'); onClose() },
+    onError: (e) => toast.error(e.response?.data?.error || t('فشلت العملية')),
   })
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
   return (
-    <Modal open onClose={onClose} title="طلب تصحيح حضور">
+    <Modal open onClose={onClose} title={t('طلب تصحيح حضور')}>
       <form onSubmit={(e) => { e.preventDefault(); m.mutate(form) }} className="space-y-4">
-        <Field label="التاريخ" required><Input type="date" value={form.date} onChange={set('date')} required /></Field>
+        <Field label={t('التاريخ')} required><Input type="date" value={form.date} onChange={set('date')} required /></Field>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="وقت الدخول الصحيح"><Input type="time" value={form.requested_check_in} onChange={set('requested_check_in')} /></Field>
-          <Field label="وقت الخروج الصحيح"><Input type="time" value={form.requested_check_out} onChange={set('requested_check_out')} /></Field>
+          <Field label={t('وقت الدخول الصحيح')}><Input type="time" value={form.requested_check_in} onChange={set('requested_check_in')} /></Field>
+          <Field label={t('وقت الخروج الصحيح')}><Input type="time" value={form.requested_check_out} onChange={set('requested_check_out')} /></Field>
         </div>
-        <Field label="السبب" required><Input value={form.reason} onChange={set('reason')} required /></Field>
-        <p className="text-xs text-slate-400">عند الاعتماد سيُحدَّث سجل الحضور لليوم المحدد تلقائياً.</p>
+        <Field label={t('السبب')} required><Input value={form.reason} onChange={set('reason')} required /></Field>
+        <p className="text-xs text-slate-400">{t('عند الاعتماد سيُحدَّث سجل الحضور لليوم المحدد تلقائياً.')}</p>
         <div className="flex justify-end gap-3 pt-2">
-          <Button type="button" variant="secondary" onClick={onClose}>إلغاء</Button>
-          <Button type="submit" loading={m.isLoading}>إرسال</Button>
+          <Button type="button" variant="secondary" onClick={onClose}>{t('إلغاء')}</Button>
+          <Button type="submit" loading={m.isLoading}>{t('إرسال')}</Button>
         </div>
       </form>
     </Modal>
@@ -43,16 +45,17 @@ function RequestModal({ onClose }) {
 }
 
 export default function AttendanceCorrections() {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const { user } = useAuthStore()
   const canManage = MANAGE.includes(user?.role)
   const [showForm, setShowForm] = useState(false)
   const { data, isLoading } = useQuery('attendance-corrections', () => attendanceApi.corrections())
   const review = useMutation(({ id, status }) => attendanceApi.reviewCorrection(id, status), {
-    onSuccess: () => { toast.success('تم التحديث'); qc.invalidateQueries('attendance-corrections') }, onError: () => toast.error('فشل'),
+    onSuccess: () => { toast.success(t('تم التحديث')); qc.invalidateQueries('attendance-corrections') }, onError: () => toast.error(t('فشل')),
   })
   const del = useMutation((id) => attendanceApi.removeCorrection(id), {
-    onSuccess: () => { toast.success('تم الحذف'); qc.invalidateQueries('attendance-corrections') }, onError: () => toast.error('فشل'),
+    onSuccess: () => { toast.success(t('تم الحذف')); qc.invalidateQueries('attendance-corrections') }, onError: () => toast.error(t('فشل')),
   })
 
   if (isLoading) return <Spinner fullscreen />
@@ -62,14 +65,14 @@ export default function AttendanceCorrections() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
-        <StatCard icon={ClipboardCheck} label="إجمالي الطلبات" value={s.total ?? 0} tone="blue" />
-        <StatCard icon={Clock} label="قيد المراجعة" value={s.pending ?? 0} tone="amber" />
+        <StatCard icon={ClipboardCheck} label={t('إجمالي الطلبات')} value={s.total ?? 0} tone="blue" />
+        <StatCard icon={Clock} label={t('قيد المراجعة')} value={s.pending ?? 0} tone="amber" />
       </div>
 
-      <div className="flex justify-end"><Button onClick={() => setShowForm(true)}><Plus className="w-5 h-5" /> طلب تصحيح</Button></div>
+      <div className="flex justify-end"><Button onClick={() => setShowForm(true)}><Plus className="w-5 h-5" /> {t('طلب تصحيح')}</Button></div>
 
       {items.length === 0 ? (
-        <div className="card"><EmptyState icon={ClipboardCheck} title="لا توجد طلبات تصحيح" /></div>
+        <div className="card"><EmptyState icon={ClipboardCheck} title={t('لا توجد طلبات تصحيح')} /></div>
       ) : (
         <div className="space-y-3">
           {items.map((c) => (
@@ -84,7 +87,7 @@ export default function AttendanceCorrections() {
                   {c.reason && <span>· {c.reason}</span>}
                 </div>
               </div>
-              <Badge status={c.status} />
+              <Badge status={c.status}>{t(c.status, { context: 'correction' })}</Badge>
               <div className="flex gap-1">
                 {canManage && c.status === 'معلق' && (
                   <>
@@ -93,7 +96,7 @@ export default function AttendanceCorrections() {
                   </>
                 )}
                 {(canManage || (c.employee_id === user?.employee_id && c.status === 'معلق')) && (
-                  <button onClick={() => window.confirm('حذف الطلب؟') && del.mutate(c.id)} className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-300 hover:text-rose-500"><Trash2 className="w-4 h-4" /></button>
+                  <button onClick={() => window.confirm(t('حذف الطلب؟')) && del.mutate(c.id)} className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-300 hover:text-rose-500"><Trash2 className="w-4 h-4" /></button>
                 )}
               </div>
             </div>
