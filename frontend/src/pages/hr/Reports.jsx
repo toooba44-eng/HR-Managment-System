@@ -1,4 +1,5 @@
 import { useQuery } from 'react-query'
+import { useTranslation } from 'react-i18next'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   PieChart, Pie, Cell,
@@ -21,13 +22,14 @@ function Panel({ title, children }) {
 }
 
 function BreakdownList({ rows, valueKey = 'count', labelKey }) {
+  const { t } = useTranslation()
   const max = Math.max(1, ...rows.map((r) => r[valueKey]))
   return (
     <div className="space-y-2.5">
       {rows.map((r, i) => (
         <div key={i}>
           <div className="flex items-center justify-between text-sm mb-1">
-            <span className="text-slate-600">{r[labelKey]}</span>
+            <span className="text-slate-600">{t(r[labelKey])}</span>
             <span className="font-medium text-slate-700">{r[valueKey]}</span>
           </div>
           <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
@@ -40,12 +42,13 @@ function BreakdownList({ rows, valueKey = 'count', labelKey }) {
 }
 
 export default function Reports() {
+  const { t } = useTranslation()
   const { data, isLoading } = useQuery('reports-overview', reportsApi.overview)
   if (isLoading) return <Spinner fullscreen />
   if (!data) return null
 
   const deptData = (data.byDepartment || []).map((d) => ({ name: d.name, count: d.count, color: d.color }))
-  const typeData = (data.byEmploymentType || []).map((t) => ({ name: t.type, value: t.count }))
+  const typeData = (data.byEmploymentType || []).map((tp) => ({ name: tp.type, value: tp.count }))
   const hiresData = (data.hiresByYear || []).map((h) => ({ name: h.year, count: h.count }))
 
   return (
@@ -54,7 +57,7 @@ export default function Reports() {
         <div className="card border-r-4 border-violet-400">
           <div className="flex items-center gap-2 mb-3">
             <Sparkles className="w-5 h-5 text-violet-500" />
-            <h3 className="font-bold text-slate-800">رؤى تلقائية</h3>
+            <h3 className="font-bold text-slate-800">{t('رؤى تلقائية')}</h3>
           </div>
           <ul className="space-y-2">
             {data.insights.map((text, i) => (
@@ -69,15 +72,15 @@ export default function Reports() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Users} label="إجمالي الموظفين" value={data.headcount?.total ?? 0} tone="blue" hint={`${data.headcount?.active ?? 0} نشط`} />
-        <StatCard icon={Wallet} label="صافي الرواتب الشهري" value={formatCurrency(data.payroll?.net)} tone="green" />
-        <StatCard icon={Briefcase} label="وظائف مفتوحة" value={data.recruitment?.openJobs ?? 0} tone="amber" hint={`${data.recruitment?.applications ?? 0} طلب`} />
-        <StatCard icon={GraduationCap} label="التحاقات التدريب" value={data.training?.enrollments ?? 0} tone="violet" hint={`${data.training?.completed ?? 0} مكتمل`} />
+        <StatCard icon={Users} label={t('إجمالي الموظفين')} value={data.headcount?.total ?? 0} tone="blue" hint={t('{{count}} نشط', { count: data.headcount?.active ?? 0 })} />
+        <StatCard icon={Wallet} label={t('صافي الرواتب الشهري')} value={formatCurrency(data.payroll?.net)} tone="green" />
+        <StatCard icon={Briefcase} label={t('وظائف مفتوحة')} value={data.recruitment?.openJobs ?? 0} tone="amber" hint={t('{{count}} طلب', { count: data.recruitment?.applications ?? 0 })} />
+        <StatCard icon={GraduationCap} label={t('التحاقات التدريب')} value={data.training?.enrollments ?? 0} tone="violet" hint={t('{{count}} مكتمل', { count: data.training?.completed ?? 0 })} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Employees by department */}
-        <Panel title="الموظفون حسب الإدارة">
+        <Panel title={t('الموظفون حسب الإدارة')}>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={deptData}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -92,26 +95,26 @@ export default function Reports() {
         </Panel>
 
         {/* Employment type */}
-        <Panel title="نوع التوظيف">
+        <Panel title={t('نوع التوظيف')}>
           <ResponsiveContainer width="100%" height={260}>
             <PieChart>
               <Pie data={typeData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={3}>
-                {typeData.map((t, i) => <Cell key={i} fill={TYPE_COLORS[i % TYPE_COLORS.length]} />)}
+                {typeData.map((tp, i) => <Cell key={i} fill={TYPE_COLORS[i % TYPE_COLORS.length]} />)}
               </Pie>
               <Tooltip contentStyle={{ borderRadius: 12, border: 'none', fontFamily: 'Tajawal' }} />
             </PieChart>
           </ResponsiveContainer>
           <div className="flex flex-wrap gap-3 justify-center mt-2">
-            {typeData.map((t, i) => (
+            {typeData.map((tp, i) => (
               <span key={i} className="flex items-center gap-1.5 text-xs text-slate-600">
-                <span className="w-3 h-3 rounded-full" style={{ backgroundColor: TYPE_COLORS[i % TYPE_COLORS.length] }} /> {t.name} ({t.value})
+                <span className="w-3 h-3 rounded-full" style={{ backgroundColor: TYPE_COLORS[i % TYPE_COLORS.length] }} /> {t(tp.name)} ({tp.value})
               </span>
             ))}
           </div>
         </Panel>
 
         {/* Hires by year */}
-        <Panel title="التعيينات حسب السنة">
+        <Panel title={t('التعيينات حسب السنة')}>
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={hiresData}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -124,29 +127,29 @@ export default function Reports() {
         </Panel>
 
         {/* Leaves by type */}
-        <Panel title="الإجازات حسب النوع">
+        <Panel title={t('الإجازات حسب النوع')}>
           <BreakdownList rows={data.leavesByType || []} labelKey="type" valueKey="count" />
         </Panel>
       </div>
 
       {/* Bottom summary row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Panel title="مسار التوظيف">
+        <Panel title={t('مسار التوظيف')}>
           <BreakdownList rows={data.recruitment?.byStatus || []} labelKey="status" valueKey="count" />
         </Panel>
-        <Panel title="الحضور (آخر 30 يوماً)">
+        <Panel title={t('الحضور (آخر 30 يوماً)')}>
           <div className="grid grid-cols-2 gap-3 text-center">
-            <div><p className="text-2xl font-bold text-emerald-600">{data.attendance30?.present ?? 0}</p><p className="text-xs text-slate-400">حاضر</p></div>
-            <div><p className="text-2xl font-bold text-amber-600">{data.attendance30?.late ?? 0}</p><p className="text-xs text-slate-400">متأخر</p></div>
-            <div><p className="text-2xl font-bold text-cyan-600">{data.attendance30?.remote ?? 0}</p><p className="text-xs text-slate-400">عن بُعد</p></div>
-            <div><p className="text-2xl font-bold text-slate-600">{data.attendance30?.avgHours ?? 0}</p><p className="text-xs text-slate-400">متوسط الساعات</p></div>
+            <div><p className="text-2xl font-bold text-emerald-600">{data.attendance30?.present ?? 0}</p><p className="text-xs text-slate-400">{t('حاضر')}</p></div>
+            <div><p className="text-2xl font-bold text-amber-600">{data.attendance30?.late ?? 0}</p><p className="text-xs text-slate-400">{t('متأخر')}</p></div>
+            <div><p className="text-2xl font-bold text-cyan-600">{data.attendance30?.remote ?? 0}</p><p className="text-xs text-slate-400">{t('عن بُعد')}</p></div>
+            <div><p className="text-2xl font-bold text-slate-600">{data.attendance30?.avgHours ?? 0}</p><p className="text-xs text-slate-400">{t('متوسط الساعات')}</p></div>
           </div>
         </Panel>
-        <Panel title="المصروفات">
+        <Panel title={t('المصروفات')}>
           <div className="space-y-3">
-            <div className="flex items-center justify-between"><span className="text-sm text-slate-500 flex items-center gap-1"><Receipt className="w-4 h-4" /> الإجمالي</span><span className="font-bold text-slate-800">{formatCurrency(data.expenses?.total)}</span></div>
-            <div className="flex items-center justify-between"><span className="text-sm text-slate-500">قيد الاعتماد</span><span className="font-medium text-amber-600">{formatCurrency(data.expenses?.pending)}</span></div>
-            <div className="flex items-center justify-between"><span className="text-sm text-slate-500 flex items-center gap-1"><UserCheck className="w-4 h-4" /> معتمدة</span><span className="font-medium text-emerald-600">{formatCurrency(data.expenses?.approved)}</span></div>
+            <div className="flex items-center justify-between"><span className="text-sm text-slate-500 flex items-center gap-1"><Receipt className="w-4 h-4" /> {t('الإجمالي')}</span><span className="font-bold text-slate-800">{formatCurrency(data.expenses?.total)}</span></div>
+            <div className="flex items-center justify-between"><span className="text-sm text-slate-500">{t('قيد الاعتماد')}</span><span className="font-medium text-amber-600">{formatCurrency(data.expenses?.pending)}</span></div>
+            <div className="flex items-center justify-between"><span className="text-sm text-slate-500 flex items-center gap-1"><UserCheck className="w-4 h-4" /> {t('معتمدة')}</span><span className="font-medium text-emerald-600">{formatCurrency(data.expenses?.approved)}</span></div>
           </div>
         </Panel>
       </div>

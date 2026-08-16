@@ -963,4 +963,21 @@ export default {
   'سجل المزامنة': 'Sync History',
   'حذف التكامل؟': 'Delete this integration?',
   'آخر مزامنة: {{date}}': 'Last sync: {{date}}',
+
+  // ── Reports (HR Analytics) ──────────────────────────────────────
+  'رؤى تلقائية': 'Automated Insights',
+  'صافي الرواتب الشهري': 'Monthly Net Payroll',
+  'وظائف مفتوحة': 'Open Positions',
+  '{{count}} نشط': '{{count}} active',
+  '{{count}} طلب': '{{count}} application(s)',
+  '{{count}} مكتمل': '{{count}} completed',
+  'التحاقات التدريب': 'Training Enrollments',
+  'الموظفون حسب الإدارة': 'Employees by Department',
+  'التعيينات حسب السنة': 'Hires by Year',
+  'الإجازات حسب النوع': 'Leaves by Type',
+  'مسار التوظيف': 'Recruitment Pipeline',
+  'الحضور (آخر 30 يوماً)': 'Attendance (Last 30 Days)',
+  'متوسط الساعات': 'Average Hours',
+  'قيد الاعتماد': 'Pending Approval',
+  'معتمدة': 'Approved',
 }
