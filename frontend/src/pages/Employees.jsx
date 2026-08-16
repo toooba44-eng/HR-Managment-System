@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
+import { useTranslation } from 'react-i18next'
 import { Search, Plus, Users, FileWarning, Download, Upload, ShieldCheck, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { employeesApi, departmentsApi } from '../api/endpoints'
@@ -40,6 +41,7 @@ const IMPORT_TEMPLATE_COLUMNS = [
 ]
 
 function ImportModal({ open, onClose }) {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const fileRef = useRef(null)
   const [rows, setRows] = useState([])
@@ -58,7 +60,7 @@ function ImportModal({ open, onClose }) {
       try {
         setRows(parseCSV(String(reader.result)))
       } catch {
-        toast.error('تعذّر قراءة الملف')
+        toast.error(t('تعذّر قراءة الملف'))
         setRows([])
       }
     }
@@ -69,45 +71,45 @@ function ImportModal({ open, onClose }) {
     onSuccess: (data) => {
       setResult(data)
       qc.invalidateQueries('employees')
-      if (data.created > 0) toast.success(`تم إضافة ${data.created} موظف`)
-      if (data.failed?.length) toast.error(`تعذّر استيراد ${data.failed.length} صف`)
+      if (data.created > 0) toast.success(t('تم إضافة {{count}} موظف', { count: data.created }))
+      if (data.failed?.length) toast.error(t('تعذّر استيراد {{count}} صف', { count: data.failed.length }))
     },
-    onError: (err) => toast.error(err.response?.data?.error || 'فشل الاستيراد'),
+    onError: (err) => toast.error(err.response?.data?.error || t('فشل الاستيراد')),
   })
 
   const handleClose = () => { reset(); onClose() }
 
   return (
-    <Modal open={open} onClose={handleClose} title="استيراد موظفين من CSV" size="lg">
+    <Modal open={open} onClose={handleClose} title={t('استيراد موظفين من CSV')} size="lg">
       <div className="space-y-4">
         <p className="text-sm text-slate-500">
-          الأعمدة المطلوبة: الاسم الكامل، البريد الإلكتروني، المسمى الوظيفي، تاريخ التعيين (hire_date بصيغة YYYY-MM-DD). عمود &quot;الإدارة&quot; اختياري ويجب أن يطابق اسم إدارة موجودة.
+          {t('الأعمدة المطلوبة: الاسم الكامل، البريد الإلكتروني، المسمى الوظيفي، تاريخ التعيين (hire_date بصيغة YYYY-MM-DD). عمود "الإدارة" اختياري ويجب أن يطابق اسم إدارة موجودة.')}
         </p>
         <button
           type="button"
           onClick={() => downloadCSV('نموذج-استيراد-الموظفين.csv', [], IMPORT_TEMPLATE_COLUMNS)}
           className="text-sm text-primary-600 hover:underline"
         >
-          تحميل نموذج فارغ
+          {t('تحميل نموذج فارغ')}
         </button>
 
-        <Field label="ملف CSV">
+        <Field label={t('ملف CSV')}>
           <input ref={fileRef} type="file" accept=".csv,text/csv" onChange={onFile} className="input-field" />
         </Field>
 
         {fileName && !result && (
-          <p className="text-sm text-slate-600">{fileName} — {rows.length} صف جاهز للاستيراد</p>
+          <p className="text-sm text-slate-600">{fileName} — {rows.length} {t('صف جاهز للاستيراد')}</p>
         )}
 
         {result && (
           <div className="rounded-xl bg-slate-50 border border-slate-100 p-3 space-y-2 text-sm">
-            <p className="text-emerald-600 font-medium">تم إنشاء {result.created} موظف بنجاح</p>
+            <p className="text-emerald-600 font-medium">{t('تم إنشاء {{count}} موظف بنجاح', { count: result.created })}</p>
             {result.failed?.length > 0 && (
               <div className="space-y-1">
-                <p className="text-rose-600 font-medium">فشل {result.failed.length} صف:</p>
+                <p className="text-rose-600 font-medium">{t('فشل {{count}} صف', { count: result.failed.length })}:</p>
                 <ul className="text-xs text-slate-500 space-y-0.5 max-h-40 overflow-y-auto">
                   {result.failed.map((f, i) => (
-                    <li key={i}>صف {f.row} ({f.email || '—'}): {f.error}</li>
+                    <li key={i}>{t('صف')} {f.row} ({f.email || '—'}): {f.error}</li>
                   ))}
                 </ul>
               </div>
@@ -116,10 +118,10 @@ function ImportModal({ open, onClose }) {
         )}
 
         <div className="flex justify-end gap-3 pt-2">
-          <Button type="button" variant="secondary" onClick={handleClose}>إغلاق</Button>
+          <Button type="button" variant="secondary" onClick={handleClose}>{t('إغلاق')}</Button>
           {!result && (
             <Button type="button" onClick={() => mutation.mutate()} loading={mutation.isLoading} disabled={rows.length === 0}>
-              <Upload className="w-4 h-4" /> استيراد {rows.length > 0 ? `(${rows.length})` : ''}
+              <Upload className="w-4 h-4" /> {t('استيراد')} {rows.length > 0 ? `(${rows.length})` : ''}
             </Button>
           )}
         </div>
@@ -129,28 +131,29 @@ function ImportModal({ open, onClose }) {
 }
 
 function QiwaReadinessModal({ open, onClose }) {
+  const { t } = useTranslation()
   const { data, isLoading } = useQuery('qiwa-readiness', employeesApi.qiwaReadiness, { enabled: open })
   const items = data?.items || []
   const s = data?.summary || {}
   return (
-    <Modal open={open} onClose={onClose} title="جاهزية توثيق العقود في قوى" size="lg">
+    <Modal open={open} onClose={onClose} title={t('جاهزية توثيق العقود في قوى')} size="lg">
       {isLoading || !data ? (
         <div className="py-12"><Spinner /></div>
       ) : (
         <div className="space-y-4">
-          <p className="text-sm text-slate-500">فحص البيانات المطلوبة لتسجيل عقود العمل في منصة قوى لكل موظف نشط.</p>
+          <p className="text-sm text-slate-500">{t('فحص البيانات المطلوبة لتسجيل عقود العمل في منصة قوى لكل موظف نشط.')}</p>
           <div className="grid grid-cols-3 gap-3">
             <div className="rounded-xl bg-slate-50 border border-slate-100 p-3 text-center">
               <p className="text-xl font-bold text-slate-800">{s.total ?? 0}</p>
-              <p className="text-xs text-slate-400">الإجمالي</p>
+              <p className="text-xs text-slate-400">{t('الإجمالي')}</p>
             </div>
             <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3 text-center">
               <p className="text-xl font-bold text-emerald-700">{s.ready ?? 0}</p>
-              <p className="text-xs text-emerald-600">جاهز</p>
+              <p className="text-xs text-emerald-600">{t('جاهز')}</p>
             </div>
             <div className="rounded-xl bg-amber-50 border border-amber-100 p-3 text-center">
               <p className="text-xl font-bold text-amber-700">{s.not_ready ?? 0}</p>
-              <p className="text-xs text-amber-600">يحتاج استكمال</p>
+              <p className="text-xs text-amber-600">{t('يحتاج استكمال')}</p>
             </div>
           </div>
           <div className="max-h-96 overflow-y-auto space-y-2">
@@ -159,13 +162,13 @@ function QiwaReadinessModal({ open, onClose }) {
                 <p className="text-sm font-bold text-slate-700">{i.full_name} <span className="text-xs font-normal text-slate-400">— {i.job_title}</span></p>
                 <ul className="text-xs text-amber-700 mt-1 space-y-0.5">
                   {i.issues.map((iss) => (
-                    <li key={iss} className="flex items-center gap-1.5"><AlertTriangle className="w-3 h-3 shrink-0" /> {iss}</li>
+                    <li key={iss} className="flex items-center gap-1.5"><AlertTriangle className="w-3 h-3 shrink-0" /> {t(iss)}</li>
                   ))}
                 </ul>
               </div>
             ))}
             {items.filter((i) => !i.ok).length === 0 && (
-              <p className="text-sm text-emerald-600 text-center py-4">جميع الموظفين النشطين جاهزون.</p>
+              <p className="text-sm text-emerald-600 text-center py-4">{t('جميع الموظفين النشطين جاهزون.')}</p>
             )}
           </div>
         </div>
@@ -175,6 +178,7 @@ function QiwaReadinessModal({ open, onClose }) {
 }
 
 function EmployeeForm({ open, onClose }) {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const { data: departments = [] } = useQuery('departments', departmentsApi.list, { enabled: open })
   const [form, setForm] = useState({
@@ -185,11 +189,11 @@ function EmployeeForm({ open, onClose }) {
 
   const mutation = useMutation((data) => employeesApi.create(data), {
     onSuccess: () => {
-      toast.success('تم إضافة الموظف بنجاح')
+      toast.success(t('تم إضافة الموظف بنجاح'))
       qc.invalidateQueries('employees')
       onClose()
     },
-    onError: (err) => toast.error(err.response?.data?.error || 'فشل إضافة الموظف'),
+    onError: (err) => toast.error(err.response?.data?.error || t('فشل إضافة الموظف')),
   })
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
@@ -204,48 +208,48 @@ function EmployeeForm({ open, onClose }) {
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="إضافة موظف جديد" size="lg">
+    <Modal open={open} onClose={onClose} title={t('إضافة موظف جديد')} size="lg">
       <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Field label="الاسم الكامل" required>
+        <Field label={t('الاسم الكامل')} required>
           <Input value={form.full_name} onChange={set('full_name')} required />
         </Field>
-        <Field label="البريد الإلكتروني" required>
+        <Field label={t('البريد الإلكتروني')} required>
           <Input type="email" value={form.email} onChange={set('email')} required />
         </Field>
-        <Field label="رقم الجوال">
+        <Field label={t('رقم الجوال')}>
           <Input value={form.phone} onChange={set('phone')} placeholder="+966 5x xxx xxxx" />
         </Field>
-        <Field label="رقم الهوية">
+        <Field label={t('رقم الهوية')}>
           <Input value={form.national_id} onChange={set('national_id')} />
         </Field>
-        <Field label="المسمى الوظيفي" required>
+        <Field label={t('المسمى الوظيفي')} required>
           <Input value={form.job_title} onChange={set('job_title')} required />
         </Field>
-        <Field label="الإدارة" required>
+        <Field label={t('الإدارة')} required>
           <Select value={form.department_id} onChange={set('department_id')} required>
-            <option value="">اختر الإدارة</option>
+            <option value="">{t('اختر الإدارة')}</option>
             {departments.map((d) => (
               <option key={d.id} value={d.id}>{d.name}</option>
             ))}
           </Select>
         </Field>
-        <Field label="تاريخ التعيين" required>
+        <Field label={t('تاريخ التعيين')} required>
           <Input type="date" value={form.hire_date} onChange={set('hire_date')} required />
         </Field>
-        <Field label="نوع التوظيف">
+        <Field label={t('نوع التوظيف')}>
           <Select value={form.employment_type} onChange={set('employment_type')}>
-            <option>دوام كامل</option>
-            <option>دوام جزئي</option>
-            <option>عقد</option>
-            <option>متدرب</option>
+            <option value="دوام كامل">{t('دوام كامل')}</option>
+            <option value="دوام جزئي">{t('دوام جزئي')}</option>
+            <option value="عقد">{t('عقد')}</option>
+            <option value="متدرب">{t('متدرب')}</option>
           </Select>
         </Field>
-        <Field label="الراتب الأساسي">
+        <Field label={t('الراتب الأساسي')}>
           <Input type="number" value={form.salary} onChange={set('salary')} min="0" />
         </Field>
         <div className="md:col-span-2 flex justify-end gap-3 pt-2">
-          <Button type="button" variant="secondary" onClick={onClose}>إلغاء</Button>
-          <Button type="submit" loading={mutation.isLoading}>حفظ الموظف</Button>
+          <Button type="button" variant="secondary" onClick={onClose}>{t('إلغاء')}</Button>
+          <Button type="submit" loading={mutation.isLoading}>{t('حفظ الموظف')}</Button>
         </div>
       </form>
     </Modal>
@@ -253,6 +257,7 @@ function EmployeeForm({ open, onClose }) {
 }
 
 export default function Employees() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { isHR, user } = useAuthStore()
   const canExport = isHR() || user?.role === 'department_head'
@@ -281,11 +286,11 @@ export default function Employees() {
     {
       onSuccess: (res) => {
         const rows = res.employees || []
-        if (rows.length === 0) { toast.error('لا يوجد موظفون مطابقون للتصدير'); return }
+        if (rows.length === 0) { toast.error(t('لا يوجد موظفون مطابقون للتصدير')); return }
         downloadCSV(`الموظفون-${new Date().toISOString().slice(0, 10)}.csv`, rows, EXPORT_COLUMNS)
-        toast.success(`تم تصدير ${rows.length} موظف`)
+        toast.success(t('تم تصدير {{count}} موظف', { count: rows.length }))
       },
-      onError: () => toast.error('فشل التصدير'),
+      onError: () => toast.error(t('فشل التصدير')),
     }
   )
 
@@ -295,9 +300,9 @@ export default function Employees() {
         <div className="card border-r-4 border-amber-400 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-sm text-amber-700">
             <FileWarning className="w-5 h-5" />
-            عقود العمل التي تنتهي خلال 60 يوماً — رتّب التجديد أو إنهاء الخدمة قبل الموعد.
+            {t('عقود العمل التي تنتهي خلال 60 يوماً — رتّب التجديد أو إنهاء الخدمة قبل الموعد.')}
           </div>
-          <Button variant="secondary" className="!py-1.5 !px-3 text-xs shrink-0" onClick={clearContractFilter}>إزالة الفلتر</Button>
+          <Button variant="secondary" className="!py-1.5 !px-3 text-xs shrink-0" onClick={clearContractFilter}>{t('إزالة الفلتر')}</Button>
         </div>
       )}
 
@@ -308,42 +313,42 @@ export default function Employees() {
           <input
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-            placeholder="ابحث بالاسم أو البريد أو المسمى الوظيفي..."
+            placeholder={t('ابحث بالاسم أو البريد أو المسمى الوظيفي...')}
             className="input-field pr-11"
           />
         </div>
         <Select value={departmentId} onChange={(e) => { setDepartmentId(e.target.value); setPage(1) }} className="sm:w-48">
-          <option value="">كل الإدارات</option>
+          <option value="">{t('كل الإدارات')}</option>
           {departments.map((d) => (
             <option key={d.id} value={d.id}>{d.name}</option>
           ))}
         </Select>
         <Select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1) }} className="sm:w-40">
-          <option value="">كل الحالات</option>
-          <option value="نشط">نشط</option>
-          <option value="إجازة">إجازة</option>
-          <option value="معلق">معلق</option>
-          <option value="مستقيل">مستقيل</option>
+          <option value="">{t('كل الحالات')}</option>
+          <option value="نشط">{t('نشط')}</option>
+          <option value="إجازة">{t('إجازة')}</option>
+          <option value="معلق">{t('معلق')}</option>
+          <option value="مستقيل">{t('مستقيل')}</option>
         </Select>
         {canExport && (
           <Button variant="secondary" onClick={() => exportMutation.mutate()} loading={exportMutation.isLoading} className="sm:w-auto whitespace-nowrap">
             <Download className="w-4 h-4" />
-            تصدير
+            {t('تصدير')}
           </Button>
         )}
         {isHR() && (
           <>
             <Button variant="secondary" onClick={() => setShowQiwa(true)} className="sm:w-auto whitespace-nowrap">
               <ShieldCheck className="w-4 h-4" />
-              جاهزية قوى
+              {t('جاهزية قوى')}
             </Button>
             <Button variant="secondary" onClick={() => setShowImport(true)} className="sm:w-auto whitespace-nowrap">
               <Upload className="w-4 h-4" />
-              استيراد
+              {t('استيراد')}
             </Button>
             <Button onClick={() => setShowForm(true)} className="sm:w-auto whitespace-nowrap">
               <Plus className="w-5 h-5" />
-              موظف جديد
+              {t('موظف جديد')}
             </Button>
           </>
         )}
@@ -354,7 +359,7 @@ export default function Employees() {
         <Spinner fullscreen />
       ) : employees.length === 0 ? (
         <div className="card">
-          <EmptyState icon={Users} title="لا يوجد موظفون" description="جرّب تغيير معايير البحث أو أضف موظفاً جديداً" />
+          <EmptyState icon={Users} title={t('لا يوجد موظفون')} description={t('جرّب تغيير معايير البحث أو أضف موظفاً جديداً')} />
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -369,7 +374,7 @@ export default function Employees() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="font-bold text-slate-800 truncate">{emp.full_name}</h3>
-                    <Badge status={emp.status} />
+                    <Badge status={emp.status}>{t(emp.status)}</Badge>
                   </div>
                   <p className="text-sm text-slate-500 truncate">{emp.job_title}</p>
                   <p className="text-xs text-slate-400 mt-1 truncate">{emp.department_name || '—'}</p>
@@ -377,16 +382,16 @@ export default function Employees() {
               </div>
               <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs">
                 <div>
-                  <p className="text-slate-400">تاريخ التعيين</p>
+                  <p className="text-slate-400">{t('تاريخ التعيين')}</p>
                   <p className="text-slate-600 font-medium">{formatDate(emp.hire_date)}</p>
                 </div>
                 <div>
-                  <p className="text-slate-400">الرقم الوظيفي</p>
+                  <p className="text-slate-400">{t('الرقم الوظيفي')}</p>
                   <p className="text-slate-600 font-medium truncate">{emp.employee_number || '—'}</p>
                 </div>
                 {contractExpiring && emp.contract_end && (
                   <div className="col-span-2">
-                    <p className="text-slate-400">نهاية العقد</p>
+                    <p className="text-slate-400">{t('نهاية العقد')}</p>
                     <p className="text-amber-600 font-medium">{formatDate(emp.contract_end)}</p>
                   </div>
                 )}
