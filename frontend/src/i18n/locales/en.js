@@ -582,4 +582,22 @@ export default {
   'لا توجد طلبات تصحيح': 'No correction requests',
   'حذف الطلب؟': 'Delete this request?',
   'معلق_correction': 'Pending',
+
+  // ── Org Chart ─────────────────────────────────────────────────
+  'تم نقل الموظف بنجاح': 'Employee reassigned successfully',
+  'فشل النقل': 'Reassignment failed',
+  'نقل {{name}}': 'Move {{name}}',
+  'بدون إدارة': 'No Department',
+  'لا يوجد — على قمة الهرم': 'None — Top of hierarchy',
+  'حفظ النقل': 'Save Move',
+  'إجمالي التابعين': 'Total Direct/Indirect Reports',
+  'نقل الموظف لإدارة/مدير آخر': 'Move employee to another department/manager',
+  'المدراء': 'Managers',
+  'المستويات الإدارية': 'Management Levels',
+  'قمة الهرم': 'Top of Hierarchy',
+  'ابحث عن موظف…': 'Search for an employee…',
+  'توسيع الكل': 'Expand All',
+  'طيّ الكل': 'Collapse All',
+  'إعادة تعيين': 'Reset',
+  'لا يوجد هيكل تنظيمي': 'No organizational structure',
 }
