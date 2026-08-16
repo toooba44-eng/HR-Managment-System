@@ -623,4 +623,11 @@ export default {
   'يجيب عن بياناتك الشخصية فقط — لا يتخذ قرارات نهائية بشأن الإجازات أو التوظيف': 'Answers questions about your personal data only — does not make final decisions about leave or employment',
   'يكتب...': 'Typing...',
   'اكتب سؤالك هنا...': 'Type your question here...',
+
+  // ── My Skills ─────────────────────────────────────────────────
+  'مهارات مُقيَّمة': 'Assessed Skills',
+  'فجوات تحتاج تطوير (≤2)': 'Gaps Needing Development (≤2)',
+  'لا توجد مهارات مُقيَّمة بعد': 'No skills assessed yet',
+  'يقوم مديرك المباشر أو الموارد البشرية بتقييم مهاراتك دورياً.': 'Your direct manager or HR assesses your skills periodically.',
+  'مصفوفة مهاراتي': 'My Skills Matrix',
 }
