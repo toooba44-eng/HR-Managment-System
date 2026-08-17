@@ -1831,4 +1831,14 @@ export default {
   'تعيين افتراضي': 'Set as Default',
   'حذف العنصر؟': 'Delete this item?',
   'لا توجد عناصر': 'No items',
+
+  // ── Team Metrics (Manager) ──
+  '{{count}} متأخر': '{{count}} late',
+  'إجازات معلّقة': 'Pending Leaves',
+  'مهام نشطة': 'Active Tasks',
+  '{{count}} مكتملة': '{{count}} completed',
+  'حالة المهام': 'Task Status',
+  'لا توجد مهام': 'No tasks',
+  'لا يوجد أعضاء': 'No members',
+  'المؤشرات محسوبة لحظياً من بيانات فريقك (الحضور، الإجازات، المهام).': "Metrics are calculated in real time from your team's data (attendance, leaves, tasks).",
 }
