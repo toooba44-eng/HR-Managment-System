@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from 'react-query'
+import { useTranslation } from 'react-i18next'
 import { ScrollText, Info, AlertTriangle, ShieldAlert } from 'lucide-react'
 import { platformApi } from '../../api/endpoints'
 import Spinner from '../../components/ui/Spinner'
@@ -13,6 +14,7 @@ const SEV_ICON = { معلومة: Info, تحذير: AlertTriangle, حرج: Shield
 const SEV_TONE = { معلومة: 'bg-blue-50 text-blue-600', تحذير: 'bg-amber-50 text-amber-600', حرج: 'bg-rose-50 text-rose-600' }
 
 export default function Audit() {
+  const { t } = useTranslation()
   const [sev, setSev] = useState('')
   const { data, isLoading } = useQuery(['platform-audit', sev], () => platformApi.audit(sev ? { severity: sev } : {}))
   if (isLoading) return <Spinner fullscreen />
@@ -22,22 +24,22 @@ export default function Audit() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-3 gap-4">
-        <StatCard icon={ScrollText} label="إجمالي العمليات" value={s.total ?? 0} tone="blue" />
-        <StatCard icon={AlertTriangle} label="تحذيرات" value={s.warnings ?? 0} tone="amber" />
-        <StatCard icon={ShieldAlert} label="حرجة" value={s.critical ?? 0} tone="rose" />
+        <StatCard icon={ScrollText} label={t('إجمالي العمليات')} value={s.total ?? 0} tone="blue" />
+        <StatCard icon={AlertTriangle} label={t('تحذيرات')} value={s.warnings ?? 0} tone="amber" />
+        <StatCard icon={ShieldAlert} label={t('حرجة')} value={s.critical ?? 0} tone="rose" />
       </div>
 
       <div className="flex justify-end">
         <Select value={sev} onChange={(e) => setSev(e.target.value)} className="max-w-[200px]">
-          <option value="">كل المستويات</option>
-          <option>معلومة</option>
-          <option>تحذير</option>
-          <option>حرج</option>
+          <option value="">{t('كل المستويات')}</option>
+          <option value="معلومة">{t('معلومة')}</option>
+          <option value="تحذير">{t('تحذير')}</option>
+          <option value="حرج">{t('حرج')}</option>
         </Select>
       </div>
 
       {logs.length === 0 ? (
-        <div className="card"><EmptyState icon={ScrollText} title="لا توجد عمليات مسجّلة" /></div>
+        <div className="card"><EmptyState icon={ScrollText} title={t('لا توجد عمليات مسجّلة')} /></div>
       ) : (
         <div className="card">
           <div className="space-y-1">
@@ -49,7 +51,7 @@ export default function Audit() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-medium text-slate-700">{l.action}</p>
-                      <Badge status={l.severity} />
+                      <Badge status={l.severity}>{t(l.severity)}</Badge>
                     </div>
                     <p className="text-xs text-slate-400 mt-0.5">{l.actor} · {l.entity}{l.details ? ` · ${l.details}` : ''}</p>
                   </div>
