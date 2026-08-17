@@ -1644,4 +1644,20 @@ export default {
   'الأخطاء': 'Errors',
   'معدّل الخطأ': 'Error Rate',
   'زمن الاستجابة': 'Response Time',
+
+  // ── Candidate Home ──
+  'أهلاً بك، {{name}}': 'Welcome, {{name}}',
+  'مرشحنا الكريم': 'Dear Candidate',
+  'ابدأ رحلتك المهنية معنا: أكمل ملفك، ارفع سيرتك الذاتية، وتقدّم على الوظائف المناسبة. سنبقيك على اطلاع بكل مرحلة من مراحل التوظيف.': 'Start your career journey with us: complete your profile, upload your CV, and apply to suitable jobs. We will keep you updated at every stage of the hiring process.',
+  'لا توجد طلبات نشطة بعد': 'No active applications yet',
+  'ابدأ بتصفح الوظائف والتقديم على ما يناسبك.': 'Start browsing jobs and apply to what suits you.',
+  'خطوات مقترحة': 'Suggested Steps',
+  'ارفع سيرتك الذاتية': 'Upload Your CV',
+  'تصفّح الوظائف المتاحة': 'Browse Available Jobs',
+  'تابع حالة طلباتك': 'Track Your Applications',
+  'انضم لقاعدة المواهب': 'Join the Talent Pool',
+
+  // ── Modules (Super Admin) ──
+  'الوحدات المتاحة': 'Available Modules',
+  'معطّلة': 'Disabled',
 }

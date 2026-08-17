@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Search, FileText, ListChecks, Star, ArrowLeft, Briefcase } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 
@@ -10,16 +11,16 @@ const STEPS = [
 ]
 
 export default function CandidateHome() {
+  const { t } = useTranslation()
   const { user } = useAuthStore()
 
   return (
     <div className="space-y-6">
       <div className="card bg-gradient-to-br from-orange-500 to-orange-700 text-white">
-        <p className="text-orange-100 text-sm">بوابة المرشح</p>
-        <h1 className="text-2xl font-extrabold mt-1">أهلاً بك، {user?.full_name || 'مرشحنا الكريم'}</h1>
+        <p className="text-orange-100 text-sm">{t('بوابة المرشح')}</p>
+        <h1 className="text-2xl font-extrabold mt-1">{t('أهلاً بك، {{name}}', { name: user?.full_name || t('مرشحنا الكريم') })}</h1>
         <p className="text-orange-100 mt-2 text-sm leading-relaxed">
-          ابدأ رحلتك المهنية معنا: أكمل ملفك، ارفع سيرتك الذاتية، وتقدّم على الوظائف المناسبة.
-          سنبقيك على اطلاع بكل مرحلة من مراحل التوظيف.
+          {t('ابدأ رحلتك المهنية معنا: أكمل ملفك، ارفع سيرتك الذاتية، وتقدّم على الوظائف المناسبة. سنبقيك على اطلاع بكل مرحلة من مراحل التوظيف.')}
         </p>
       </div>
 
@@ -28,17 +29,17 @@ export default function CandidateHome() {
           <Briefcase className="w-6 h-6" />
         </div>
         <div className="flex-1 text-center sm:text-right">
-          <p className="font-bold text-slate-800">لا توجد طلبات نشطة بعد</p>
-          <p className="text-sm text-slate-400">ابدأ بتصفح الوظائف والتقديم على ما يناسبك.</p>
+          <p className="font-bold text-slate-800">{t('لا توجد طلبات نشطة بعد')}</p>
+          <p className="text-sm text-slate-400">{t('ابدأ بتصفح الوظائف والتقديم على ما يناسبك.')}</p>
         </div>
         <Link to="/cand/jobs" className="btn-primary sm:w-auto">
           <Search className="w-4 h-4" />
-          تصفح الوظائف
+          {t('تصفح الوظائف')}
         </Link>
       </div>
 
       <div className="card">
-        <h3 className="font-bold text-slate-800 mb-4">خطوات مقترحة</h3>
+        <h3 className="font-bold text-slate-800 mb-4">{t('خطوات مقترحة')}</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {STEPS.map((s) => (
             <Link
@@ -49,7 +50,7 @@ export default function CandidateHome() {
               <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${s.tone}`}>
                 <s.icon className="w-5 h-5" />
               </div>
-              <span className="flex-1 text-sm font-medium text-slate-700">{s.label}</span>
+              <span className="flex-1 text-sm font-medium text-slate-700">{t(s.label)}</span>
               <ArrowLeft className="w-4 h-4 text-slate-300" />
             </Link>
           ))}
