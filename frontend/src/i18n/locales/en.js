@@ -1672,4 +1672,21 @@ export default {
   'رفع': 'Upload',
   'تم رفع المستند': 'Document uploaded',
   'تم إلغاء الرفع': 'Upload cancelled',
+
+  // ── Candidate Talent Pool ──
+  'إشعارات الوظائف': 'Job Notifications',
+  'كن أول من يعلم بالوظائف المناسبة لمهاراتك': 'Be the first to know about jobs matching your skills',
+  'ترشيح أسرع': 'Faster Shortlisting',
+  'يصل ملفك لمسؤولي التوظيف مباشرةً عند توفّر شاغر': 'Your profile reaches recruiters directly as soon as a position opens',
+  'فرص حصرية': 'Exclusive Opportunities',
+  'الوصول لفرص غير معلنة ضمن قاعدة المواهب': 'Access unadvertised opportunities within the talent pool',
+  'انضممت لقاعدة المواهب': 'Joined the talent pool',
+  'أنت عضو في قاعدة المواهب': 'You are a member of the talent pool',
+  'انضم إلى قاعدة المواهب': 'Join the Talent Pool',
+  'ملفك ظاهر لمسؤولي التوظيف وسيتم إشعارك بالفرص المناسبة.': 'Your profile is visible to recruiters and you will be notified of suitable opportunities.',
+  'احفظ ملفك ليصل إلى مسؤولي التوظيف عند توفّر فرص مناسبة.': 'Save your profile so it reaches recruiters when suitable opportunities arise.',
+  'إلغاء الانضمام': 'Cancel Membership',
+  'الانضمام الآن': 'Join Now',
+  'حالتك:': 'Your status:',
+  'عضو نشط في قاعدة المواهب': 'Active member of the talent pool',
 }
