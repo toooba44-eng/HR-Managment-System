@@ -1721,4 +1721,14 @@ export default {
   'الانضمام للمقابلة': 'Join Interview',
   'لا توجد مقابلات مجدولة': 'No scheduled interviews',
   'رابط': 'Link',
+
+  // ── Usage Monitoring (Super Admin) ──
+  'المؤسسات النشطة': 'Active Organizations',
+  'المقاعد المستخدمة': 'Seats Used',
+  'التخزين المستخدم': 'Storage Used',
+  'نسبة الإشغال': 'Utilization Rate',
+  'الباقة': 'Plan',
+  'المستخدمون': 'Users',
+  'التخزين': 'Storage',
+  'معلّقة': 'Suspended',
 }
