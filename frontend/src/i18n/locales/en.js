@@ -1660,4 +1660,16 @@ export default {
   // ── Modules (Super Admin) ──
   'الوحدات المتاحة': 'Available Modules',
   'معطّلة': 'Disabled',
+
+  // ── Candidate Documents ──
+  'تم رفعها': 'Uploaded',
+  'اكتمال المستندات المطلوبة': 'Required Documents Completion',
+  'لا توجد مستندات مطلوبة': 'No documents required',
+  'رُفع {{date}}': 'uploaded {{date}}',
+  'مطلوب': 'Required',
+  'مرفوع': 'Uploaded',
+  'إلغاء الرفع': 'Cancel Upload',
+  'رفع': 'Upload',
+  'تم رفع المستند': 'Document uploaded',
+  'تم إلغاء الرفع': 'Upload cancelled',
 }
