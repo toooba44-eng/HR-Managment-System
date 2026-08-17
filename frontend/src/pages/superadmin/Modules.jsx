@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
+import { useTranslation } from 'react-i18next'
 import { ListChecks, Package } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { platformApi, companiesApi } from '../../api/endpoints'
@@ -15,6 +16,7 @@ function Toggle({ checked, onChange }) {
 }
 
 export default function Modules() {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const { data: companiesData, isLoading: loadingCompanies } = useQuery('companies', companiesApi.list)
   const [companyId, setCompanyId] = useState('')
@@ -22,7 +24,7 @@ export default function Modules() {
   const active = companyId || companies[0]?.id
   const { data, isLoading } = useQuery(['modules', active], () => platformApi.modules(active), { enabled: !!active })
   const toggle = useMutation(({ module_key, enabled }) => platformApi.setModule(active, module_key, enabled), {
-    onSuccess: () => { toast.success('تم التحديث'); qc.invalidateQueries(['modules', active]) }, onError: () => toast.error('فشل'),
+    onSuccess: () => { toast.success(t('تم التحديث')); qc.invalidateQueries(['modules', active]) }, onError: () => toast.error(t('فشل')),
   })
 
   if (loadingCompanies) return <Spinner fullscreen />
@@ -31,7 +33,7 @@ export default function Modules() {
   return (
     <div className="space-y-6">
       <div className="card">
-        <Field label="المؤسسة">
+        <Field label={t('المؤسسة')}>
           <Select value={active || ''} onChange={(e) => setCompanyId(e.target.value)}>
             {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </Select>
@@ -39,15 +41,15 @@ export default function Modules() {
       </div>
 
       <div className="card">
-        <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4"><ListChecks className="w-5 h-5 text-slate-400" /> الوحدات المتاحة</h3>
+        <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4"><ListChecks className="w-5 h-5 text-slate-400" /> {t('الوحدات المتاحة')}</h3>
         {isLoading ? <Spinner /> : (
           <div className="space-y-1">
             {modules.map((m) => (
               <div key={m.key} className="flex items-center gap-3 py-3 border-b border-slate-50 last:border-0">
                 <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${m.enabled ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-400'}`}><Package className="w-4 h-4" /></div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-slate-700">{m.label}</p>
-                  <p className="text-[11px] text-slate-400">{m.enabled ? 'مفعّلة' : 'معطّلة'}</p>
+                  <p className="text-sm font-medium text-slate-700">{t(m.label)}</p>
+                  <p className="text-[11px] text-slate-400">{m.enabled ? t('مفعّلة') : t('معطّلة')}</p>
                 </div>
                 <Toggle checked={!!m.enabled} onChange={(v) => toggle.mutate({ module_key: m.key, enabled: v })} />
               </div>

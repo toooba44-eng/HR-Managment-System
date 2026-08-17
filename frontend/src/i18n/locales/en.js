@@ -1656,4 +1656,8 @@ export default {
   'تصفّح الوظائف المتاحة': 'Browse Available Jobs',
   'تابع حالة طلباتك': 'Track Your Applications',
   'انضم لقاعدة المواهب': 'Join the Talent Pool',
+
+  // ── Modules (Super Admin) ──
+  'الوحدات المتاحة': 'Available Modules',
+  'معطّلة': 'Disabled',
 }
