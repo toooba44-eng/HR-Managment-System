@@ -1841,4 +1841,17 @@ export default {
   'لا توجد مهام': 'No tasks',
   'لا يوجد أعضاء': 'No members',
   'المؤشرات محسوبة لحظياً من بيانات فريقك (الحضور، الإجازات، المهام).': "Metrics are calculated in real time from your team's data (attendance, leaves, tasks).",
+
+  // ── System Templates (Super Admin) ──
+  'بريد': 'Email',
+  'رسالة نصية': 'SMS',
+  'مستند': 'Document',
+  'تعديل القالب': 'Edit Template',
+  'قالب جديد': 'New Template',
+  'اسم القالب': 'Template Name',
+  'العنوان_template': 'Subject',
+  'المحتوى': 'Content',
+  'استخدم {{name}}, {{company}}, {{date}} كمتغيّرات': 'Use {{name}}, {{company}}, {{date}} as variables',
+  'لا توجد قوالب': 'No templates',
+  'حذف القالب؟': 'Delete this template?',
 }
