@@ -1904,4 +1904,22 @@ export default {
   'طلب ترقية/نقل': 'Promotion/Transfer Request',
   'ترقيات': 'Promotions',
   'عمليات نقل': 'Transfers',
+
+  // ── Companies (Super Admin) ──
+  'تعديل مؤسسة': 'Edit Company',
+  'إنشاء مؤسسة': 'Create Company',
+  'تم إنشاء المؤسسة': 'Company created',
+  'البريد الإلكتروني للتواصل': 'Contact Email',
+  'حد المستخدمين': 'User Limit',
+  'حد التخزين (GB)': 'Storage Limit (GB)',
+  'مؤسسة جديدة': 'New Company',
+  'إجمالي المؤسسات': 'Total Companies',
+  'النشطة': 'Active',
+  'المعلّقة': 'Suspended',
+  'الباقات': 'Plans',
+  'باقة {{plan}}': '{{plan}} Plan',
+  'تفعيل/تعليق': 'Activate/Suspend',
+  'حذف المؤسسة؟': 'Delete this company?',
+  'تم تحديث الحالة': 'Status updated',
+  '{{count}} مستخدم': '{{count}} users',
 }
