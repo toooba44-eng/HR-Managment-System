@@ -1769,4 +1769,16 @@ export default {
   'هل أنت متأكد من رفض العرض؟': 'Are you sure you want to decline the offer?',
   'لقد قبلت هذا العرض في {{date}}': 'You accepted this offer on {{date}}',
   'لقد رفضت هذا العرض في {{date}}': 'You declined this offer on {{date}}',
+
+  // ── System Performance (Super Admin) ──
+  'صحّي': 'Healthy',
+  'آخر تحديث الآن': 'Updated just now',
+  'نسبة التشغيل': 'Uptime',
+  'متوسط الاستجابة': 'Average Response',
+  'معدّل الأخطاء': 'Error Rate',
+  'طلبات اليوم': "Today's Requests",
+  'زمن الاستجابة (آخر 12 ساعة)': 'Response Time (Last 12 Hours)',
+  'المعالج': 'CPU',
+  'الذاكرة': 'Memory',
+  'اتصالات قاعدة البيانات': 'Database Connections',
 }
