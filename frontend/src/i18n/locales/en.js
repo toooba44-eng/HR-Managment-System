@@ -1613,4 +1613,13 @@ export default {
   // ── Limits (Super Admin) ──
   'تم حفظ الحدود': 'Limits saved',
   'لا توجد مؤسسات': 'No companies',
+
+  // ── Impersonate (Super Admin) ──
+  'بدأت جلسة بالنيابة عن {{name}} (وضع مقيّد)': 'Started an impersonation session for {{name}} (restricted mode)',
+  'الدخول بالنيابة — وضع مقيّد': 'Impersonation — Restricted Mode',
+  'تتيح لك الجلسة الاطلاع على بيانات المؤسسة بصلاحيات محدودة للقراءة فقط لأغراض الدعم. جميع الجلسات تُسجّل في سجل العمليات.': 'This session lets you view the company\'s data with read-only, limited permissions for support purposes. All sessions are logged in the audit log.',
+  'جلسة نشطة بالنيابة عن': 'Active impersonation session for',
+  'إنهاء': 'End',
+  'تم إنهاء الجلسة': 'Session ended',
+  'دخول_impersonate': 'Log In',
 }
