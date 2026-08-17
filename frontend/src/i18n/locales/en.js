@@ -1817,4 +1817,18 @@ export default {
   'استبدال': 'Replace',
   'لم ترفع سيرتك الذاتية بعد': "You haven't uploaded your CV yet",
   'رفع السيرة الذاتية': 'Upload CV',
+
+  // ── Localization (Super Admin) ──
+  'دولة': 'Country',
+  'عملة': 'Currency',
+  'لغة': 'Language',
+  'الدول': 'Countries',
+  'العملات': 'Currencies',
+  'اللغات': 'Languages',
+  'إضافة عنصر تعريب': 'Add Localization Item',
+  'الاسم': 'Name',
+  'الرمز': 'Code',
+  'تعيين افتراضي': 'Set as Default',
+  'حذف العنصر؟': 'Delete this item?',
+  'لا توجد عناصر': 'No items',
 }
