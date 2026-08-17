@@ -1747,4 +1747,13 @@ export default {
   'نصائح قبل المقابلة': 'Tips Before the Interview',
   'لا توجد مقابلات فيديو مجدولة': 'No scheduled video interviews',
   'مقابلات سابقة': 'Past Interviews',
+
+  // ── Audit Log (Super Admin) ──
+  'معلومة': 'Info',
+  'حرج': 'Critical',
+  'إجمالي العمليات': 'Total Operations',
+  'تحذيرات': 'Warnings',
+  'حرجة': 'Critical',
+  'كل المستويات': 'All Levels',
+  'لا توجد عمليات مسجّلة': 'No recorded operations',
 }
