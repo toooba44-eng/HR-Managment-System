@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
+import { useTranslation } from 'react-i18next'
 import { Gift, Plus, Trash2, Pencil, Wallet, Users, ShieldCheck, TrendingUp, History, ArrowUp, ArrowDown, Send } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { compensationApi, compensationRequestsApi, employeesApi } from '../../api/endpoints'
@@ -21,6 +22,7 @@ const pkgTotal = (r) =>
   r.total_salary ?? (Number(r.base_salary) + Number(r.housing_allowance) + Number(r.transport_allowance) + Number(r.other_allowances) + Number(r.bonus))
 
 function Form({ open, onClose, editing }) {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const { data: emps } = useQuery('employees-all', () => employeesApi.list({ limit: 100 }), { enabled: open })
   const [form, setForm] = useState(() => editing || {
@@ -30,41 +32,41 @@ function Form({ open, onClose, editing }) {
   const m = useMutation(
     (d) => (editing ? compensationApi.update(editing.id, d) : compensationApi.create(d)),
     {
-      onSuccess: () => { toast.success(editing ? 'تم التحديث' : 'تمت الإضافة'); qc.invalidateQueries('compensation'); onClose() },
-      onError: (e) => toast.error(e.response?.data?.error || 'فشلت العملية'),
+      onSuccess: () => { toast.success(editing ? t('تم التحديث') : t('تمت الإضافة')); qc.invalidateQueries('compensation'); onClose() },
+      onError: (e) => toast.error(e.response?.data?.error || t('فشلت العملية')),
     },
   )
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
   return (
-    <Modal open={open} onClose={onClose} title={editing ? 'تعديل حزمة التعويضات' : 'حزمة تعويضات جديدة'}>
+    <Modal open={open} onClose={onClose} title={editing ? t('تعديل حزمة التعويضات') : t('حزمة تعويضات جديدة')}>
       <form onSubmit={(e) => { e.preventDefault(); m.mutate(form) }} className="space-y-4">
         {!editing && (
-          <Field label="الموظف" required>
+          <Field label={t('الموظف')} required>
             <Select value={form.employee_id} onChange={set('employee_id')} required>
-              <option value="">اختر</option>
+              <option value="">{t('اختر')}</option>
               {(emps?.employees || []).map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}
             </Select>
           </Field>
         )}
         <div className="grid grid-cols-2 gap-4">
-          <Field label="الدرجة الوظيفية"><Select value={form.grade} onChange={set('grade')}>{GRADES.map((g) => <option key={g}>{g}</option>)}</Select></Field>
-          <Field label="فئة التأمين"><Select value={form.insurance_class} onChange={set('insurance_class')}>{INSURANCE.map((g) => <option key={g}>{g}</option>)}</Select></Field>
-          <Field label="الراتب الأساسي" required><Input type="number" min="0" value={form.base_salary} onChange={set('base_salary')} required /></Field>
-          <Field label="بدل السكن"><Input type="number" min="0" value={form.housing_allowance} onChange={set('housing_allowance')} /></Field>
-          <Field label="بدل النقل"><Input type="number" min="0" value={form.transport_allowance} onChange={set('transport_allowance')} /></Field>
-          <Field label="بدلات أخرى"><Input type="number" min="0" value={form.other_allowances} onChange={set('other_allowances')} /></Field>
-          <Field label="مكافآت"><Input type="number" min="0" value={form.bonus} onChange={set('bonus')} /></Field>
-          <Field label="تاريخ السريان"><Input type="date" value={form.effective_date || ''} onChange={set('effective_date')} /></Field>
+          <Field label={t('الدرجة الوظيفية')}><Select value={form.grade} onChange={set('grade')}>{GRADES.map((g) => <option key={g} value={g}>{t(g)}</option>)}</Select></Field>
+          <Field label={t('فئة التأمين')}><Select value={form.insurance_class} onChange={set('insurance_class')}>{INSURANCE.map((g) => <option key={g} value={g}>{t(g)}</option>)}</Select></Field>
+          <Field label={t('الراتب الأساسي')} required><Input type="number" min="0" value={form.base_salary} onChange={set('base_salary')} required /></Field>
+          <Field label={t('بدل السكن')}><Input type="number" min="0" value={form.housing_allowance} onChange={set('housing_allowance')} /></Field>
+          <Field label={t('بدل النقل')}><Input type="number" min="0" value={form.transport_allowance} onChange={set('transport_allowance')} /></Field>
+          <Field label={t('بدلات أخرى')}><Input type="number" min="0" value={form.other_allowances} onChange={set('other_allowances')} /></Field>
+          <Field label={t('مكافآت')}><Input type="number" min="0" value={form.bonus} onChange={set('bonus')} /></Field>
+          <Field label={t('تاريخ السريان')}><Input type="date" value={form.effective_date || ''} onChange={set('effective_date')} /></Field>
         </div>
         {editing && (
           <>
-            <Field label="الحالة"><Select value={form.status} onChange={set('status')}><option>نشط</option><option>مؤرشف</option></Select></Field>
-            <Field label="سبب التغيير (اختياري)"><Textarea value={form.change_reason || ''} onChange={set('change_reason')} rows={2} placeholder="مثال: ترقية سنوية، تعديل السوق..." /></Field>
+            <Field label={t('الحالة')}><Select value={form.status} onChange={set('status')}><option value="نشط">{t('نشط')}</option><option value="مؤرشف">{t('مؤرشف')}</option></Select></Field>
+            <Field label={t('سبب التغيير (اختياري)')}><Textarea value={form.change_reason || ''} onChange={set('change_reason')} rows={2} placeholder={t('مثال: ترقية سنوية، تعديل السوق...')} /></Field>
           </>
         )}
         <div className="flex justify-end gap-3 pt-2">
-          <Button type="button" variant="secondary" onClick={onClose}>إلغاء</Button>
-          <Button type="submit" loading={m.isLoading}>حفظ</Button>
+          <Button type="button" variant="secondary" onClick={onClose}>{t('إلغاء')}</Button>
+          <Button type="submit" loading={m.isLoading}>{t('حفظ')}</Button>
         </div>
       </form>
     </Modal>
@@ -72,11 +74,12 @@ function Form({ open, onClose, editing }) {
 }
 
 function HistoryModal({ pkg, onClose }) {
+  const { t } = useTranslation()
   const { data = [], isLoading } = useQuery(['compensation-history', pkg.id], () => compensationApi.history(pkg.id))
   return (
-    <Modal open onClose={onClose} title={`سجل تعديلات الراتب — ${pkg.full_name || ''}`}>
+    <Modal open onClose={onClose} title={t('سجل تعديلات الراتب — {{name}}', { name: pkg.full_name || '' })}>
       {isLoading ? <Spinner /> : data.length === 0 ? (
-        <p className="text-sm text-slate-400 text-center py-4">لا توجد تعديلات مسجّلة بعد.</p>
+        <p className="text-sm text-slate-400 text-center py-4">{t('لا توجد تعديلات مسجّلة بعد.')}</p>
       ) : (
         <div className="space-y-2">
           {data.map((h) => {
@@ -95,7 +98,7 @@ function HistoryModal({ pkg, onClose }) {
                   </span>
                 </div>
                 {h.reason && <p className="text-xs text-slate-500 mt-1.5">{h.reason}</p>}
-                <p className="text-[11px] text-slate-400 mt-1">{h.changed_by_name || 'مستخدم'} · {formatDate(h.created_at)}</p>
+                <p className="text-[11px] text-slate-400 mt-1">{h.changed_by_name || t('مستخدم')} · {formatDate(h.created_at)}</p>
               </div>
             )
           })}
@@ -106,33 +109,34 @@ function HistoryModal({ pkg, onClose }) {
 }
 
 function RaiseRequestModal({ open, onClose }) {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const { data: emps } = useQuery('employees-all', () => employeesApi.list({ limit: 100 }), { enabled: open })
   const [form, setForm] = useState({ employee_id: '', requested_base_salary: '', reason: '' })
   const m = useMutation(
     () => compensationRequestsApi.create({ ...form, employee_id: Number(form.employee_id), requested_base_salary: Number(form.requested_base_salary) }),
     {
-      onSuccess: () => { toast.success('تم إرسال الطلب لاعتماد الموارد البشرية'); qc.invalidateQueries('compensation-requests'); onClose() },
-      onError: (e) => toast.error(e.response?.data?.error || 'فشل إرسال الطلب'),
+      onSuccess: () => { toast.success(t('تم إرسال الطلب لاعتماد الموارد البشرية')); qc.invalidateQueries('compensation-requests'); onClose() },
+      onError: (e) => toast.error(e.response?.data?.error || t('فشل إرسال الطلب')),
     }
   )
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
   return (
-    <Modal open={open} onClose={onClose} title="طلب زيادة راتب">
+    <Modal open={open} onClose={onClose} title={t('طلب زيادة راتب')}>
       <form onSubmit={(e) => { e.preventDefault(); m.mutate() }} className="space-y-4">
-        <Field label="الموظف" required>
+        <Field label={t('الموظف')} required>
           <Select value={form.employee_id} onChange={set('employee_id')} required>
-            <option value="">اختر</option>
+            <option value="">{t('اختر')}</option>
             {(emps?.employees || []).map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}
           </Select>
         </Field>
-        <Field label="الراتب الأساسي الجديد" required>
+        <Field label={t('الراتب الأساسي الجديد')} required>
           <Input type="number" min="0" value={form.requested_base_salary} onChange={set('requested_base_salary')} required />
         </Field>
-        <Field label="سبب الزيادة"><Textarea value={form.reason} onChange={set('reason')} rows={2} placeholder="أداء متميز، ترقية، تعديل السوق..." /></Field>
+        <Field label={t('سبب الزيادة')}><Textarea value={form.reason} onChange={set('reason')} rows={2} placeholder={t('أداء متميز، ترقية، تعديل السوق...')} /></Field>
         <div className="flex justify-end gap-3 pt-2">
-          <Button type="button" variant="secondary" onClick={onClose}>إلغاء</Button>
-          <Button type="submit" loading={m.isLoading}><Send className="w-4 h-4" /> إرسال للاعتماد</Button>
+          <Button type="button" variant="secondary" onClick={onClose}>{t('إلغاء')}</Button>
+          <Button type="submit" loading={m.isLoading}><Send className="w-4 h-4" /> {t('إرسال للاعتماد')}</Button>
         </div>
       </form>
     </Modal>
@@ -140,6 +144,7 @@ function RaiseRequestModal({ open, onClose }) {
 }
 
 export default function Compensation() {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const { user } = useAuthStore()
   const canManage = MANAGE.includes(user?.role)
@@ -149,8 +154,8 @@ export default function Compensation() {
   const [showRaiseRequest, setShowRaiseRequest] = useState(false)
   const { data, isLoading } = useQuery('compensation', () => compensationApi.list())
   const del = useMutation((id) => compensationApi.remove(id), {
-    onSuccess: () => { toast.success('تم الحذف'); qc.invalidateQueries('compensation') },
-    onError: () => toast.error('فشل الحذف'),
+    onSuccess: () => { toast.success(t('تم الحذف')); qc.invalidateQueries('compensation') },
+    onError: () => toast.error(t('فشل الحذف')),
   })
 
   const openNew = () => { setEditing(null); setShowForm(true) }
@@ -164,34 +169,34 @@ export default function Compensation() {
     <div className="space-y-6">
       {canManage && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard icon={Wallet} label="إجمالي الرواتب الشهرية" value={formatCurrency(s.monthlyPayroll ?? 0)} tone="blue" />
-          <StatCard icon={TrendingUp} label="متوسط الحزمة" value={formatCurrency(s.avgSalary ?? 0)} tone="violet" />
-          <StatCard icon={Users} label="عدد الحزم" value={s.count ?? 0} tone="amber" />
-          <StatCard icon={ShieldCheck} label="مشمولون بالتأمين" value={s.insured ?? 0} tone="green" />
+          <StatCard icon={Wallet} label={t('إجمالي الرواتب الشهرية')} value={formatCurrency(s.monthlyPayroll ?? 0)} tone="blue" />
+          <StatCard icon={TrendingUp} label={t('متوسط الحزمة')} value={formatCurrency(s.avgSalary ?? 0)} tone="violet" />
+          <StatCard icon={Users} label={t('عدد الحزم')} value={s.count ?? 0} tone="amber" />
+          <StatCard icon={ShieldCheck} label={t('مشمولون بالتأمين')} value={s.insured ?? 0} tone="green" />
         </div>
       )}
 
       {canManage && (
         <div className="flex justify-end gap-3">
-          <Button variant="secondary" onClick={() => setShowRaiseRequest(true)}><Send className="w-5 h-5" /> طلب زيادة راتب</Button>
-          <Button onClick={openNew}><Plus className="w-5 h-5" /> حزمة تعويضات</Button>
+          <Button variant="secondary" onClick={() => setShowRaiseRequest(true)}><Send className="w-5 h-5" /> {t('طلب زيادة راتب')}</Button>
+          <Button onClick={openNew}><Plus className="w-5 h-5" /> {t('حزمة تعويضات')}</Button>
         </div>
       )}
 
       {items.length === 0 ? (
-        <div className="card"><EmptyState icon={Gift} title="لا توجد حزم تعويضات" /></div>
+        <div className="card"><EmptyState icon={Gift} title={t('لا توجد حزم تعويضات')} /></div>
       ) : (
         <div className="card overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-right text-slate-400 border-b border-slate-100">
-                {canManage && <th className="pb-3 font-medium">الموظف</th>}
-                <th className="pb-3 font-medium">الدرجة</th>
-                <th className="pb-3 font-medium">الأساسي</th>
-                <th className="pb-3 font-medium">البدلات</th>
-                <th className="pb-3 font-medium">الإجمالي الشهري</th>
-                <th className="pb-3 font-medium">التأمين</th>
-                <th className="pb-3 font-medium">الحالة</th>
+                {canManage && <th className="pb-3 font-medium">{t('الموظف')}</th>}
+                <th className="pb-3 font-medium">{t('الدرجة')}</th>
+                <th className="pb-3 font-medium">{t('الأساسي')}</th>
+                <th className="pb-3 font-medium">{t('البدلات')}</th>
+                <th className="pb-3 font-medium">{t('الإجمالي الشهري')}</th>
+                <th className="pb-3 font-medium">{t('التأمين')}</th>
+                <th className="pb-3 font-medium">{t('الحالة')}</th>
                 <th className="pb-3 font-medium"></th>
               </tr>
             </thead>
@@ -205,19 +210,19 @@ export default function Compensation() {
                         <div className="flex items-center gap-2"><Avatar name={r.full_name} size="sm" /><div><p className="text-slate-700">{r.full_name}</p><p className="text-xs text-slate-400">{r.job_title}</p></div></div>
                       </td>
                     )}
-                    <td className="py-3 text-slate-600">{r.grade}</td>
+                    <td className="py-3 text-slate-600">{t(r.grade)}</td>
                     <td className="py-3 text-slate-700">{formatCurrency(r.base_salary)}</td>
                     <td className="py-3 text-slate-500">{formatCurrency(allowances)}</td>
                     <td className="py-3 font-bold text-slate-800">{formatCurrency(pkgTotal(r))}</td>
-                    <td className="py-3 text-slate-600">{r.insurance_class}</td>
-                    <td className="py-3"><Badge status={r.status} /></td>
+                    <td className="py-3 text-slate-600">{t(r.insurance_class)}</td>
+                    <td className="py-3"><Badge status={r.status}>{t(r.status)}</Badge></td>
                     <td className="py-3">
                       <div className="flex gap-1 justify-end">
-                        <button onClick={() => setViewingHistory(r)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-violet-600" title="سجل التعديلات"><History className="w-4 h-4" /></button>
+                        <button onClick={() => setViewingHistory(r)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-violet-600" title={t('سجل التعديلات')}><History className="w-4 h-4" /></button>
                         {canManage && (
                           <>
                             <button onClick={() => openEdit(r)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button>
-                            <button onClick={() => window.confirm('حذف الحزمة؟') && del.mutate(r.id)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-300 hover:text-rose-500"><Trash2 className="w-4 h-4" /></button>
+                            <button onClick={() => window.confirm(t('حذف الحزمة؟')) && del.mutate(r.id)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-300 hover:text-rose-500"><Trash2 className="w-4 h-4" /></button>
                           </>
                         )}
                       </div>
