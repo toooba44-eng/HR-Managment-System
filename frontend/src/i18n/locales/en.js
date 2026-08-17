@@ -1583,4 +1583,23 @@ export default {
   '{{count}} موظف · الصافي {{amount}} · أنشأه {{name}}': '{{count}} employee(s) · Net {{amount}} · created by {{name}}',
   'حذف المسير؟': 'Delete this run?',
   'مسيرات الرواتب': 'Payroll Runs',
+
+  // ── Subscriptions (Super Admin) ──
+  'أساسية': 'Basic',
+  'احترافية': 'Professional',
+  'مؤسسية': 'Enterprise',
+  'إدارة الموظفين': 'Employee Management',
+  'الحضور والإجازات': 'Attendance & Leave',
+  'الدعم عبر البريد': 'Email Support',
+  'كل مزايا الأساسية': 'All Basic features',
+  'الرواتب والتقارير': 'Payroll & Reports',
+  'دعم ذو أولوية': 'Priority Support',
+  'كل مزايا الاحترافية': 'All Professional features',
+  'تكاملات API': 'API Integrations',
+  'مدير حساب مخصّص': 'Dedicated Account Manager',
+  'اتفاقية مستوى خدمة': 'Service Level Agreement',
+  'ر.س/شهر': 'SAR/month',
+  'مستخدم_count': 'users',
+  'المؤسسات المشتركة': 'Subscribed Companies',
+  'توزيع الاشتراكات محسوب من المؤسسات المسجّلة في المنصة.': 'Subscription distribution is calculated from companies registered on the platform.',
 }
