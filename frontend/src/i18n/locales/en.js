@@ -1738,4 +1738,13 @@ export default {
   'إلغاء_subscription': 'Cancellation',
   'معلق_subscription': 'Pending',
   'طلبات إلغاء': 'Cancellation Requests',
+
+  // ── Candidate Video Interview ──
+  'تأكد من استقرار اتصال الإنترنت': 'Make sure your internet connection is stable',
+  'اختبر الكاميرا والإضاءة مسبقاً': 'Test your camera and lighting beforehand',
+  'تأكد من عمل الميكروفون في مكان هادئ': 'Make sure your microphone works in a quiet place',
+  'الانضمام لمقابلة الفيديو': 'Join Video Interview',
+  'نصائح قبل المقابلة': 'Tips Before the Interview',
+  'لا توجد مقابلات فيديو مجدولة': 'No scheduled video interviews',
+  'مقابلات سابقة': 'Past Interviews',
 }
