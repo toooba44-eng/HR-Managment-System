@@ -1756,4 +1756,17 @@ export default {
   'حرجة': 'Critical',
   'كل المستويات': 'All Levels',
   'لا توجد عمليات مسجّلة': 'No recorded operations',
+
+  // ── Candidate Job Offer ──
+  'تم قبول العرض 🎉': 'Offer accepted 🎉',
+  'تم رفض العرض': 'Offer rejected',
+  'لا يوجد عرض عمل حالياً': 'No job offer currently',
+  'سيظهر عرض العمل هنا عند صدوره': 'The offer will appear here once issued',
+  'عرض عمل': 'Job Offer',
+  'الوظيفة': 'Job Title',
+  'قبول العرض': 'Accept Offer',
+  'رفض العرض': 'Decline Offer',
+  'هل أنت متأكد من رفض العرض؟': 'Are you sure you want to decline the offer?',
+  'لقد قبلت هذا العرض في {{date}}': 'You accepted this offer on {{date}}',
+  'لقد رفضت هذا العرض في {{date}}': 'You declined this offer on {{date}}',
 }
