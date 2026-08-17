@@ -1945,4 +1945,20 @@ export default {
   'وضع كمتأخرة': 'Mark as Overdue',
   'إلغاء الفاتورة': 'Cancel Invoice',
   'حذف الفاتورة؟': 'Delete this invoice?',
+
+  // ── Interviews (Manager) ──
+  'تعديل المقابلة': 'Edit Interview',
+  'جدولة مقابلة': 'Schedule Interview',
+  'اسم المرشّح': 'Candidate Name',
+  'القائم بالمقابلة': 'Interviewer',
+  'الموعد': 'Scheduled At',
+  'المرحلة': 'Stage',
+  'نتيجة مقابلة {{name}}': 'Interview Outcome — {{name}}',
+  'التقييم': 'Rating',
+  'حفظ النتيجة': 'Save Outcome',
+  'تم تسجيل النتيجة': 'Outcome recorded',
+  'إجمالي المقابلات': 'Total Interviews',
+  'لا توجد مقابلات': 'No interviews',
+  'تسجيل النتيجة': 'Record Outcome',
+  'حذف المقابلة؟': 'Delete this interview?',
 }
