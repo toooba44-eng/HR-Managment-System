@@ -1,4 +1,5 @@
 import { useQuery } from 'react-query'
+import { useTranslation } from 'react-i18next'
 import { Users, UserCheck, CalendarClock, ClipboardList, Clock } from 'lucide-react'
 import { employeesApi, attendanceApi, leavesApi, tasksApi } from '../../api/endpoints'
 import StatCard from '../../components/ui/StatCard'
@@ -10,6 +11,7 @@ import EmptyState from '../../components/ui/EmptyState'
 const today = () => new Date().toISOString().split('T')[0]
 
 export default function TeamMetrics() {
+  const { t } = useTranslation()
   const { data: emps, isLoading } = useQuery('team-members', () => employeesApi.list({ limit: 100 }))
   const { data: att } = useQuery(['team-attendance', today()], () => attendanceApi.list({ date: today() }))
   const { data: leaves } = useQuery(['team-leaves-pending'], () => leavesApi.list({ status: 'معلقة' }))
@@ -27,17 +29,17 @@ export default function TeamMetrics() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Users} label="أعضاء الفريق" value={team.length} tone="blue" />
-        <StatCard icon={UserCheck} label="حاضر اليوم" value={summary.present || 0} tone="green" hint={`${summary.late || 0} متأخر`} />
-        <StatCard icon={CalendarClock} label="إجازات معلّقة" value={pendingLeaves} tone="amber" />
-        <StatCard icon={ClipboardList} label="مهام نشطة" value={activeTasks} tone="violet" hint={`${taskBy('مكتملة')} مكتملة`} />
+        <StatCard icon={Users} label={t('أعضاء الفريق')} value={team.length} tone="blue" />
+        <StatCard icon={UserCheck} label={t('حاضر اليوم')} value={summary.present || 0} tone="green" hint={t('{{count}} متأخر', { count: summary.late || 0 })} />
+        <StatCard icon={CalendarClock} label={t('إجازات معلّقة')} value={pendingLeaves} tone="amber" />
+        <StatCard icon={ClipboardList} label={t('مهام نشطة')} value={activeTasks} tone="violet" hint={t('{{count}} مكتملة', { count: taskBy('مكتملة') })} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card">
-          <h3 className="font-bold text-slate-800 mb-4">حالة المهام</h3>
+          <h3 className="font-bold text-slate-800 mb-4">{t('حالة المهام')}</h3>
           {tasks.length === 0 ? (
-            <EmptyState icon={ClipboardList} title="لا توجد مهام" />
+            <EmptyState icon={ClipboardList} title={t('لا توجد مهام')} />
           ) : (
             <div className="space-y-3">
               {['قيد التنفيذ', 'جديدة', 'مكتملة', 'ملغاة'].map((s) => {
@@ -46,7 +48,7 @@ export default function TeamMetrics() {
                 return (
                   <div key={s}>
                     <div className="flex items-center justify-between text-sm mb-1">
-                      <span className="text-slate-600">{s}</span>
+                      <span className="text-slate-600">{t(s)}</span>
                       <span className="font-medium text-slate-700">{count}</span>
                     </div>
                     <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
@@ -60,9 +62,9 @@ export default function TeamMetrics() {
         </div>
 
         <div className="card">
-          <h3 className="font-bold text-slate-800 mb-4">أعضاء الفريق</h3>
+          <h3 className="font-bold text-slate-800 mb-4">{t('أعضاء الفريق')}</h3>
           {team.length === 0 ? (
-            <EmptyState icon={Users} title="لا يوجد أعضاء" />
+            <EmptyState icon={Users} title={t('لا يوجد أعضاء')} />
           ) : (
             <div className="space-y-2 max-h-80 overflow-y-auto scrollbar-hide">
               {team.map((e) => (
@@ -72,7 +74,7 @@ export default function TeamMetrics() {
                     <p className="text-sm font-medium text-slate-700 truncate">{e.full_name}</p>
                     <p className="text-xs text-slate-400 truncate">{e.job_title}</p>
                   </div>
-                  <Badge status={e.status} />
+                  <Badge status={e.status}>{t(e.status)}</Badge>
                 </div>
               ))}
             </div>
@@ -81,7 +83,7 @@ export default function TeamMetrics() {
       </div>
 
       <p className="text-xs text-slate-400 flex items-center gap-1">
-        <Clock className="w-3.5 h-3.5" /> المؤشرات محسوبة لحظياً من بيانات فريقك (الحضور، الإجازات، المهام).
+        <Clock className="w-3.5 h-3.5" /> {t('المؤشرات محسوبة لحظياً من بيانات فريقك (الحضور، الإجازات، المهام).')}
       </p>
     </div>
   )
