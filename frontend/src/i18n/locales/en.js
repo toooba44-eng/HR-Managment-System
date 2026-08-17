@@ -1961,4 +1961,13 @@ export default {
   'لا توجد مقابلات': 'No interviews',
   'تسجيل النتيجة': 'Record Outcome',
   'حذف المقابلة؟': 'Delete this interview?',
+
+  // ── Tasks (Manager / Employee) ──
+  'عنوان المهمة': 'Task Title',
+  'تم إسناد المهمة': 'Task assigned',
+  'فشل الإسناد': 'Assignment failed',
+  'مهام الفريق': 'Team Tasks',
+  'أسند المهام لأعضاء فريقك وتابع تقدّمها.': 'Assign tasks to your team members and track their progress.',
+  'المهام المسندة إليك — حدّث حالتها فور إنجازها.': 'Tasks assigned to you — update their status as soon as you complete them.',
+  'أسندها: {{name}}': 'Assigned by: {{name}}',
 }
