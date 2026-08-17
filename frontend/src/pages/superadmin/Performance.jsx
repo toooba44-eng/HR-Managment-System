@@ -1,4 +1,5 @@
 import { useQuery } from 'react-query'
+import { useTranslation } from 'react-i18next'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { Gauge, Zap, AlertTriangle, Activity, Cpu, MemoryStick, Database } from 'lucide-react'
 import { platformApi } from '../../api/endpoints'
@@ -19,6 +20,7 @@ function Meter({ icon: Icon, label, value, unit, tone }) {
 }
 
 export default function Performance() {
+  const { t } = useTranslation()
   const { data, isLoading } = useQuery('platform-performance', () => platformApi.performance())
   if (isLoading) return <Spinner fullscreen />
   const h = data?.health || {}
@@ -29,21 +31,21 @@ export default function Performance() {
       <div className="card flex items-center gap-3">
         <div className="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600"><Gauge className="w-5 h-5" /></div>
         <div className="flex-1">
-          <p className="font-bold text-slate-800">حالة النظام</p>
-          <p className="text-xs text-slate-400">آخر تحديث الآن</p>
+          <p className="font-bold text-slate-800">{t('حالة النظام')}</p>
+          <p className="text-xs text-slate-400">{t('آخر تحديث الآن')}</p>
         </div>
-        <Badge status={h.status} />
+        <Badge status={h.status}>{t(h.status)}</Badge>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Activity} label="نسبة التشغيل" value={`${h.uptime ?? 0}%`} tone="green" />
-        <StatCard icon={Zap} label="متوسط الاستجابة" value={`${h.avg_response_ms ?? 0}ms`} tone="blue" />
-        <StatCard icon={AlertTriangle} label="معدّل الأخطاء" value={`${h.error_rate ?? 0}%`} tone="rose" />
-        <StatCard icon={Activity} label="طلبات اليوم" value={(h.requests_today ?? 0).toLocaleString('ar')} tone="violet" />
+        <StatCard icon={Activity} label={t('نسبة التشغيل')} value={`${h.uptime ?? 0}%`} tone="green" />
+        <StatCard icon={Zap} label={t('متوسط الاستجابة')} value={`${h.avg_response_ms ?? 0}ms`} tone="blue" />
+        <StatCard icon={AlertTriangle} label={t('معدّل الأخطاء')} value={`${h.error_rate ?? 0}%`} tone="rose" />
+        <StatCard icon={Activity} label={t('طلبات اليوم')} value={(h.requests_today ?? 0).toLocaleString('ar')} tone="violet" />
       </div>
 
       <div className="card">
-        <h3 className="font-bold text-slate-800 mb-4">زمن الاستجابة (آخر 12 ساعة)</h3>
+        <h3 className="font-bold text-slate-800 mb-4">{t('زمن الاستجابة (آخر 12 ساعة)')}</h3>
         <div className="h-64" dir="ltr">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={series}>
@@ -64,9 +66,9 @@ export default function Performance() {
       </div>
 
       <div className="grid md:grid-cols-3 gap-4">
-        <Meter icon={Cpu} label="المعالج" value={h.cpu ?? 0} unit="%" tone="bg-blue-500" />
-        <Meter icon={MemoryStick} label="الذاكرة" value={h.memory ?? 0} unit="%" tone="bg-violet-500" />
-        <Meter icon={Database} label="اتصالات قاعدة البيانات" value={h.db_connections ?? 0} unit="" tone="bg-emerald-500" />
+        <Meter icon={Cpu} label={t('المعالج')} value={h.cpu ?? 0} unit="%" tone="bg-blue-500" />
+        <Meter icon={MemoryStick} label={t('الذاكرة')} value={h.memory ?? 0} unit="%" tone="bg-violet-500" />
+        <Meter icon={Database} label={t('اتصالات قاعدة البيانات')} value={h.db_connections ?? 0} unit="" tone="bg-emerald-500" />
       </div>
     </div>
   )
