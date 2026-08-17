@@ -1794,4 +1794,14 @@ export default {
   'تمكين المؤسسات الجديدة من التسجيل تلقائياً': 'Enable new organizations to register automatically',
   'وضع الصيانة': 'Maintenance Mode',
   'إيقاف الوصول مؤقتاً لجميع المؤسسات': 'Temporarily disable access for all organizations',
+
+  // ── Candidate Pre-Employment Forms ──
+  'تم إرسال النموذج': 'Form submitted',
+  'بياناتك / إقرارك': 'Your Information / Acknowledgment',
+  'اكتب ردك هنا': 'Type your response here',
+  'أقرّ بصحة البيانات المدخلة': 'I acknowledge the entered information is accurate',
+  'إجمالي النماذج': 'Total Forms',
+  'لا توجد نماذج مطلوبة': 'No forms required',
+  'أُرسل {{date}}': 'sent {{date}}',
+  'تعبئة': 'Fill Out',
 }
