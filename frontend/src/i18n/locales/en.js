@@ -1896,4 +1896,12 @@ export default {
   'شاغر': 'position',
   'مقدّم الطلب: {{name}}': 'Requested by: {{name}}',
   'معلق_hiring': 'Pending',
+
+  // ── Promotions & Transfers (Manager) ──
+  'طلب ترقية / نقل': 'Promotion / Transfer Request',
+  'المسمى الجديد': 'New Title',
+  'القسم الجديد': 'New Department',
+  'طلب ترقية/نقل': 'Promotion/Transfer Request',
+  'ترقيات': 'Promotions',
+  'عمليات نقل': 'Transfers',
 }
