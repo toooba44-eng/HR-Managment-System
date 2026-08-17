@@ -1609,4 +1609,8 @@ export default {
   'أنت': 'You',
   'ابدأ المحادثة مع فريق التوظيف': 'Start the conversation with the recruitment team',
   'اكتب رسالتك…': 'Type your message…',
+
+  // ── Limits (Super Admin) ──
+  'تم حفظ الحدود': 'Limits saved',
+  'لا توجد مؤسسات': 'No companies',
 }
