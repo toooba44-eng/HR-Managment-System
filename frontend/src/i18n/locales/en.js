@@ -1860,4 +1860,22 @@ export default {
   'نقل إلى: {{status}}': 'Move to: {{status}}',
   'إعادة فتح': 'Reopen',
   'حذف التذكرة؟': 'Delete this ticket?',
+
+  // ── AI Settings (Super Admin) ──
+  'ميزات الذكاء الاصطناعي': 'AI Features',
+  'مفعّلة على مستوى المنصة': 'Enabled platform-wide',
+  'المزوّد والنموذج': 'Provider & Model',
+  'النموذج': 'Model',
+  'حد الرموز الشهري (Tokens)': 'Monthly Token Limit (Tokens)',
+  'الميزات': 'Features',
+  'فرز السير الذاتية': 'Resume Screening',
+  'تحليل وترتيب المرشحين آلياً': 'Automatically analyze and rank candidates',
+  'روبوت محادثة لخدمة الموظفين': 'A chatbot to serve employees',
+  'التحليلات الذكية': 'Smart Analytics',
+  'توصيات ورؤى تعتمد على البيانات': 'Data-driven recommendations and insights',
+  'الملخّصات التلقائية': 'Automatic Summaries',
+  'تلخيص التقارير والمستندات': 'Summarize reports and documents',
+  'استخدام المساعد الذكي': 'AI Assistant Usage',
+  'رصيد الإجازات': 'Leave Balance',
+  'مستخدم غير معروف': 'Unknown user',
 }
