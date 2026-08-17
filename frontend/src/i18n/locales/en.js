@@ -1602,4 +1602,11 @@ export default {
   'مستخدم_count': 'users',
   'المؤسسات المشتركة': 'Subscribed Companies',
   'توزيع الاشتراكات محسوب من المؤسسات المسجّلة في المنصة.': 'Subscription distribution is calculated from companies registered on the platform.',
+
+  // ── Candidate Contact ──
+  'فريق التوظيف': 'Recruitment Team',
+  'متصل — يرد عادةً خلال يوم عمل': 'Online — usually replies within one business day',
+  'أنت': 'You',
+  'ابدأ المحادثة مع فريق التوظيف': 'Start the conversation with the recruitment team',
+  'اكتب رسالتك…': 'Type your message…',
 }
