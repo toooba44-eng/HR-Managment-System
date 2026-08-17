@@ -1689,4 +1689,18 @@ export default {
   'الانضمام الآن': 'Join Now',
   'حالتك:': 'Your status:',
   'عضو نشط في قاعدة المواهب': 'Active member of the talent pool',
+
+  // ── Backups (Super Admin) ──
+  'يدوي': 'Manual',
+  'تلقائي': 'Automatic',
+  'عدد النسخ': 'Number of Backups',
+  'آخر نسخة': 'Last Backup',
+  'إنشاء نسخة احتياطية': 'Create Backup',
+  'لا توجد نسخ احتياطية': 'No backups',
+  'نسخة #{{id}}': 'Backup #{{id}}',
+  'استعادة هذه النسخة؟': 'Restore this backup?',
+  'استعادة': 'Restore',
+  'حذف النسخة؟': 'Delete this backup?',
+  'تمت الاستعادة': 'Restored successfully',
+  'تم إنشاء نسخة احتياطية': 'Backup created',
 }
