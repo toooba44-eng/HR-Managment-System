@@ -1,4 +1,5 @@
 import { useQuery } from 'react-query'
+import { useTranslation } from 'react-i18next'
 import { Check, Package } from 'lucide-react'
 import { companiesApi } from '../../api/endpoints'
 import Spinner from '../../components/ui/Spinner'
@@ -10,6 +11,7 @@ const PLANS = [
 ]
 
 export default function Subscriptions() {
+  const { t } = useTranslation()
   const { data, isLoading } = useQuery('companies', companiesApi.list)
   if (isLoading) return <Spinner fullscreen />
 
@@ -22,21 +24,21 @@ export default function Subscriptions() {
           <div key={p.name} className="card flex flex-col">
             <div className={`rounded-xl bg-gradient-to-br ${p.color} text-white p-5`}>
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-extrabold">{p.name}</h3>
+                <h3 className="text-lg font-extrabold">{t(p.name)}</h3>
                 <Package className="w-5 h-5 opacity-80" />
               </div>
-              <p className="mt-3"><span className="text-3xl font-extrabold">{p.price}</span> <span className="text-sm opacity-80">ر.س/شهر</span></p>
-              <p className="text-xs opacity-90 mt-1">{p.users} مستخدم · {p.storage}GB تخزين</p>
+              <p className="mt-3"><span className="text-3xl font-extrabold">{p.price}</span> <span className="text-sm opacity-80">{t('ر.س/شهر')}</span></p>
+              <p className="text-xs opacity-90 mt-1">{p.users} {t('مستخدم', { context: 'count' })} · {p.storage}GB {t('تخزين')}</p>
             </div>
             <ul className="mt-4 space-y-2 flex-1">
               {p.features.map((f) => (
                 <li key={f} className="flex items-center gap-2 text-sm text-slate-600">
-                  <Check className="w-4 h-4 text-emerald-500 shrink-0" /> {f}
+                  <Check className="w-4 h-4 text-emerald-500 shrink-0" /> {t(f)}
                 </li>
               ))}
             </ul>
             <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-sm">
-              <span className="text-slate-400">المؤسسات المشتركة</span>
+              <span className="text-slate-400">{t('المؤسسات المشتركة')}</span>
               <span className="font-bold text-slate-800">{byPlan[p.name] || 0}</span>
             </div>
           </div>
@@ -44,7 +46,7 @@ export default function Subscriptions() {
       </div>
 
       <p className="text-xs text-slate-400 text-center">
-        توزيع الاشتراكات محسوب من المؤسسات المسجّلة في المنصة.
+        {t('توزيع الاشتراكات محسوب من المؤسسات المسجّلة في المنصة.')}
       </p>
     </div>
   )
