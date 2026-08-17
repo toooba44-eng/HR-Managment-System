@@ -1854,4 +1854,10 @@ export default {
   'استخدم {{name}}, {{company}}, {{date}} كمتغيّرات': 'Use {{name}}, {{company}}, {{date}} as variables',
   'لا توجد قوالب': 'No templates',
   'حذف القالب؟': 'Delete this template?',
+
+  // ── Support Tickets (Super Admin) ──
+  'إجمالي التذاكر': 'Total Tickets',
+  'نقل إلى: {{status}}': 'Move to: {{status}}',
+  'إعادة فتح': 'Reopen',
+  'حذف التذكرة؟': 'Delete this ticket?',
 }
