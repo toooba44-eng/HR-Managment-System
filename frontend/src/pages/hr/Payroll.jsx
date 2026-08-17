@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
+import { useTranslation } from 'react-i18next'
 import { Wallet, Users, TrendingDown, Banknote, Plus, Trash2, ArrowLeftCircle, ClipboardList, CheckCircle2, Clock, Landmark, Download, AlertTriangle, ShieldCheck } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { payrollApi, departmentsApi } from '../../api/endpoints'
@@ -19,6 +20,7 @@ const NEXT_STATUS = { مسودة: 'قيد المراجعة', 'قيد المرا�
 const NEXT_LABEL = { مسودة: 'إرسال للمراجعة', 'قيد المراجعة': 'اعتماد', معتمد: 'صرف' }
 
 function OverviewTab() {
+  const { t } = useTranslation()
   const [departmentId, setDepartmentId] = useState('')
   const { data: departments = [] } = useQuery('departments', departmentsApi.list)
   const { data, isLoading } = useQuery(
@@ -33,17 +35,17 @@ function OverviewTab() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Users} label="عدد الموظفين" value={data?.count ?? 0} tone="blue" />
-        <StatCard icon={Banknote} label="إجمالي الأساسي" value={formatCurrency(totals.basic)} tone="violet" />
-        <StatCard icon={TrendingDown} label="إجمالي الاستقطاعات" value={formatCurrency(totals.deductions)} tone="rose" />
-        <StatCard icon={Wallet} label="إجمالي الصافي" value={formatCurrency(totals.net)} tone="green" />
+        <StatCard icon={Users} label={t('عدد الموظفين')} value={data?.count ?? 0} tone="blue" />
+        <StatCard icon={Banknote} label={t('إجمالي الأساسي')} value={formatCurrency(totals.basic)} tone="violet" />
+        <StatCard icon={TrendingDown} label={t('إجمالي الاستقطاعات')} value={formatCurrency(totals.deductions)} tone="rose" />
+        <StatCard icon={Wallet} label={t('إجمالي الصافي')} value={formatCurrency(totals.net)} tone="green" />
       </div>
 
       <div className="card">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-4">
-          <h3 className="font-bold text-slate-800">كشف الرواتب الشهري</h3>
+          <h3 className="font-bold text-slate-800">{t('كشف الرواتب الشهري')}</h3>
           <Select value={departmentId} onChange={(e) => setDepartmentId(e.target.value)} className="sm:w-56">
-            <option value="">كل الإدارات</option>
+            <option value="">{t('كل الإدارات')}</option>
             {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
           </Select>
         </div>
@@ -51,18 +53,18 @@ function OverviewTab() {
         {isLoading ? (
           <Spinner fullscreen />
         ) : payroll.length === 0 ? (
-          <EmptyState icon={Wallet} title="لا يوجد موظفون" />
+          <EmptyState icon={Wallet} title={t('لا يوجد موظفون')} />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-right text-slate-400 border-b border-slate-100">
-                  <th className="pb-3 font-medium">الموظف</th>
-                  <th className="pb-3 font-medium">الإدارة</th>
-                  <th className="pb-3 font-medium">الأساسي</th>
-                  <th className="pb-3 font-medium">البدلات</th>
-                  <th className="pb-3 font-medium">الاستقطاعات</th>
-                  <th className="pb-3 font-medium">الصافي</th>
+                  <th className="pb-3 font-medium">{t('الموظف')}</th>
+                  <th className="pb-3 font-medium">{t('الإدارة')}</th>
+                  <th className="pb-3 font-medium">{t('الأساسي')}</th>
+                  <th className="pb-3 font-medium">{t('البدلات')}</th>
+                  <th className="pb-3 font-medium">{t('الاستقطاعات')}</th>
+                  <th className="pb-3 font-medium">{t('الصافي')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -87,7 +89,7 @@ function OverviewTab() {
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-slate-100 font-bold text-slate-800">
-                  <td className="pt-3" colSpan={2}>الإجمالي</td>
+                  <td className="pt-3" colSpan={2}>{t('الإجمالي')}</td>
                   <td className="pt-3">{formatCurrency(totals.basic)}</td>
                   <td className="pt-3">{formatCurrency(totals.allowances)}</td>
                   <td className="pt-3 text-rose-500">−{formatCurrency(totals.deductions)}</td>
@@ -103,30 +105,31 @@ function OverviewTab() {
 }
 
 function NewRunForm({ open, onClose }) {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const now = new Date()
   const [form, setForm] = useState({ month: now.getMonth() + 1, year: now.getFullYear() })
   const m = useMutation(() => payrollApi.createRun(form), {
-    onSuccess: () => { toast.success('تم إنشاء المسير'); qc.invalidateQueries('payroll-runs'); onClose() },
-    onError: (e) => toast.error(e.response?.data?.error || 'فشل الإنشاء'),
+    onSuccess: () => { toast.success(t('تم إنشاء المسير')); qc.invalidateQueries('payroll-runs'); onClose() },
+    onError: (e) => toast.error(e.response?.data?.error || t('فشل الإنشاء')),
   })
   return (
-    <Modal open={open} onClose={onClose} title="مسير رواتب جديد">
+    <Modal open={open} onClose={onClose} title={t('مسير رواتب جديد')}>
       <form onSubmit={(e) => { e.preventDefault(); m.mutate() }} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
-          <Field label="الشهر" required>
+          <Field label={t('الشهر')} required>
             <Select value={form.month} onChange={(e) => setForm((f) => ({ ...f, month: Number(e.target.value) }))}>
-              {MONTHS.map((mn, i) => <option key={mn} value={i + 1}>{mn}</option>)}
+              {MONTHS.map((mn, i) => <option key={mn} value={i + 1}>{t(mn)}</option>)}
             </Select>
           </Field>
-          <Field label="السنة" required>
+          <Field label={t('السنة')} required>
             <Input type="number" value={form.year} onChange={(e) => setForm((f) => ({ ...f, year: Number(e.target.value) }))} required />
           </Field>
         </div>
-        <p className="text-xs text-slate-400">سيتم إنشاء المسير من رواتب الموظفين النشطين الحالية، وسيمر بمراحل المراجعة والاعتماد والصرف.</p>
+        <p className="text-xs text-slate-400">{t('سيتم إنشاء المسير من رواتب الموظفين النشطين الحالية، وسيمر بمراحل المراجعة والاعتماد والصرف.')}</p>
         <div className="flex justify-end gap-3 pt-2">
-          <Button type="button" variant="secondary" onClick={onClose}>إلغاء</Button>
-          <Button type="submit" loading={m.isLoading}>إنشاء</Button>
+          <Button type="button" variant="secondary" onClick={onClose}>{t('إلغاء')}</Button>
+          <Button type="submit" loading={m.isLoading}>{t('إنشاء')}</Button>
         </div>
       </form>
     </Modal>
@@ -136,6 +139,7 @@ function NewRunForm({ open, onClose }) {
 const WPS_SUB_STATUS_TONE = { 'تم التوليد': 'bg-slate-100 text-slate-600', 'أُرسل لمدد': 'bg-amber-50 text-amber-600', 'مؤكد': 'bg-emerald-50 text-emerald-600' }
 
 function WpsSection({ runId }) {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const { data, isLoading } = useQuery(['payroll-run-wps', runId], () => payrollApi.wps(runId), { enabled: !!runId })
   const { data: subsData } = useQuery(['wps-submissions', runId], () => payrollApi.wpsSubmissions(runId), { enabled: !!runId })
@@ -145,8 +149,8 @@ function WpsSection({ runId }) {
   const advance = useMutation(
     ({ subId, status, mudad_reference }) => payrollApi.advanceWpsSubmission(subId, status, mudad_reference),
     {
-      onSuccess: () => { toast.success('تم التحديث'); qc.invalidateQueries(['wps-submissions', runId]) },
-      onError: (e) => toast.error(e.response?.data?.error || 'فشل التحديث'),
+      onSuccess: () => { toast.success(t('تم التحديث')); qc.invalidateQueries(['wps-submissions', runId]) },
+      onError: (e) => toast.error(e.response?.data?.error || t('فشل التحديث')),
     }
   )
 
@@ -155,20 +159,20 @@ function WpsSection({ runId }) {
   const submissions = subsData?.submissions || []
 
   const markSent = (subId) => {
-    const ref = window.prompt('الرقم المرجعي من مدد:')
+    const ref = window.prompt(t('الرقم المرجعي من مدد:'))
     if (ref && ref.trim()) advance.mutate({ subId, status: 'أُرسل لمدد', mudad_reference: ref.trim() })
   }
 
   return (
     <div className="rounded-xl border border-slate-100 p-3 space-y-2">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-bold text-slate-700 flex items-center gap-1.5"><Landmark className="w-4 h-4 text-slate-400" /> ملف حماية الأجور (WPS)</p>
+        <p className="text-sm font-bold text-slate-700 flex items-center gap-1.5"><Landmark className="w-4 h-4 text-slate-400" /> {t('ملف حماية الأجور (WPS)')}</p>
         <Button
           variant={data.ready ? 'primary' : 'secondary'}
           disabled={!data.ready}
-          onClick={() => { downloadWpsFile(data); toast.success('تم تنزيل الملف'); record.mutate() }}
+          onClick={() => { downloadWpsFile(data); toast.success(t('تم تنزيل الملف')); record.mutate() }}
         >
-          <Download className="w-4 h-4" /> تنزيل الملف
+          <Download className="w-4 h-4" /> {t('تنزيل الملف')}
         </Button>
       </div>
       {data.org_issues.length > 0 && (
@@ -177,25 +181,25 @@ function WpsSection({ runId }) {
         </ul>
       )}
       {issueCount > 0 && (
-        <p className="text-xs text-amber-600 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 shrink-0" /> {issueCount} موظف يحتاج بيانات هوية/آيبان صحيحة قبل توليد الملف</p>
+        <p className="text-xs text-amber-600 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 shrink-0" /> {t('{{count}} موظف يحتاج بيانات هوية/آيبان صحيحة قبل توليد الملف', { count: issueCount })}</p>
       )}
-      {data.ready && <p className="text-xs text-emerald-600">جاهز للتوليد — {data.items.length} موظف.</p>}
+      {data.ready && <p className="text-xs text-emerald-600">{t('جاهز للتوليد — {{count}} موظف.', { count: data.items.length })}</p>}
 
       {submissions.length > 0 && (
         <div className="pt-2 mt-2 border-t border-slate-50 space-y-1.5">
-          <p className="text-xs font-bold text-slate-500">سجل الإرسال</p>
+          <p className="text-xs font-bold text-slate-500">{t('سجل الإرسال')}</p>
           {submissions.map((s) => (
             <div key={s.id} className="flex items-center justify-between gap-2 text-xs bg-slate-50 rounded-lg px-3 py-2">
               <div className="min-w-0">
-                <span className={`badge ${WPS_SUB_STATUS_TONE[s.status]}`}>{s.status}</span>
+                <span className={`badge ${WPS_SUB_STATUS_TONE[s.status]}`}>{t(s.status)}</span>
                 <span className="text-slate-400 mr-2">{formatDateTime(s.created_at)} · {s.generated_by_name || '—'}</span>
-                {s.mudad_reference && <span className="text-slate-500 block mt-1">مرجع مدد: {s.mudad_reference}</span>}
+                {s.mudad_reference && <span className="text-slate-500 block mt-1">{t('مرجع مدد: {{ref}}', { ref: s.mudad_reference })}</span>}
               </div>
               {s.status === 'تم التوليد' && (
-                <button onClick={() => markSent(s.id)} className="shrink-0 text-blue-600 hover:underline">تسجيل الإرسال لمدد</button>
+                <button onClick={() => markSent(s.id)} className="shrink-0 text-blue-600 hover:underline">{t('تسجيل الإرسال لمدد')}</button>
               )}
               {s.status === 'أُرسل لمدد' && (
-                <button onClick={() => advance.mutate({ subId: s.id, status: 'مؤكد' })} className="shrink-0 text-emerald-600 hover:underline">تأكيد الاستلام</button>
+                <button onClick={() => advance.mutate({ subId: s.id, status: 'مؤكد' })} className="shrink-0 text-emerald-600 hover:underline">{t('تأكيد الاستلام')}</button>
               )}
             </div>
           ))}
@@ -216,70 +220,76 @@ const GOSI_CSV_COLUMNS = [
 ]
 
 function GosiSection({ runId, month, year }) {
+  const { t } = useTranslation()
   const { data, isLoading } = useQuery(['payroll-run-gosi', runId], () => payrollApi.gosi(runId), { enabled: !!runId })
   if (isLoading || !data) return null
   const issueCount = data.items.filter((i) => !i.ok).length
   return (
     <div className="rounded-xl border border-slate-100 p-3 space-y-2">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-bold text-slate-700 flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-slate-400" /> تقرير اشتراكات التأمينات الاجتماعية (GOSI)</p>
+        <p className="text-sm font-bold text-slate-700 flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-slate-400" /> {t('تقرير اشتراكات التأمينات الاجتماعية (GOSI)')}</p>
         <Button
           variant={data.ready ? 'primary' : 'secondary'}
           disabled={!data.ready}
-          onClick={() => { downloadCSV(`GOSI_${year}${String(month).padStart(2, '0')}.csv`, data.items, GOSI_CSV_COLUMNS); toast.success('تم تنزيل التقرير') }}
+          onClick={() => {
+            const columns = GOSI_CSV_COLUMNS.map((c) => ({ ...c, label: t(c.label) }))
+            downloadCSV(`GOSI_${year}${String(month).padStart(2, '0')}.csv`, data.items, columns)
+            toast.success(t('تم تنزيل التقرير'))
+          }}
         >
-          <Download className="w-4 h-4" /> تنزيل التقرير
+          <Download className="w-4 h-4" /> {t('تنزيل التقرير')}
         </Button>
       </div>
       <div className="grid grid-cols-3 gap-2 text-xs text-slate-500">
-        <div>اشتراك الموظفين: {formatCurrency(data.totals.employee_gosi)}</div>
-        <div>اشتراك المنشأة: {formatCurrency(data.totals.employer_gosi)}</div>
-        <div>الإجمالي: {formatCurrency(data.totals.total_gosi)}</div>
+        <div>{t('اشتراك الموظفين: {{amount}}', { amount: formatCurrency(data.totals.employee_gosi) })}</div>
+        <div>{t('اشتراك المنشأة: {{amount}}', { amount: formatCurrency(data.totals.employer_gosi) })}</div>
+        <div>{t('الإجمالي')}: {formatCurrency(data.totals.total_gosi)}</div>
       </div>
       {issueCount > 0 && (
-        <p className="text-xs text-amber-600 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 shrink-0" /> {issueCount} موظف يحتاج بيانات هوية/جنسية صحيحة قبل توليد التقرير</p>
+        <p className="text-xs text-amber-600 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 shrink-0" /> {t('{{count}} موظف يحتاج بيانات هوية/جنسية صحيحة قبل توليد التقرير', { count: issueCount })}</p>
       )}
     </div>
   )
 }
 
 function RunDetailModal({ runId, onClose }) {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const { data, isLoading } = useQuery(['payroll-run', runId], () => payrollApi.getRun(runId), { enabled: !!runId })
   const advance = useMutation((status) => payrollApi.advanceRun(runId, status), {
-    onSuccess: () => { toast.success('تم التحديث'); qc.invalidateQueries(['payroll-run', runId]); qc.invalidateQueries('payroll-runs') },
-    onError: (e) => toast.error(e.response?.data?.error || 'فشل التحديث'),
+    onSuccess: () => { toast.success(t('تم التحديث')); qc.invalidateQueries(['payroll-run', runId]); qc.invalidateQueries('payroll-runs') },
+    onError: (e) => toast.error(e.response?.data?.error || t('فشل التحديث')),
   })
 
   return (
-    <Modal open={!!runId} onClose={onClose} title="تفاصيل مسير الرواتب" size="lg">
+    <Modal open={!!runId} onClose={onClose} title={t('تفاصيل مسير الرواتب')} size="lg">
       {isLoading || !data ? (
         <div className="py-12"><Spinner /></div>
       ) : (
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="font-bold text-slate-800">{MONTHS[data.month - 1]} {data.year}</p>
-              <p className="text-xs text-slate-400">{data.employee_count} موظف · الصافي {formatCurrency(data.total_net)}</p>
+              <p className="font-bold text-slate-800">{t(MONTHS[data.month - 1])} {data.year}</p>
+              <p className="text-xs text-slate-400">{t('{{count}} موظف · الصافي {{amount}}', { count: data.employee_count, amount: formatCurrency(data.total_net) })}</p>
             </div>
-            <Badge status={data.status} />
+            <Badge status={data.status}>{t(data.status)}</Badge>
           </div>
 
           <div className="grid grid-cols-3 gap-2 text-xs text-slate-500 rounded-xl bg-slate-50 border border-slate-100 p-3">
-            <div>أنشأه: {data.created_by_name || '—'}</div>
-            <div>اعتمده: {data.approved_by_name ? `${data.approved_by_name} (${formatDateTime(data.approved_at)})` : '—'}</div>
-            <div>تاريخ الصرف: {data.paid_at ? formatDateTime(data.paid_at) : '—'}</div>
+            <div>{t('أنشأه: {{name}}', { name: data.created_by_name || '—' })}</div>
+            <div>{t('اعتمده: {{name}}', { name: data.approved_by_name ? `${data.approved_by_name} (${formatDateTime(data.approved_at)})` : '—' })}</div>
+            <div>{t('تاريخ الصرف: {{date}}', { date: data.paid_at ? formatDateTime(data.paid_at) : '—' })}</div>
           </div>
 
           <div className="overflow-x-auto max-h-72 overflow-y-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-right text-slate-400 border-b border-slate-100 sticky top-0 bg-white">
-                  <th className="pb-2 font-medium">الموظف</th>
-                  <th className="pb-2 font-medium">الأساسي</th>
-                  <th className="pb-2 font-medium">البدلات</th>
-                  <th className="pb-2 font-medium">الاستقطاعات</th>
-                  <th className="pb-2 font-medium">الصافي</th>
+                  <th className="pb-2 font-medium">{t('الموظف')}</th>
+                  <th className="pb-2 font-medium">{t('الأساسي')}</th>
+                  <th className="pb-2 font-medium">{t('البدلات')}</th>
+                  <th className="pb-2 font-medium">{t('الاستقطاعات')}</th>
+                  <th className="pb-2 font-medium">{t('الصافي')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -307,7 +317,7 @@ function RunDetailModal({ runId, onClose }) {
           {NEXT_STATUS[data.status] && (
             <div className="flex justify-end pt-2 border-t border-slate-100">
               <Button onClick={() => advance.mutate(NEXT_STATUS[data.status])} loading={advance.isLoading}>
-                <ArrowLeftCircle className="w-4 h-4" /> {NEXT_LABEL[data.status]}
+                <ArrowLeftCircle className="w-4 h-4" /> {t(NEXT_LABEL[data.status])}
               </Button>
             </div>
           )}
@@ -318,13 +328,14 @@ function RunDetailModal({ runId, onClose }) {
 }
 
 function RunsTab() {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const [showForm, setShowForm] = useState(false)
   const [detailId, setDetailId] = useState(null)
   const { data, isLoading } = useQuery('payroll-runs', payrollApi.runs)
   const remove = useMutation((id) => payrollApi.removeRun(id), {
-    onSuccess: () => { toast.success('تم الحذف'); qc.invalidateQueries('payroll-runs') },
-    onError: (e) => toast.error(e.response?.data?.error || 'فشل الحذف'),
+    onSuccess: () => { toast.success(t('تم الحذف')); qc.invalidateQueries('payroll-runs') },
+    onError: (e) => toast.error(e.response?.data?.error || t('فشل الحذف')),
   })
 
   if (isLoading) return <Spinner fullscreen />
@@ -334,32 +345,32 @@ function RunsTab() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={ClipboardList} label="إجمالي المسيرات" value={s.total ?? 0} tone="blue" />
-        <StatCard icon={Clock} label="بانتظار الاعتماد" value={s.pendingApproval ?? 0} tone="amber" />
-        <StatCard icon={CheckCircle2} label="مصروفة" value={s.paid ?? 0} tone="green" />
-        <StatCard icon={ClipboardList} label="مسودات" value={s.drafts ?? 0} tone="violet" />
+        <StatCard icon={ClipboardList} label={t('إجمالي المسيرات')} value={s.total ?? 0} tone="blue" />
+        <StatCard icon={Clock} label={t('بانتظار الاعتماد')} value={s.pendingApproval ?? 0} tone="amber" />
+        <StatCard icon={CheckCircle2} label={t('مصروفة')} value={s.paid ?? 0} tone="green" />
+        <StatCard icon={ClipboardList} label={t('مسودات')} value={s.drafts ?? 0} tone="violet" />
       </div>
 
-      <div className="flex justify-end"><Button onClick={() => setShowForm(true)}><Plus className="w-5 h-5" /> مسير جديد</Button></div>
+      <div className="flex justify-end"><Button onClick={() => setShowForm(true)}><Plus className="w-5 h-5" /> {t('مسير جديد')}</Button></div>
 
       {runs.length === 0 ? (
-        <div className="card"><EmptyState icon={Wallet} title="لا توجد مسيرات رواتب" description="أنشئ أول مسير رواتب لهذا الشهر." /></div>
+        <div className="card"><EmptyState icon={Wallet} title={t('لا توجد مسيرات رواتب')} description={t('أنشئ أول مسير رواتب لهذا الشهر.')} /></div>
       ) : (
         <div className="space-y-3">
           {runs.map((r) => (
             <button key={r.id} onClick={() => setDetailId(r.id)} className="card w-full text-right flex flex-col sm:flex-row sm:items-center gap-3 hover:shadow-sm transition-shadow">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <p className="font-bold text-slate-800">{MONTHS[r.month - 1]} {r.year}</p>
-                  <Badge status={r.status} />
+                  <p className="font-bold text-slate-800">{t(MONTHS[r.month - 1])} {r.year}</p>
+                  <Badge status={r.status}>{t(r.status)}</Badge>
                 </div>
-                <p className="text-xs text-slate-400 mt-1">{r.employee_count} موظف · الصافي {formatCurrency(r.total_net)} · أنشأه {r.created_by_name || '—'}</p>
+                <p className="text-xs text-slate-400 mt-1">{t('{{count}} موظف · الصافي {{amount}} · أنشأه {{name}}', { count: r.employee_count, amount: formatCurrency(r.total_net), name: r.created_by_name || '—' })}</p>
               </div>
               {r.status === 'مسودة' && (
                 <span
                   role="button"
                   tabIndex={0}
-                  onClick={(e) => { e.stopPropagation(); if (window.confirm('حذف المسير؟')) remove.mutate(r.id) }}
+                  onClick={(e) => { e.stopPropagation(); if (window.confirm(t('حذف المسير؟'))) remove.mutate(r.id) }}
                   className="text-slate-300 hover:text-rose-500 shrink-0 p-2"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -377,12 +388,13 @@ function RunsTab() {
 }
 
 export default function Payroll() {
+  const { t } = useTranslation()
   const [tab, setTab] = useState('overview')
   return (
     <div className="space-y-6">
       <div className="flex gap-2 border-b border-slate-100">
-        <button onClick={() => setTab('overview')} className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === 'overview' ? 'border-primary-600 text-primary-700' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>نظرة عامة</button>
-        <button onClick={() => setTab('runs')} className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === 'runs' ? 'border-primary-600 text-primary-700' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>مسيرات الرواتب</button>
+        <button onClick={() => setTab('overview')} className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === 'overview' ? 'border-primary-600 text-primary-700' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>{t('نظرة عامة')}</button>
+        <button onClick={() => setTab('runs')} className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === 'runs' ? 'border-primary-600 text-primary-700' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>{t('مسيرات الرواتب')}</button>
       </div>
       {tab === 'overview' ? <OverviewTab /> : <RunsTab />}
     </div>
