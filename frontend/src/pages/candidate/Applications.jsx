@@ -1,4 +1,5 @@
 import { useQuery } from 'react-query'
+import { useTranslation } from 'react-i18next'
 import { ListChecks, MapPin, Building2, CheckCircle2 } from 'lucide-react'
 import { applicationsApi } from '../../api/endpoints'
 import Spinner from '../../components/ui/Spinner'
@@ -26,6 +27,7 @@ function Tracker({ status }) {
 }
 
 export default function Applications() {
+  const { t } = useTranslation()
   const { data: apps = [], isLoading } = useQuery('my-applications', applicationsApi.mine)
 
   if (isLoading) return <Spinner fullscreen />
@@ -34,7 +36,7 @@ export default function Applications() {
     <div className="space-y-4">
       {apps.length === 0 ? (
         <div className="card">
-          <EmptyState icon={ListChecks} title="لا توجد طلبات" description="تصفّح الوظائف وقدّم على ما يناسبك." />
+          <EmptyState icon={ListChecks} title={t('لا توجد طلبات')} description={t('تصفّح الوظائف وقدّم على ما يناسبك.')} />
         </div>
       ) : (
         apps.map((a) => (
@@ -45,15 +47,15 @@ export default function Applications() {
                 <div className="flex flex-wrap gap-3 mt-1 text-xs text-slate-400">
                   <span className="flex items-center gap-1"><Building2 className="w-3.5 h-3.5" /> {a.job_department || '—'}</span>
                   {a.job_location && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {a.job_location}</span>}
-                  <span>تاريخ التقديم: {formatDate(a.created_at)}</span>
+                  <span>{t('تاريخ التقديم: {{date}}', { date: formatDate(a.created_at) })}</span>
                 </div>
               </div>
-              <Badge status={a.status} />
+              <Badge status={a.status}>{t(a.status)}</Badge>
             </div>
             <Tracker status={a.status} />
             {a.status === 'مقبول' && (
               <p className="text-xs text-emerald-600 mt-2 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> تهانينا! تم قبول طلبك — سيتواصل معك فريق التوظيف.
+                <CheckCircle2 className="w-3.5 h-3.5" /> {t('تهانينا! تم قبول طلبك — سيتواصل معك فريق التوظيف.')}
               </p>
             )}
           </div>

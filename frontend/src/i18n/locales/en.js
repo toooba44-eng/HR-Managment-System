@@ -1703,4 +1703,9 @@ export default {
   'حذف النسخة؟': 'Delete this backup?',
   'تمت الاستعادة': 'Restored successfully',
   'تم إنشاء نسخة احتياطية': 'Backup created',
+
+  // ── Candidate Applications ──
+  'تصفّح الوظائف وقدّم على ما يناسبك.': 'Browse jobs and apply to what suits you.',
+  'تاريخ التقديم: {{date}}': 'Applied on: {{date}}',
+  'تهانينا! تم قبول طلبك — سيتواصل معك فريق التوظيف.': 'Congratulations! Your application has been accepted — the recruitment team will be in touch.',
 }
