@@ -1633,4 +1633,15 @@ export default {
   'مستقر': 'Stable',
   'قيد التطوير': 'Under Development',
   'إجراءات سريعة': 'Quick Actions',
+
+  // ── API Monitor (Super Admin) ──
+  'التكاملات المتصلة': 'Connected Integrations',
+  'طلبات آخر 24 ساعة': 'Requests in the last 24 hours',
+  'أخطاء 24 ساعة': '24-hour Errors',
+  'معدّل النجاح': 'Success Rate',
+  'التكامل': 'Integration',
+  'الطلبات (24س)': 'Requests (24h)',
+  'الأخطاء': 'Errors',
+  'معدّل الخطأ': 'Error Rate',
+  'زمن الاستجابة': 'Response Time',
 }
