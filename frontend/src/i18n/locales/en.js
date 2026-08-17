@@ -1731,4 +1731,11 @@ export default {
   'المستخدمون': 'Users',
   'التخزين': 'Storage',
   'معلّقة': 'Suspended',
+
+  // ── Subscription Requests (Super Admin) ──
+  'ترقية_subscription': 'Upgrade',
+  'تخفيض': 'Downgrade',
+  'إلغاء_subscription': 'Cancellation',
+  'معلق_subscription': 'Pending',
+  'طلبات إلغاء': 'Cancellation Requests',
 }
