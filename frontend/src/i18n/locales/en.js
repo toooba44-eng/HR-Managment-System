@@ -1804,4 +1804,17 @@ export default {
   'لا توجد نماذج مطلوبة': 'No forms required',
   'أُرسل {{date}}': 'sent {{date}}',
   'تعبئة': 'Fill Out',
+
+  // ── Candidate CV ──
+  'تم تحديث السيرة الذاتية': 'CV updated',
+  'تحديث السيرة الذاتية': 'Update CV',
+  'اسحب الملف هنا أو أدخل اسمه (PDF/DOCX)': 'Drag the file here or enter its name (PDF/DOCX)',
+  'اسم ملف السيرة الذاتية': 'CV File Name',
+  'اكتمال الملف': 'Profile Completeness',
+  'أكمل ملفك وارفع سيرتك الذاتية لزيادة فرص القبول.': 'Complete your profile and upload your CV to increase your chances of acceptance.',
+  'تم الرفع': 'Uploaded',
+  'تنزيل': 'Download',
+  'استبدال': 'Replace',
+  'لم ترفع سيرتك الذاتية بعد': "You haven't uploaded your CV yet",
+  'رفع السيرة الذاتية': 'Upload CV',
 }
