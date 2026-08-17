@@ -1708,4 +1708,17 @@ export default {
   'تصفّح الوظائف وقدّم على ما يناسبك.': 'Browse jobs and apply to what suits you.',
   'تاريخ التقديم: {{date}}': 'Applied on: {{date}}',
   'تهانينا! تم قبول طلبك — سيتواصل معك فريق التوظيف.': 'Congratulations! Your application has been accepted — the recruitment team will be in touch.',
+
+  // ── Candidate Interview ──
+  'حضوري': 'In-Person',
+  'فيديو': 'Video',
+  'هاتفي': 'Phone',
+  'مبدئية': 'Initial',
+  'فنية': 'Technical',
+  'نهائية': 'Final',
+  'مجدولة': 'Scheduled',
+  'مقابلتك القادمة': 'Your Upcoming Interview',
+  'الانضمام للمقابلة': 'Join Interview',
+  'لا توجد مقابلات مجدولة': 'No scheduled interviews',
+  'رابط': 'Link',
 }
