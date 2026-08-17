@@ -1970,4 +1970,26 @@ export default {
   'أسند المهام لأعضاء فريقك وتابع تقدّمها.': 'Assign tasks to your team members and track their progress.',
   'المهام المسندة إليك — حدّث حالتها فور إنجازها.': 'Tasks assigned to you — update their status as soon as you complete them.',
   'أسندها: {{name}}': 'Assigned by: {{name}}',
+
+  // ── Candidate Profile ──
+  'تم تحديث الملف': 'Profile updated',
+  'تعديل الملف المهني': 'Edit Professional Profile',
+  'المسمى المهني': 'Professional Headline',
+  'سنوات الخبرة': 'Years of Experience',
+  'المؤهل العلمي': 'Education',
+  'معرض الأعمال': 'Portfolio',
+  'المهارات (مفصولة بفاصلة)': 'Skills (comma-separated)',
+  'نبذة تعريفية': 'Summary',
+  '{{count}} سنوات خبرة': '{{count}} years of experience',
+  'لم تُضف مهارات بعد': 'No skills added yet',
+  'المؤهل': 'Education',
+  'الأعمال': 'Portfolio',
+
+  // ── Candidate Jobs ──
+  'التقديم على: {{title}}': 'Apply for: {{title}}',
+  'عرّف بنفسك ولماذا أنت مناسب لهذه الوظيفة': 'Introduce yourself and why you\'re a good fit for this role',
+  'ابحث عن وظيفة...': 'Search for a job...',
+  'لا توجد وظائف متاحة': 'No jobs available',
+  'التقديم الآن': 'Apply Now',
+  'تم إرسال طلبك بنجاح': 'Your application was submitted successfully',
 }
