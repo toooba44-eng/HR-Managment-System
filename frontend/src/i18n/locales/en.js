@@ -1878,4 +1878,22 @@ export default {
   'استخدام المساعد الذكي': 'AI Assistant Usage',
   'رصيد الإجازات': 'Leave Balance',
   'مستخدم غير معروف': 'Unknown user',
+
+  // ── Hiring Requests (Manager) ──
+  'عقد مؤقت': 'Temporary Contract',
+  'تدريب_employment': 'Internship',
+  'عادي': 'Normal',
+  'عاجل': 'Urgent',
+  'تم رفع الطلب': 'Request submitted',
+  'طلب توظيف جديد': 'New Hiring Request',
+  'قسمي': 'My Department',
+  'عدد الشواغر': 'Number of Positions',
+  'المبرّر': 'Justification',
+  'رفع الطلب': 'Submit Request',
+  'شواغر معتمدة': 'Approved Positions',
+  'طلب توظيف': 'Hiring Request',
+  'لا توجد طلبات توظيف_hiring': 'No hiring requests',
+  'شاغر': 'position',
+  'مقدّم الطلب: {{name}}': 'Requested by: {{name}}',
+  'معلق_hiring': 'Pending',
 }
