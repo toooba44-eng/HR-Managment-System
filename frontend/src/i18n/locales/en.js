@@ -1781,4 +1781,17 @@ export default {
   'المعالج': 'CPU',
   'الذاكرة': 'Memory',
   'اتصالات قاعدة البيانات': 'Database Connections',
+
+  // ── Platform Settings (Super Admin) ──
+  'اسم المنصة': 'Platform Name',
+  'بريد الدعم': 'Support Email',
+  'الباقة الافتراضية': 'Default Plan',
+  'الحدود': 'Limits',
+  'مهلة الجلسة (دقيقة)': 'Session Timeout (minutes)',
+  'الحد الأقصى لرفع الملفات (MB)': 'Max File Upload Size (MB)',
+  'التشغيل والأمان': 'Operations & Security',
+  'السماح بالتسجيل الذاتي': 'Allow Self-Registration',
+  'تمكين المؤسسات الجديدة من التسجيل تلقائياً': 'Enable new organizations to register automatically',
+  'وضع الصيانة': 'Maintenance Mode',
+  'إيقاف الوصول مؤقتاً لجميع المؤسسات': 'Temporarily disable access for all organizations',
 }

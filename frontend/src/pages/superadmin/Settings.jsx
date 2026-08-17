@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
+import { useTranslation } from 'react-i18next'
 import { Globe, ShieldCheck, Save, SlidersHorizontal } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { saConfigApi } from '../../api/endpoints'
@@ -30,13 +31,14 @@ function Section({ icon: Icon, title, children }) {
 }
 
 export default function PlatformSettings() {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const { data, isLoading } = useQuery('platform-settings', () => saConfigApi.settings())
   const [form, setForm] = useState(null)
   useEffect(() => { if (data?.settings) setForm(data.settings) }, [data])
   const m = useMutation((d) => saConfigApi.updateSettings(d), {
-    onSuccess: () => { toast.success('تم حفظ الإعدادات'); qc.invalidateQueries('platform-settings') },
-    onError: (e) => toast.error(e.response?.data?.error || 'فشل الحفظ'),
+    onSuccess: () => { toast.success(t('تم حفظ الإعدادات')); qc.invalidateQueries('platform-settings') },
+    onError: (e) => toast.error(e.response?.data?.error || t('فشل الحفظ')),
   })
 
   if (isLoading || !form) return <Spinner fullscreen />
@@ -46,28 +48,28 @@ export default function PlatformSettings() {
   return (
     <div className="space-y-6">
       <div className="grid lg:grid-cols-2 gap-6">
-        <Section icon={Globe} title="الإعدادات العامة">
+        <Section icon={Globe} title={t('الإعدادات العامة')}>
           <div className="space-y-4">
-            <Field label="اسم المنصة"><Input value={form.platform_name || ''} onChange={set('platform_name')} /></Field>
-            <Field label="بريد الدعم"><Input type="email" value={form.support_email || ''} onChange={set('support_email')} /></Field>
-            <Field label="الباقة الافتراضية"><Select value={form.default_plan} onChange={set('default_plan')}><option>أساسية</option><option>احترافية</option><option>مؤسسية</option></Select></Field>
+            <Field label={t('اسم المنصة')}><Input value={form.platform_name || ''} onChange={set('platform_name')} /></Field>
+            <Field label={t('بريد الدعم')}><Input type="email" value={form.support_email || ''} onChange={set('support_email')} /></Field>
+            <Field label={t('الباقة الافتراضية')}><Select value={form.default_plan} onChange={set('default_plan')}><option value="أساسية">{t('أساسية')}</option><option value="احترافية">{t('احترافية')}</option><option value="مؤسسية">{t('مؤسسية')}</option></Select></Field>
           </div>
         </Section>
 
-        <Section icon={SlidersHorizontal} title="الحدود">
+        <Section icon={SlidersHorizontal} title={t('الحدود')}>
           <div className="space-y-4">
-            <Field label="مهلة الجلسة (دقيقة)"><Input type="number" min="5" value={form.session_timeout_min} onChange={set('session_timeout_min')} /></Field>
-            <Field label="الحد الأقصى لرفع الملفات (MB)"><Input type="number" min="1" value={form.max_upload_mb} onChange={set('max_upload_mb')} /></Field>
+            <Field label={t('مهلة الجلسة (دقيقة)')}><Input type="number" min="5" value={form.session_timeout_min} onChange={set('session_timeout_min')} /></Field>
+            <Field label={t('الحد الأقصى لرفع الملفات (MB)')}><Input type="number" min="1" value={form.max_upload_mb} onChange={set('max_upload_mb')} /></Field>
           </div>
         </Section>
       </div>
 
-      <Section icon={ShieldCheck} title="التشغيل والأمان">
-        <Toggle label="السماح بالتسجيل الذاتي" hint="تمكين المؤسسات الجديدة من التسجيل تلقائياً" checked={!!form.signups_enabled} onChange={setBool('signups_enabled')} />
-        <Toggle label="وضع الصيانة" hint="إيقاف الوصول مؤقتاً لجميع المؤسسات" checked={!!form.maintenance_mode} onChange={setBool('maintenance_mode')} danger />
+      <Section icon={ShieldCheck} title={t('التشغيل والأمان')}>
+        <Toggle label={t('السماح بالتسجيل الذاتي')} hint={t('تمكين المؤسسات الجديدة من التسجيل تلقائياً')} checked={!!form.signups_enabled} onChange={setBool('signups_enabled')} />
+        <Toggle label={t('وضع الصيانة')} hint={t('إيقاف الوصول مؤقتاً لجميع المؤسسات')} checked={!!form.maintenance_mode} onChange={setBool('maintenance_mode')} danger />
       </Section>
 
-      <div className="flex justify-end"><Button onClick={() => m.mutate(form)} loading={m.isLoading}><Save className="w-5 h-5" /> حفظ الإعدادات</Button></div>
+      <div className="flex justify-end"><Button onClick={() => m.mutate(form)} loading={m.isLoading}><Save className="w-5 h-5" /> {t('حفظ الإعدادات')}</Button></div>
     </div>
   )
 }
