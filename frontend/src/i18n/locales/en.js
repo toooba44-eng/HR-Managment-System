@@ -1256,4 +1256,20 @@ export default {
   'حذف الفرع؟': 'Delete this branch?',
   'البريد': 'Email',
   'الهاتف': 'Phone',
+
+  // ── Health & Safety (HR) ──
+  'فحص طبي': 'Medical Checkup',
+  'تسجيل بلاغ سلامة': 'Report a Safety Incident',
+  'الموظف المعني (اختياري)': 'Related Employee (optional)',
+  'المسؤول': 'Owner',
+  'الإجراء التصحيحي / الوقائي': 'Corrective / Preventive Action',
+  'الإجراءات التصحيحية — {{title}}': 'Corrective Actions — {{title}}',
+  'لا توجد إجراءات بعد.': 'No actions yet.',
+  'إضافة إجراء تصحيحي': 'Add Corrective Action',
+  'خطورة عالية': 'High Severity',
+  'إجراءات مفتوحة': 'Open Actions',
+  'إجراءات': 'Actions',
+  'الموظف: {{name}}': 'Employee: {{name}}',
+  'حذف البلاغ؟': 'Delete this report?',
+  'أُنجز {{date}}': 'Completed {{date}}',
 }
