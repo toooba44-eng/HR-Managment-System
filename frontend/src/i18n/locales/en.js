@@ -1622,4 +1622,15 @@ export default {
   'إنهاء': 'End',
   'تم إنهاء الجلسة': 'Session ended',
   'دخول_impersonate': 'Log In',
+
+  // ── Super Admin Home ──
+  'مرحباً، {{name}}': 'Welcome, {{name}}',
+  'من هنا تُدار المنصة بالكامل: الشركات المشتركة، الاشتراكات، الفوترة، الوحدات، والمراقبة. هذه لوحة تمهيدية — الوحدات التفصيلية قيد التطوير ضمن خطة البناء.': 'The entire platform is managed from here: subscribed companies, subscriptions, billing, modules, and monitoring. This is an introductory dashboard — detailed modules are still under development as part of the build plan.',
+  'إجمالي المستخدمين': 'Total Users',
+  'الاشتراكات النشطة': 'Active Subscriptions',
+  'حالة النظام': 'System Status',
+  'تشغيل_status': 'Running',
+  'مستقر': 'Stable',
+  'قيد التطوير': 'Under Development',
+  'إجراءات سريعة': 'Quick Actions',
 }
