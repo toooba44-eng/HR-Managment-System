@@ -6,7 +6,7 @@ import * as mock from './mock'
 const DEMO = import.meta.env.VITE_DEMO === 'true'
 
 if (DEMO && typeof console !== 'undefined') {
-  console.info('%c🧪 Quant HR — وضع تجريبي (بيانات وهمية داخل المتصفح)', 'color:#2563eb;font-weight:bold')
+  console.info('%c🧪 YASME HR — وضع تجريبي (بيانات وهمية داخل المتصفح)', 'color:#2563eb;font-weight:bold')
 }
 
 // ---------- Auth ----------

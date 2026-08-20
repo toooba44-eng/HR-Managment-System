@@ -72,9 +72,9 @@ export default function Login() {
         <div className="absolute bottom-0 -right-16 w-80 h-80 bg-white/5 rounded-full" />
         <div className="flex items-center gap-3 relative">
           <div className="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center font-extrabold text-2xl">
-            Q
+            Y
           </div>
-          <span className="text-2xl font-extrabold">Quant HR</span>
+          <span className="text-2xl font-extrabold">YASME HR</span>
         </div>
         <div className="relative">
           <h1 className="text-4xl font-extrabold leading-tight mb-4">
@@ -84,7 +84,7 @@ export default function Login() {
             {t('إدارة الموظفين، الحضور، الإجازات، والإدارات في منصة واحدة متكاملة وسهلة الاستخدام')}.
           </p>
         </div>
-        <p className="text-primary-200 text-sm relative">© 2026 Quant HR. {t('جميع الحقوق محفوظة')}.</p>
+        <p className="text-primary-200 text-sm relative">© 2026 YASME HR. {t('جميع الحقوق محفوظة')}.</p>
       </div>
 
       {/* Form panel */}
@@ -92,9 +92,9 @@ export default function Login() {
         <div className="w-full max-w-md">
           <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-600 to-primary-800 flex items-center justify-center text-white font-extrabold text-2xl">
-              Q
+              Y
             </div>
-            <span className="text-2xl font-extrabold text-slate-800">Quant HR</span>
+            <span className="text-2xl font-extrabold text-slate-800">YASME HR</span>
           </div>
 
           <div className="card">

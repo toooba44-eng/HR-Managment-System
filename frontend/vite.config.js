@@ -13,8 +13,8 @@ export default defineConfig({
       includeAssets: ['favicon.svg'],
       manifest: {
         id: '/',
-        name: 'Quant HR - نظام إدارة الموارد البشرية',
-        short_name: 'Quant HR',
+        name: 'YASME HR - نظام إدارة الموارد البشرية',
+        short_name: 'YASME HR',
         description: 'إدارة الموظفين، الحضور، الإجازات، والرواتب من هاتفك',
         lang: 'ar',
         dir: 'rtl',

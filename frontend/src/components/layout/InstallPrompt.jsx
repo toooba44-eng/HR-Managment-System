@@ -64,7 +64,7 @@ export default function InstallPrompt() {
         <Download className="w-5 h-5" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-bold text-slate-800 text-sm">{t('ثبّت تطبيق Quant HR')}</p>
+        <p className="font-bold text-slate-800 text-sm">{t('ثبّت تطبيق YASME HR')}</p>
         <p className="text-xs text-slate-500 mt-0.5">
           {t('أضِف التطبيق إلى شاشتك الرئيسية للوصول السريع والعمل حتى مع اتصال ضعيف.')}
         </p>

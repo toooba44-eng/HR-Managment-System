@@ -62,7 +62,7 @@ function verifyToken(base32Secret, token) {
   return false;
 }
 
-function otpauthUrl(secret, email, issuer = 'Quant HR') {
+function otpauthUrl(secret, email, issuer = 'YASME HR') {
   const label = encodeURIComponent(`${issuer}:${email}`);
   return `otpauth://totp/${label}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=${STEP_SECONDS}`;
 }
