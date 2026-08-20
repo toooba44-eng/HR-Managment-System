@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import { useAuthStore } from '../store/authStore'
 import { portalForRole } from '../config/portals'
 import { Field, Input, Button } from '../components/ui/Form'
+import LanguageToggle from '../components/layout/LanguageToggle'
 
 const DEMO = import.meta.env.VITE_DEMO === 'true'
 
@@ -66,6 +67,10 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex">
+      <div className="fixed top-4 right-4 z-20 bg-white rounded-lg shadow-md">
+        <LanguageToggle />
+      </div>
+
       {/* Brand panel */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary-700 to-primary-900 text-white p-12 flex-col justify-between relative overflow-hidden">
         <div className="absolute -top-24 -left-24 w-96 h-96 bg-white/5 rounded-full" />
