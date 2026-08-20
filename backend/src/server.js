@@ -187,7 +187,7 @@ if (process.env.NODE_ENV !== 'production' || process.env.SEED_DB === 'true') {
 }
 
 app.listen(PORT, () => {
-  console.log(`🚀 Quant HR Server running on port ${PORT}`);
+  console.log(`🚀 YASME HR Server running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 API URL: http://localhost:${PORT}/api`);
 });

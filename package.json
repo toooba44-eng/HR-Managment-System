@@ -1,7 +1,7 @@
 {
   "name": "quant-hr",
   "version": "1.0.0",
-  "description": "Quant HR - Complete HR Management System",
+  "description": "YASME HR - Complete HR Management System",
   "private": true,
   "scripts": {
     "dev": "concurrently -n backend,frontend -c blue,green \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",

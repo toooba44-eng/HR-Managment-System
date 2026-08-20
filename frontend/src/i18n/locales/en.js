@@ -69,7 +69,7 @@ export default {
   'تم استعادة الاتصال بالإنترنت': 'Internet connection restored',
 
   // ── Install prompt ───────────────────────────────────────────
-  'ثبّت تطبيق Quant HR': 'Install Quant HR',
+  'ثبّت تطبيق YASME HR': 'Install YASME HR',
   'أضِف التطبيق إلى شاشتك الرئيسية للوصول السريع والعمل حتى مع اتصال ضعيف.': 'Add the app to your home screen for quick access and better offline support.',
   'تثبيت': 'Install',
   'لاحقاً': 'Later',
@@ -614,7 +614,7 @@ export default {
   '{{type}} · {{start}} → {{end}} ({{count}} أيام)': '{{type}} · {{start}} → {{end}} ({{count}} days)',
 
   // ── AI Assistant ──────────────────────────────────────────────
-  'مرحباً! أنا المساعد الذكي لموارد كوانت البشرية. يمكنني الإجابة عن أسئلتك حول رصيد إجازتك، راتبك، حضورك، أو سياسات الشركة.': "Hello! I'm the Quant HR AI assistant. I can answer your questions about your leave balance, salary, attendance, or company policies.",
+  'مرحباً! أنا المساعد الذكي لموارد ياسمي البشرية. يمكنني الإجابة عن أسئلتك حول رصيد إجازتك، راتبك، حضورك، أو سياسات الشركة.': "Hello! I'm the YASME HR AI assistant. I can answer your questions about your leave balance, salary, attendance, or company policies.",
   'كم رصيد إجازتي؟': 'How much leave balance do I have?',
   'كم راتبي الصافي هذا الشهر؟': 'What is my net salary this month?',
   'هل سجّلت حضوري اليوم؟': 'Did I check in today?',

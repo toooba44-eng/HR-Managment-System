@@ -74,11 +74,11 @@ export default function Sidebar({ open, onClose }) {
               className="w-11 h-11 rounded-xl flex items-center justify-center text-white font-extrabold text-lg shrink-0"
               style={{ background: `linear-gradient(135deg, ${portal.color}, ${portal.color}cc)` }}
             >
-              Q
+              Y
             </div>
             <div className="min-w-0">
               <h1 className="font-extrabold text-white leading-tight truncate">{t(portal.name)}</h1>
-              <p className="text-xs text-blue-200">Quant HR · {portal.subtitle}</p>
+              <p className="text-xs text-blue-200">YASME HR · {portal.subtitle}</p>
             </div>
           </div>
           <button onClick={onClose} className="lg:hidden text-blue-200">

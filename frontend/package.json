@@ -1,7 +1,7 @@
 {
   "name": "quant-hr-frontend",
   "version": "1.0.0",
-  "description": "Quant HR - HR Management System Frontend",
+  "description": "YASME HR - HR Management System Frontend",
   "private": true,
   "type": "module",
   "scripts": {

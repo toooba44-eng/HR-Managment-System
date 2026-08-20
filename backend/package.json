@@ -1,7 +1,7 @@
 {
   "name": "quant-hr-backend",
   "version": "1.0.0",
-  "description": "Quant HR - HR Management System Backend API",
+  "description": "YASME HR - HR Management System Backend API",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
