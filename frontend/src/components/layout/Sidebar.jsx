@@ -63,7 +63,7 @@ export default function Sidebar({ open, onClose }) {
 
       <aside
         className={cn(
-          'fixed lg:static inset-y-0 right-0 w-72 bg-white border-l border-slate-100 z-40 flex flex-col transition-transform duration-300',
+          'fixed lg:static inset-y-0 right-0 w-72 bg-primary-800 z-40 flex flex-col transition-transform duration-300',
           open ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
         )}
       >
@@ -77,11 +77,11 @@ export default function Sidebar({ open, onClose }) {
               Q
             </div>
             <div className="min-w-0">
-              <h1 className="font-extrabold text-slate-800 leading-tight truncate">{t(portal.name)}</h1>
-              <p className="text-xs text-slate-400">Quant HR · {portal.subtitle}</p>
+              <h1 className="font-extrabold text-white leading-tight truncate">{t(portal.name)}</h1>
+              <p className="text-xs text-blue-200">Quant HR · {portal.subtitle}</p>
             </div>
           </div>
-          <button onClick={onClose} className="lg:hidden text-slate-400">
+          <button onClick={onClose} className="lg:hidden text-blue-200">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -96,7 +96,7 @@ export default function Sidebar({ open, onClose }) {
                   type="button"
                   onClick={() => toggleSection(group.section)}
                   aria-expanded={openSections.has(group.section)}
-                  className="w-full flex items-center justify-between gap-2 px-4 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-wide hover:text-slate-600 transition-colors"
+                  className="w-full flex items-center justify-between gap-2 px-4 py-2 text-[11px] font-bold text-blue-300 uppercase tracking-wide hover:text-white transition-colors"
                 >
                   <span className="truncate">{t(group.section)}</span>
                   <ChevronDown
@@ -143,17 +143,17 @@ export default function Sidebar({ open, onClose }) {
         </nav>
 
         {/* User footer */}
-        <div className="p-4 border-t border-slate-100">
+        <div className="p-4 border-t border-white/10">
           <div className="flex items-center gap-3 mb-3 px-2">
             <Avatar name={user?.full_name || user?.email} src={user?.profile_picture} size="md" />
             <div className="min-w-0 flex-1">
-              <p className="font-semibold text-slate-800 text-sm truncate">{user?.full_name || user?.email}</p>
-              <p className="text-xs text-slate-400">{t(ROLE_LABELS[user?.role] || user?.role)}</p>
+              <p className="font-semibold text-white text-sm truncate">{user?.full_name || user?.email}</p>
+              <p className="text-xs text-blue-200">{t(ROLE_LABELS[user?.role] || user?.role)}</p>
             </div>
           </div>
           <button
             onClick={logout}
-            className="nav-item w-full text-rose-500 hover:bg-rose-50 hover:text-rose-600"
+            className="nav-item w-full text-rose-300 hover:bg-rose-500/20 hover:text-rose-200"
           >
             <LogOut className="w-5 h-5" />
             {t('تسجيل الخروج')}
