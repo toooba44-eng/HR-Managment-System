@@ -7,6 +7,7 @@ import { useAuthStore } from '../store/authStore'
 import { portalForRole } from '../config/portals'
 import { Field, Input, Button } from '../components/ui/Form'
 import LanguageToggle from '../components/layout/LanguageToggle'
+import { cn } from '../lib/utils'
 
 const DEMO = import.meta.env.VITE_DEMO === 'true'
 
@@ -19,7 +20,8 @@ const DEMO_ACCOUNTS = [
 ]
 
 export default function Login() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const isArabic = i18n.language !== 'en'
   const { login, verifyTwoFactor, token, isLoading } = useAuthStore()
   const navigate = useNavigate()
   const location = useLocation()
@@ -67,7 +69,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex">
-      <div className="fixed top-4 right-4 z-20 bg-white rounded-lg shadow-md">
+      <div className={cn('fixed top-4 z-20 bg-white rounded-lg shadow-md', isArabic ? 'left-4' : 'right-4')}>
         <LanguageToggle />
       </div>
 
